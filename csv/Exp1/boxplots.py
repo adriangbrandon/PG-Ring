@@ -30,9 +30,17 @@ df_ring = pd.read_csv("adaptive/" + l + "type1.ring"+b+".time.csv" ,
 					  header=None, delimiter=';', names=['id', 'res', 'time', 'utime'])
 df_cring = pd.read_csv("adaptive/" + l + "type1.c-ring"+b+".time.csv",
 					   header=None, delimiter=';', names=['id', 'res', 'time', 'utime'])
+df_iring = pd.read_csv("adaptive/" + l + "type1.iring"+b+".time.csv" ,
+					  header=None, delimiter=';', names=['id', 'res', 'time'])
+df_ciring = pd.read_csv("adaptive/" + l + "type1.small-iring"+b+".time.csv",
+					   header=None, delimiter=';', names=['id', 'res', 'time'])
 df_uring = pd.read_csv("adaptive/" + l + "type1.uring"+b+".time.csv" ,
 					  header=None, delimiter=';', names=['id', 'res', 'time', 'utime'])
 df_curing = pd.read_csv("adaptive/" + l + "type1.c-uring"+b+".time.csv",
+					   header=None, delimiter=';', names=['id', 'res', 'time', 'utime'])
+df_iuring = pd.read_csv("adaptive/" + l + "type1.iuring"+b+".time.csv" ,
+					  header=None, delimiter=';', names=['id', 'res', 'time', 'utime'])
+df_ciuring = pd.read_csv("adaptive/" + l + "type1.small-iuring"+b+".time.csv",
 					   header=None, delimiter=';', names=['id', 'res', 'time', 'utime'])
 df_rdfcsa = pd.read_csv("adaptive/" + l + "type1.rdfcsa"+b+".time.csv",
 						header=None, delimiter=';', names=['id', 'res', 'time'])
@@ -61,12 +69,16 @@ df_cltj_fix = pd.read_csv("cltj/fixed/" + l + "type1.cltj.limit"+b+".csv",
 df_data = pd.DataFrame()
 df_data['Ring-large'] = df_ring['time'].div( 1000000.0)
 df_data['Ring-large-fix'] = df_ring_fix['time'].div( 1000000.0)
+df_data['IRing-large'] = df_iring['time'].div( 1000000.0)
 df_data['Ring-small'] = df_cring['time'].div( 1000000.0)
 df_data['Ring-small-fix'] = df_cring_fix['time'].div( 1000000.0)
+df_data['IRing-small'] = df_ciring['time'].div( 1000000.0)
 df_data['URing-large'] = df_uring['time'].div( 1000000.0)
 df_data['URing-large-fix'] = df_uring_fix['time'].div( 1000000.0)
+df_data['IURing-large'] = df_iuring['time'].div( 1000000.0)
 df_data['URing-small'] = df_curing['time'].div( 1000000.0)
 df_data['URing-small-fix'] = df_curing_fix['time'].div( 1000000.0)
+df_data['IURing-small'] = df_ciuring['time'].div( 1000000.0)
 df_data['RDFCSA-large'] = df_rdfcsa['time'].div( 1000000.0)
 df_data['RDFCSA-fix'] = df_rdfcsa_fix['time'].div( 1000000.0)
 df_data['RDFCSA-small'] = df_crdfcsa['time'].div( 1000000.0)
@@ -161,9 +173,17 @@ df_ring = pd.read_csv("adaptive/" + l + "type2.ring"+b+".time.csv" ,
 					  header=None, delimiter=';', names=['id', 'res', 'time', 'utime'])
 df_cring = pd.read_csv("adaptive/" + l + "type2.c-ring"+b+".time.csv",
 					   header=None, delimiter=';', names=['id', 'res', 'time', 'utime'])
+df_iring = pd.read_csv("adaptive/" + l + "type3.iring"+b+".time.csv" ,
+					  header=None, delimiter=';', names=['id', 'res', 'time'])
+df_ciring = pd.read_csv("adaptive/" + l + "type3.small-iring"+b+".time.csv",
+					   header=None, delimiter=';', names=['id', 'res', 'time'])
 df_uring = pd.read_csv("adaptive/" + l + "type2.uring"+b+".time.csv" ,
 					  header=None, delimiter=';', names=['id', 'res', 'time', 'utime'])
 df_curing = pd.read_csv("adaptive/" + l + "type2.c-uring"+b+".time.csv",
+					   header=None, delimiter=';', names=['id', 'res', 'time', 'utime'])
+df_iuring = pd.read_csv("adaptive/" + l + "type2.iuring"+b+".time.csv" ,
+					  header=None, delimiter=';', names=['id', 'res', 'time', 'utime'])
+df_ciuring = pd.read_csv("adaptive/" + l + "type2.small-iuring"+b+".time.csv",
 					   header=None, delimiter=';', names=['id', 'res', 'time', 'utime'])
 df_rdfcsa = pd.read_csv("adaptive/" + l + "type2.rdfcsa"+b+".time.csv",
 						header=None, delimiter=';', names=['id', 'res', 'time'])
@@ -191,12 +211,16 @@ df_cltj_fix = pd.read_csv("cltj/fixed/" + l + "type2.cltj.limit"+b+".csv",
 df_data = pd.DataFrame()
 df_data['Ring-large'] = df_ring['time'].div( 1000000.0)
 df_data['Ring-large-fix'] = df_ring_fix['time'].div( 1000000.0)
+df_data['IRing-large'] = df_iring['time'].div( 1000000.0)
 df_data['Ring-small'] = df_cring['time'].div( 1000000.0)
 df_data['Ring-small-fix'] = df_cring_fix['time'].div( 1000000.0)
+df_data['IRing-small'] = df_ciring['time'].div( 1000000.0)
 df_data['URing-large'] = df_uring['time'].div( 1000000.0)
 df_data['URing-large-fix'] = df_uring_fix['time'].div( 1000000.0)
+df_data['IURing-large'] = df_iuring['time'].div( 1000000.0)
 df_data['URing-small'] = df_curing['time'].div( 1000000.0)
 df_data['URing-small-fix'] = df_curing_fix['time'].div( 1000000.0)
+df_data['IURing-small'] = df_ciuring['time'].div( 1000000.0)
 df_data['RDFCSA-large'] = df_rdfcsa['time'].div( 1000000.0)
 df_data['RDFCSA-fix'] = df_rdfcsa_fix['time'].div( 1000000.0)
 df_data['RDFCSA-small'] = df_crdfcsa['time'].div( 1000000.0)
@@ -284,9 +308,17 @@ df_ring = pd.read_csv("adaptive/" + l + "type3.ring"+b+".time.csv" ,
 					  header=None, delimiter=';', names=['id', 'res', 'time', 'utime'])
 df_cring = pd.read_csv("adaptive/" + l + "type3.c-ring"+b+".time.csv",
 					   header=None, delimiter=';', names=['id', 'res', 'time', 'utime'])
+df_iring = pd.read_csv("adaptive/" + l + "type3.iring"+b+".time.csv" ,
+					  header=None, delimiter=';', names=['id', 'res', 'time'])
+df_ciring = pd.read_csv("adaptive/" + l + "type3.small-iring"+b+".time.csv",
+					   header=None, delimiter=';', names=['id', 'res', 'time'])
 df_uring = pd.read_csv("adaptive/" + l + "type3.uring"+b+".time.csv" ,
 					  header=None, delimiter=';', names=['id', 'res', 'time', 'utime'])
 df_curing = pd.read_csv("adaptive/" + l + "type3.c-uring"+b+".time.csv",
+					   header=None, delimiter=';', names=['id', 'res', 'time', 'utime'])
+df_iuring = pd.read_csv("adaptive/" + l + "type3.iuring"+b+".time.csv" ,
+					  header=None, delimiter=';', names=['id', 'res', 'time', 'utime'])
+df_ciuring = pd.read_csv("adaptive/" + l + "type3.small-iuring"+b+".time.csv",
 					   header=None, delimiter=';', names=['id', 'res', 'time', 'utime'])
 df_rdfcsa = pd.read_csv("adaptive/" + l + "type3.rdfcsa"+b+".time.csv",
 						header=None, delimiter=';', names=['id', 'res', 'time'])
@@ -335,12 +367,16 @@ df_cltj_fix = pd.read_csv("cltj/fixed/" + l + "type3.cltj.limit"+b+".csv",
 df_data = pd.DataFrame()
 df_data['Ring-large'] = df_ring['time'].div( 1000000.0)
 df_data['Ring-large-fix'] = df_ring_fix['time'].div( 1000000.0)
+df_data['IRing-large'] = df_iring['time'].div( 1000000.0)
 df_data['Ring-small'] = df_cring['time'].div( 1000000.0)
 df_data['Ring-small-fix'] = df_cring_fix['time'].div( 1000000.0)
+df_data['IRing-small'] = df_ciring['time'].div( 1000000.0)
 df_data['URing-large'] = df_uring['time'].div( 1000000.0)
 df_data['URing-large-fix'] = df_uring_fix['time'].div( 1000000.0)
+df_data['IURing-large'] = df_iuring['time'].div( 1000000.0)
 df_data['URing-small'] = df_curing['time'].div( 1000000.0)
 df_data['URing-small-fix'] = df_curing_fix['time'].div( 1000000.0)
+df_data['IURing-small'] = df_ciuring['time'].div( 1000000.0)
 df_data['VRing-large'] = df_ringm['time'].div( 1000000.0)
 df_data['VRing-large-fix'] = df_ring_fixm['time'].div( 1000000.0)
 df_data['VRing-small'] = df_cringm['time'].div( 1000000.0)

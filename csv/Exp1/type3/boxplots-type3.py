@@ -5,7 +5,7 @@ import sys
 
 
 
-plt.rcParams.update({'font.size': 20})
+plt.rcParams.update({'font.size': 16})
 
 plt.rcParams['mathtext.fontset'] = 'custom'
 plt.rcParams['mathtext.rm'] = 'Bitstream Vera Sans'
@@ -14,10 +14,18 @@ plt.rcParams['mathtext.bf'] = 'Bitstream Vera Sans:bold'
 
 limit = 600
 
+
+
 def to_seconds(value):
 	return value / 1000000000.0
 
 #xaxis = float(sys.argv[3])
+df_iring_adap = pd.read_csv("type3.iring.1000.time.csv" ,
+					  header=None, delimiter=';', names=['id', 'res', 'time', 'utime'])
+df_iring = pd.read_csv("type3.iring.fixed.1000.time.csv" ,
+					  header=None, delimiter=';', names=['id', 'res', 'time', 'utime'])
+df_ring_adap = pd.read_csv("type3.ring.1000.time.csv" ,
+					  header=None, delimiter=';', names=['id', 'res', 'time', 'utime'])
 df_ring = pd.read_csv("type3.ring.fixed.1000.time.csv" ,
 					  header=None, delimiter=';', names=['id', 'res', 'time', 'utime'])
 df_ring_muthu = pd.read_csv("type3.ring-muthu.fixed.1000.time.csv",
@@ -36,17 +44,20 @@ df_ring_best = pd.read_csv("type3.ring.best.1000.time.csv" ,
 
 
 df_data = pd.DataFrame()
-df_data['VEO-R'] = df_ring_random['time'].div( 1000000.0)
-df_data['VEO-RL'] = df_ring_random_lonely['time'].div( 1000000.0)
-df_data['VEO-RLW'] = df_ring_random_lonely_est['time'].div( 1000000.0)
-df_data['VRing-large'] = df_ring_muthu['time'].div( 1000000.0)
-df_data['Ring-large'] = df_ring['time'].div( 1000000.0)
-df_data['VEO-Best'] = df_ring_best['time'].div( 1000000.0)
+df_data['RingR'] = df_ring_random['time'].div( 1000000.0)
+df_data['RingRNL'] = df_ring_random_lonely['time'].div( 1000000.0)
+df_data['RingRE'] = df_ring_random_lonely_est['time'].div( 1000000.0)
+df_data['VRing'] = df_ring_muthu['time'].div( 1000000.0)
+df_data['Ring'] = df_ring['time'].div( 1000000.0)
+df_data['IRing'] = df_iring['time'].div( 1000000.0)
+df_data['RingA'] = df_ring_adap['time'].div( 1000000.0)
+df_data['IRingA'] = df_iring_adap['time'].div( 1000000.0)
+df_data['RingB'] = df_ring_best['time'].div( 1000000.0)
 #df_data['CompactLTJ'] = df_ring['time'].div( 1000000.0)
 
 
 
-names = [ 'RingR', 'RingRNL', 'RingRE', 'VRing', 'Ring', 'RingB']
+names = [ 'RingR', 'RingRNL', 'RingRE', 'VRing', 'Ring', 'IRing', 'RingA', 'IRingA', 'RingB']
 
 
 
@@ -60,7 +71,7 @@ bplot1 = ax1.boxplot(df_data,
                      showfliers=False)  # will be used to label x-ticks
 #ax1.set_title('VEOs', weight='bold')
 
-colors = ['cornflowerblue', 'orange', 'mediumseagreen', 'plum', 'silver', 'salmon']
+colors = ['cornflowerblue', 'orange', 'mediumseagreen', 'purple', 'silver', 'pink', 'chocolate', 'gold', 'salmon']
 
 i = 0
 for bplot in bplot1['boxes']:
@@ -81,10 +92,17 @@ for bplot in bplot1['caps']:
 #fig = df_data.boxplot(positions=bpt, grid=False, return_type='axes')
 #fig.plot()
 #plt.suptitle(title)
-ax1.set_xticks(np.arange(1, 7, step=1), names)
+
+x_labels = []
+i = 1
+for n in names:
+	ax1.annotate('avg=' + '{:,}'.format(int(round(df_data[n].mean(),0))), (i-0.4, 100), rotation=90, fontsize=14, style='italic')
+	i = i + 1
+
+
+ax1.set_xticks(np.arange(1, 10, step=1), names)
 ax1.set_ylim(top=1000)
-ax1.set_ylim(bottom=-8)
-#ax1.set_ylim(bottom=-0.2)
+ax1.set_ylim(bottom=-0.2)
 #ax1.set_yscale('symlog')
 #ax1.set_yscale('log')
 
