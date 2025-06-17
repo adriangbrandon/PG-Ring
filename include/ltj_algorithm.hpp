@@ -566,12 +566,13 @@ namespace ring {
             value_type c_i, i = 1, seed = 0, n_ok = 1;
             c_i = (c == -1) ? itrs[0]->leap(x_j) : itrs[0]->leap(x_j, c);
             if(c_i == 0) return 0; //Empty intersection
+            if(itrs.size() == 1) return c_i;
             while (true){
                 //Compute leap for each triple that contains x_j
                 c_i = itrs[i]->leap(x_j, c);
                 if(c_i == 0) return 0; //Empty intersection
                 if (c == c_i) {
-                    i += 1 + ((i+1) == seed); //skip seed
+                    i = i + 1 + ((i+1) == seed); //skip seed
                     ++n_ok;
                 }else {
                     seed = i;
