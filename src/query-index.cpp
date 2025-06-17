@@ -188,7 +188,7 @@ void query(const std::string &file, const std::string &queries, const uint64_t l
 
             auto start = std::chrono::high_resolution_clock::now();
             algorithm_type ltj(&query, &graph);
-            ltj.join_v2(res, limit, 600);
+            ltj.join_v3(res, limit, 600);
             auto stop = std::chrono::high_resolution_clock::now();
 
             auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start).count();

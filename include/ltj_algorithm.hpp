@@ -186,6 +186,14 @@ namespace ring {
             search_v2(0, t, res, start, limit_results, timeout_seconds);
         };
 
+        void join_v3(results_type &res,
+                  const size_type limit_results = 0, const size_type timeout_seconds = 0){
+            if(m_is_empty) return;
+            time_point_type start = std::chrono::high_resolution_clock::now();
+            tuple_type t(m_veo.size());
+            search_v3(0, t, res, start, limit_results, timeout_seconds);
+        };
+
         void join_ramas(std::vector<tuple_type> &res, size_type &ramas,
                   const size_type limit_results = 0, const size_type timeout_seconds = 0){
             if(m_is_empty) return;
