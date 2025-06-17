@@ -202,6 +202,10 @@ namespace ring {
             search_ramas(0, t, res, start, ramas, limit_results, timeout_seconds);
         };
 
+        static bool compare_iterator(ltj_iter_type *iter1, ltj_iter_type *iter2) {
+            return iter1->interval_length() < iter2->interval_length();
+        }
+
 
         /**
          *
@@ -555,9 +559,7 @@ namespace ring {
             }
         }
 
-        bool compare_iterator(ltj_iter_type *iter1, ltj_iter_type *iter2) {
-            return iter1->interval_length() < iter2->interval_length();
-        }
+
 
         value_type seek(std::vector<ltj_iter_type*>& itrs, const var_type x_j, value_type c=-1){
             value_type c_i, c_prev = 0, i = 0, n_ok = 0;
