@@ -562,19 +562,24 @@ namespace ring {
 
 
         value_type seek(std::vector<ltj_iter_type*>& itrs, const var_type x_j, value_type c=-1){
-            value_type c_i, c_prev = 0, i = 0, n_ok = 0;
+
+            value_type c_i, i = 1, seed = 0, n_ok = 1;
+            c_i = (c == -1) ? itrs[0]->leap(x_j) : itrs[0]->leap(x_j, c);
+            if(c_i == 0) return 0; //Empty intersection
             while (true){
                 //Compute leap for each triple that contains x_j
-                if(c == -1){
-                    c_i = itrs[i]->leap(x_j);
-                }else{
-                    c_i = itrs[i]->leap(x_j, c);
-                }
+                c_i = itrs[i]->leap(x_j, c);
                 if(c_i == 0) return 0; //Empty intersection
-                n_ok = (c_i == c_prev) ? n_ok + 1 : 1;
-                if(n_ok == itrs.size()) return c_i;
-                c = c_prev = c_i;
-                i = (i+1 == itrs.size()) ? 0 : i+1;
+                if (c == c_i) {
+                    i += 1 + ((i+1) == seed); //skip seed
+                    ++n_ok;
+                }else {
+                    seed = i;
+                    i = 0;
+                    n_ok = 1;
+                    c = c_i;
+                }
+                if(n_ok == itrs.size()) return c;
             }
         }
 
