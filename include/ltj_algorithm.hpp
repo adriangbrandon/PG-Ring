@@ -578,7 +578,7 @@ namespace ring {
                 }else {
                     //seed = i;
                     i = 0;
-                    n_ok = 1;
+                    n_ok = 0;
                     c = c_i;
                 }
 
