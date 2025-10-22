@@ -483,6 +483,8 @@ namespace ring {
         }
 
 
+
+
         /**********************************/
         // Functions for SPO
         //
@@ -780,6 +782,78 @@ namespace ring {
             std::vector<size_type> res(1ULL << k);
             aprox_intersect_fwd(k, src_value, m_bwt_p, m_bwt_o, res);
             return res;
+        }
+
+        /************** Functions needed for Property Graphs ********************/
+
+
+        range_type edge_expr_down_P_S(range_type &s_int, uint64_t s) {
+            pair<uint64_t, uint64_t> I = m_bwt_s.backward_step(s_int[0], s_int[1], s);
+            uint64_t c = m_bwt_o.get_C(s);
+            return range_type{I.first + c, I.second + c};
+        }
+
+
+        range_type edge_expr_down_S_O(range_type &s_int, uint64_t o) {
+            pair<uint64_t, uint64_t> I = m_bwt_o.backward_step(s_int[0], s_int[1], o);
+            uint64_t c = m_bwt_p.get_C(o);
+            return range_type{I.first + c, I.second + c};
+        }
+
+        range_type edge_expr_down_O_P(range_type &o_int, uint64_t p) {
+            pair<uint64_t, uint64_t> I = m_bwt_p.backward_step(o_int[0], o_int[1], p);
+            uint64_t c = m_bwt_s.get_C(p);
+            return range_type{I.first + c, I.second + c};
+        }
+
+        std::vector<uint64_t> edge_expr_all_P_in_range(range_type &r, std::vector<range_type> &sigma_ranges) {
+            return m_bwt_p.values_in_range(r[0], r[1], sigma_ranges);
+        }
+
+        value_type edge_expr_min_S_in_P(const std::vector<range_type> &ranges) {
+            return m_bwt_s.range_min_value(ranges);
+        }
+
+        value_type edge_expr_min_O_in_P(const std::vector<range_type> &ranges) {
+            uint64_t pos = m_bwt_p.select_next(1, ranges);
+            uint64_t b = m_bwt_p.bsearch_C(pos) - 1;
+            return b;
+        }
+
+        value_type edge_expr_min_O_in_SP(const std::vector<range_type> &ranges) {
+            return m_bwt_p.range_min_value(ranges);
+        }
+
+        value_type edge_expr_min_S_in_PO(const std::vector<range_type> &ranges) {
+            return m_bwt_s.range_min_value(ranges);
+        }
+
+        value_type edge_expr_next_S_in_P(const std::vector<range_type> &ranges, uint64_t val) {
+            return m_bwt_s.range_next_value(val, ranges);
+        }
+
+        value_type edge_expr_next_O_in_P(const std::vector<range_type> &ranges, uint64_t val) {
+            uint64_t pos = m_bwt_p.select_next(val, ranges);
+            uint64_t b = m_bwt_p.bsearch_C(pos) - 1;
+            return b;
+        }
+
+        value_type edge_expr_next_O_in_SP(const std::vector<range_type> &ranges, uint64_t val) {
+            return m_bwt_p.range_next_value(val, ranges);
+        }
+
+        value_type edge_expr_next_S_in_PO(const std::vector<range_type> &ranges, uint64_t val) {
+            return m_bwt_s.range_next_value(val, ranges);
+        }
+
+        size_type edge_expr_map_PSO_to_ID(const size_type osp_i) {
+            return m_bwt_p.LF(osp_i)+1; //OSP -> POS (+1 since IDs start at 1)
+        }
+
+        size_type edge_expr_map_POS_to_ID(const size_type spo_i) {
+            auto osp_i =  m_bwt_o.LF(spo_i); //SPO -> OSP
+            return m_bwt_p.LF(osp_i)+1; //OSP -> POS (+1 since IDs start at 1)
+
         }
 
     };

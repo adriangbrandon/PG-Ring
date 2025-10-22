@@ -3,8 +3,8 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules")
 include(AppendCompilerFlags)
 set(CMAKE_OSX_ARCHITECTURES "x86_64")
 
-project(Ring)
-set(CMAKE_PROJECT_NAME "Ring")
+project(Ring-PG)
+set(CMAKE_PROJECT_NAME "Ring-PG")
 
 #Change to "Debug" when you need it
 set(CMAKE_BUILD_TYPE "Debug")
@@ -111,3 +111,6 @@ target_link_libraries(check_veo sdsl divsufsort divsufsort64)
 
 add_executable(proba src/proba.cpp)
 target_link_libraries(proba sdsl divsufsort divsufsort64)
+
+add_executable(cypher2ids src/cypher2ids.cpp)
+target_link_libraries(cypher2ids sdsl divsufsort divsufsort64)
