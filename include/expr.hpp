@@ -67,11 +67,6 @@ namespace ring {
             return false;
         }
 
-        bool peek(const std::string &tok) {
-            skip_ws();
-            return m_s.substr(m_pos, tok.size()) == tok;
-        }
-
         bool end() {
             skip_ws();
             return m_pos >= m_s.size();
