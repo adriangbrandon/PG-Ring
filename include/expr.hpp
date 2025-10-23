@@ -67,11 +67,6 @@ namespace ring {
             return false;
         }
 
-        bool end() {
-            skip_ws();
-            return m_pos >= m_s.size();
-        }
-
         expr_type parse_expr() {
             skip_ws();
             return parse_or();
@@ -120,32 +115,20 @@ namespace ring {
                 e.type = NEG;
                 e.args.push_back(parse_factor());
                 return e;*/
-                return parse_not();
+                return parse_label(NEG);
             } else {
                 return parse_label();
             }
         }
 
-        expr_type parse_not() {
+        expr_type parse_label(enum_expr_type t = LAB) {
             skip_ws();
             size_t start = m_pos;
             while (m_pos < m_s.size() && isdigit(m_s[m_pos])) ++m_pos;
             if (start == m_pos) throw std::runtime_error("Expected number");
             uint32_t lab = std::stoul(m_s.substr(start, m_pos - start));
             expr_type e;
-            e.type = NEG;
-            e.label = lab;
-            return e;
-        }
-
-        expr_type parse_label() {
-            skip_ws();
-            size_t start = m_pos;
-            while (m_pos < m_s.size() && isdigit(m_s[m_pos])) ++m_pos;
-            if (start == m_pos) throw std::runtime_error("Expected number");
-            uint32_t lab = std::stoul(m_s.substr(start, m_pos - start));
-            expr_type e;
-            e.type = LAB;
+            e.type = t;
             e.label = lab;
             return e;
         }
