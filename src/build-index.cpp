@@ -25,6 +25,8 @@
 #include <sdsl/construct.hpp>
 #include <ltj_algorithm.hpp>
 
+#include "ring_pg.hpp"
+
 using namespace std;
 
 using namespace std::chrono;
@@ -69,13 +71,17 @@ int main(int argc, char **argv)
 
     std::string dataset = argv[1];
     std::string type    = argv[2];
-    if(type == "ring"){
+    if (type == "pg") {
+        std::string index_name = dataset + ".pg";
+        build_index<ring::ring_pg<>>(dataset, index_name);
+    }
+   /* if(type == "ring"){
         std::string index_name = dataset + ".ring";
         build_index<ring::ring<>>(dataset, index_name);
     }else if (type == "c-ring"){
         std::string index_name = dataset + ".c-ring";
         build_index<ring::c_ring>(dataset, index_name);
-    }else if (type == "ring-sel"){
+    }else if (type == "ring-sel"){ //TODO: usar este para property graphs
         std::string index_name = dataset + ".ring-sel";
         build_index<ring::ring_sel>(dataset, index_name);
     }else if (type == "ring-muthu"){
@@ -89,7 +95,7 @@ int main(int argc, char **argv)
         build_index<ring::ring_sel_muthu>(dataset, index_name);
     }else{
         std::cout << "Usage: " << argv[0] << " <dataset> [ring|c-ring|ring-sel|ring-muthu|c-ring-muthu|ring-sel-muthu]" << std::endl;
-    }
+    }*/
 
     return 0;
 }
