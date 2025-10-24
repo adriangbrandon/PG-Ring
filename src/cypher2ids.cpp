@@ -5,7 +5,7 @@
 
 #include <iostream>
 #include <string>
-#include <cypher/parser.hpp>
+#include <cypher/cypher_parser.hpp>
 
 int main(int argc, char* argv[]) {
 
