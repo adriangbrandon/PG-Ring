@@ -23,7 +23,9 @@
 #define VERBOSE 0
 
 
+#include <query/query_parser.hpp>
 #include <ltj_iterator_base.hpp>
+#include <ranges_util.hpp>
 
 namespace ring {
 
@@ -35,6 +37,7 @@ namespace ring {
         typedef var_t var_type;
         typedef ring_t ring_type;
         typedef uint64_t size_type;
+        typedef query::triple_parser::triple_type pattern_type;
         typedef  wt_range_iterator<typename ring_type::bwt_type::wm_type> wt_so_iterator_type;
         typedef  wt_range_iterator<typename ring_type::bwt_p_type::wm_type> wt_p_iterator_type;
         //std::vector<value_type> leap_result_type;
@@ -43,7 +46,7 @@ namespace ring {
         //TODO: penso que maximo vai ter 2 niveles porque o p xa está fixado de algunha forma (pero o p é unha label, non é o id da arista)
         //Teño que gardar os rangos nunha variable
         //Teño que ter un iterador do wt que filtre polos rangos no alfabeto
-        const triple_pattern *m_pattern;
+        const pattern_type *m_pattern;
         ring_type *m_ptr_ring; //TODO: should be const
         std::array<value_type, 3> m_consts;
         std::array<state_type, 3> m_state;
@@ -68,7 +71,50 @@ namespace ring {
             m_consts = o.m_consts;
         }
 
-        void compute_ranges(const std::vector<range_type> &expr_ranges, std::vector<range_type> &bwt_ranges) {
+
+        std::vector<range_type> get_ranges_expr(const query::expr_parser::expr_type &expr) {
+
+            std::vector<range_type> ans, tmp;
+            if (expr.type == query::LAB) {
+                ans.emplace_back(range_type{expr.args[0].label, expr.args[0].label});
+            }else if (expr.type == query::NEG) {
+                if (expr.args[0].label > 1) ans.emplace_back(range_type{1, expr.args[0].label-1});
+                if (expr.args[0].label < m_ptr_ring->max_p) ans.push_back(range_type{expr.args[0].label+1, m_ptr_ring->max_p});
+            }else if (expr.type == query::OR) {
+                for (const auto &arg : expr.args) {
+                    auto r_aux = get_ranges_expr(arg);
+                    ans.insert(ans.end(), r_aux.begin(), r_aux.end());
+                }
+                tmp = ranges::merge(ans); ans.clear();
+                ans = std::move(tmp);
+            }else if (expr.type == query::AND) {
+                std::vector<std::vector<range_type>> all_ranges;
+                for (const auto &arg : expr.args) {
+                    auto r_aux = get_ranges_expr(arg);
+                    all_ranges.emplace_back(r_aux);
+                }
+                ans = ranges::intersect(all_ranges);
+            }
+            return ans;
+        }
+
+
+        void compute_ranges_initial_level() {
+            uint64_t lb, rb;
+            for (const auto &r: m_ranges_expr) {
+                lb = r[0]; rb = r[1];
+                //Convert to BWT ranges
+                if (lb < rb) {
+                    lb = m_ptr_ring->init_P(lb).first;
+                    rb = m_ptr_ring->init_P(rb).second;
+                }else {
+                    std::tie(lb, rb) = m_ptr_ring->init_P(lb);
+                }
+                m_ranges_level[0].push_back(range_type{lb, rb});
+            }
+        }
+
+        /*void compute_ranges(const std::vector<range_type> &expr_ranges, std::vector<range_type> &bwt_ranges) {
 
             uint64_t lb, rb;
             for (const auto &r: expr_ranges) {
@@ -90,7 +136,7 @@ namespace ring {
                             return !(a[1] < b[0] || b[1] < a[0]);
                         });
 
-        }
+        }*/
 
         bool down_P_to_S(value_type s) {
             //2. facer bwd_step para obter o rango en SPO
@@ -123,7 +169,7 @@ namespace ring {
         bool down_PS_to_O(value_type o) {
             bool exists = false;
             for (const auto &r : m_ranges_level[1]) {
-                auto r_aux = m_ptr_ring->edge_expr_down_S_O(r, m_pattern->term_o.value);
+                auto r_aux = m_ptr_ring->edge_expr_down_S_O(r, m_pattern->obj.const_value);
                 if (!sdsl::empty(r_aux)) {
                     m_ranges_level[2].push_back(r_aux);
                     exists = true;
@@ -160,8 +206,7 @@ namespace ring {
 
         ltj_iterator_edge_expr() = default;
 
-        //TODO: Property Graphs modificar o triple pattern
-        ltj_iterator_edge_expr(const triple_pattern *triple, ring_type *ring) {
+        ltj_iterator_edge_expr(const pattern_type *triple, ring_type *ring) {
 
 
             //TODO: vou asumir que os rangos de ranges_expr están ben por agora
@@ -169,53 +214,54 @@ namespace ring {
             m_ptr_ring = ring;
 
 
+            get_ranges_expr(m_pattern->edge.expr);
             //There is a label expression in P, but can have a lonely variable
-            if (m_pattern->s_is_variable() && m_pattern->o_is_variable()) {
+            if (m_pattern->subj.is_var() && m_pattern->obj.is_var()) {
                 //TODO: calcular os rangos a partir de m_ranges_expr
-                compute_ranges(m_ranges_expr, m_ranges_level[0]);
-            }else if (!m_pattern->s_is_variable() && m_pattern->o_is_variable()) {
+                compute_ranges_initial_level();
+            }else if (!m_pattern->subj.is_var() && m_pattern->obj.is_var()) {
                 //TODO: 1. calcular os rangos a partir de m_ranges_expr
-                compute_ranges(m_ranges_expr, m_ranges_level[0]);
+                compute_ranges_initial_level();
                 //TODO: 2. facer bwd_step para obter o rango en SPO
-                bool exists = down_P_to_S(m_pattern->term_s.value);
+                bool exists = down_P_to_S(m_pattern->subj.const_value);
                 if (!exists) {
                     m_is_empty = true;
                     return;
                 }
                 m_state[0] = s;
-                m_consts[0] = m_pattern->term_s.value;
+                m_consts[0] = m_pattern->subj.const_value;
                 m_level = 1;
-            }else if (m_pattern->s_is_variable() ) { //&& !m_pattern->o_is_variable()
-                bool exists = down_P_to_O(m_pattern->term_o.value);
+            }else if (m_pattern->subj.is_var() ) { //&& !m_pattern->obj.is_var()
+                bool exists = down_P_to_O(m_pattern->obj.const_value);
                 if (!exists) {
                     m_is_empty = true;
                     return;
                 }
                 m_state[0] = o;
-                m_consts[0] = m_pattern->term_o.value;
+                m_consts[0] = m_pattern->obj.const_value;
                 m_level = 1;
 
             }else { //!m_pattern->s_is_variable() && !m_pattern->o_is_variable()
                 //TODO: 1. calcular os rangos a partir de m_ranges_expr
-                compute_ranges(m_ranges_expr, m_ranges_level[0]);
+                compute_ranges_initial_level();
 
                 //TODO: 2. facer bwd_step con S para obter o rango en SPO
-                bool exists = down_P_to_S(m_pattern->term_s.value);
+                bool exists = down_P_to_S(m_pattern->subj.const_value);
                 if (!exists) {
                     m_is_empty = true;
                     return;
                 }
                 m_state[0] = s;
-                m_consts[0] = m_pattern->term_s.value;
+                m_consts[0] = m_pattern->subj.const_value;
 
                 //TODO: 3. facer bwd_step con O para obter o rango en OSP
-                exists = down_PS_to_O(m_pattern->term_o.value);
+                exists = down_PS_to_O(m_pattern->obj.const_value);
                 if (!exists) {
                     m_is_empty = true;
                     return;
                 }
                 m_state[1] = o;
-                m_consts[1] = m_pattern->term_o.value;
+                m_consts[1] = m_pattern->obj.const_value;
 
                 m_level = 2;
             }
@@ -230,7 +276,7 @@ namespace ring {
         }
 
         //! Move constructor
-        ltj_iterator_edge_expr(ltj_iterator_edge_expr &&o) {
+        ltj_iterator_edge_expr(ltj_iterator_edge_expr &&o) noexcept {
             *this = std::move(o);
         }
 
@@ -243,7 +289,7 @@ namespace ring {
         }
 
         //! Move Operator=
-        ltj_iterator_edge_expr &operator=(ltj_iterator_edge_expr &&o) {
+        ltj_iterator_edge_expr &operator=(ltj_iterator_edge_expr &&o) noexcept {
             if (this != &o) {
                 m_pattern = std::move(o.m_ptr_triple_pattern);
                 m_ptr_ring = std::move(o.m_ptr_ring);
@@ -255,7 +301,7 @@ namespace ring {
             return *this;
         }
 
-        void swap(ltj_iterator_edge_expr &o) {
+        void swap(ltj_iterator_edge_expr &o) noexcept {
             // m_bp.swap(bp_support.m_bp); use set_vector to set the supported bit_vector
             std::swap(m_pattern, o.m_ptr_triple_pattern);
             std::swap(m_ptr_ring, o.m_ptr_ring);
@@ -267,15 +313,15 @@ namespace ring {
 
 
         inline bool is_variable_subject(var_type var) {
-            return m_pattern->term_s.is_variable && var == m_pattern->term_s.value;
+            return m_pattern->subj.var_value == var;
         }
 
         inline bool is_variable_predicate(var_type var) {
-            return m_pattern->term_p.is_variable && var == m_pattern->term_p.value;
+            return m_pattern->edge.var_value == var;
         }
 
         inline bool is_variable_object(var_type var) {
-            return m_pattern->term_o.is_variable && var == m_pattern->term_o.value;
+            return m_pattern->obj.var_value == var;
         }
 
 

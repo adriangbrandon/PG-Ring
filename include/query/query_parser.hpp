@@ -13,13 +13,14 @@ namespace query {
 
     public:
         typedef triple_parser::triple_type triple_type;
+        typedef std::vector<triple_type> patterns_type;
 
     private:
-        std::vector<triple_type> m_patterns;
+        patterns_type m_patterns;
 
     public:
 
-        const std::vector<triple_type>& patterns = m_patterns;
+        const patterns_type& patterns = m_patterns;
 
         pg_query(const std::string& query) {
             std::unordered_map<std::string, uint8_t> ht;

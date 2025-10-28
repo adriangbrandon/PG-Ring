@@ -475,18 +475,6 @@ namespace ring {
             return m_intervals[m_level];
         }
 
-        //Solo funciona en último nivel, en otro caso habría que reajustar
-        std::vector<uint64_t> seek_all(var_type var){
-            if (is_variable_subject(var)){
-                return m_ptr_ring->all_S_in_range(m_intervals[2]);
-            }else if (is_variable_predicate(var)){
-                return m_ptr_ring->all_P_in_range(m_intervals[2]);
-            }else if (is_variable_object(var)){
-                return m_ptr_ring->all_O_in_range(m_intervals[2]);
-            }
-            return {};
-        }
-
         value_type seek_last(var_type var){
             range_type range = {m_intervals[2].left(), m_intervals[2].right()};
             if(is_variable_predicate(var)){

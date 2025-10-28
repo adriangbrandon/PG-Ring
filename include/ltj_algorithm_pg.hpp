@@ -19,23 +19,19 @@
 
 
 
-#ifndef RING_LTJ_ALGORITHM_HPP
-#define RING_LTJ_ALGORITHM_HPP
+#ifndef RING_LTJ_ALGORITHM_PG_HPP
+#define RING_LTJ_ALGORITHM_PG_HPP
 
 
 #include <triple_pattern.hpp>
 #include <ring.hpp>
 #include <ltj_iterator.hpp>
 #include <ltj_iterator_unidirectional.hpp>
-#include <veo_simple.hpp>
-#include <veo_simple_intersection.hpp>
-#include <veo_simple_random.hpp>
 #include <veo_adaptive.hpp>
-#include <veo_random.hpp>
-#include <veo_random_lonely.hpp>
-#include <veo_adaptive_intersection.hpp>
-#include <veo_adaptive_probability.hpp>
 #include <results_collector.hpp>
+#include <query/query_parser.hpp>
+
+#include "ltj_iterator_edge_expr.hpp"
 
 namespace ring {
 
@@ -46,9 +42,10 @@ namespace ring {
     public:
         typedef uint64_t value_type;
         typedef uint64_t size_type;
-        typedef iterator_t ltj_iter_type;
+        typedef typename query::pg_query::patterns_type patterns_type;
+        typedef ltj_iterator_base<uint8_t, uint32_t> ltj_iter_type;
+        typedef ring<> ring_type;
         typedef typename ltj_iter_type::var_type var_type;
-        typedef typename ltj_iter_type::ring_type ring_type;
         typedef typename ltj_iter_type::value_type const_type;
         typedef veo_t veo_type;
         typedef std::unordered_map<var_type, std::vector<ltj_iter_type*>> var_to_iterators_type;
@@ -57,7 +54,7 @@ namespace ring {
         typedef ::util::results_collector<tuple_type> results_type;
 
     private:
-        const std::vector<triple_pattern>* m_ptr_patterns;
+        const patterns_type* m_ptr_patterns;
         veo_type m_veo;
         ring_type* m_ptr_ring;
         std::vector<ltj_iter_type> m_iterators;
@@ -66,7 +63,7 @@ namespace ring {
 
 
         void copy(const ltj_algorithm &o) {
-            m_ptr_patterns = o.m_ptr_triple_patterns;
+            m_ptr_patterns = o.m_ptr_patterns;
             m_veo = o.m_veo;
             m_ptr_ring = o.m_ptr_ring;
             m_iterators = o.m_iterators;
@@ -90,20 +87,27 @@ namespace ring {
 
         ltj_algorithm() = default;
 
-        ltj_algorithm(const std::vector<triple_pattern>* triple_patterns, ring_type* ring){
+        ltj_algorithm(const patterns_type* triple_patterns, ring_type* ring){
 
             m_ptr_patterns = triple_patterns;
             m_ptr_ring = ring;
 
             size_type i = 0;
-            m_iterators.reserve(m_ptr_patterns->size());
-            for(const auto& triple : *m_ptr_patterns){
+            m_iterators.reserve(m_ptr_patterns->size()); //minimum number of iterators
+            for(const auto& pattern : *m_ptr_patterns){
                 //Bulding iterators
-                m_iterators.emplace_back(ltj_iter_type(&triple, m_ptr_ring));
-                if(m_iterators[i].is_empty()){
+                if (pattern.edge.var_value == 0 || pattern.edge.is_label()) {
+                    m_iterators.emplace_back(ltj_iterator<ring_type, var_type, const_type>(&pattern, m_ptr_ring)); //TODO: arreglar esta construción
+                }else {
+                    //Normal iterator
+                    m_iterators.emplace_back(ltj_iterator_edge_expr<ring_type, var_type, const_type>(&pattern, m_ptr_ring));
+                }
+                if(m_iterators.back().is_empty()){
                     m_is_empty = true;
                     return;
                 }
+
+
 
                 //For each variable we add the pointers to its iterators
                 if(triple.o_is_variable()){
@@ -621,4 +625,4 @@ namespace ring {
     };
 }
 
-#endif //RING_LTJ_ALGORITHM_HPP
+#endif //RING_LTJ_ALGORITHM_PG_HPP

@@ -35,15 +35,25 @@ namespace ring {
 
         public:
             typedef struct node {
-                uint32_t con = 0;
-                uint32_t var = 0;
+                uint32_t const_value = 0;
+                uint32_t var_value = 0;
                 expr_parser::expr_type expr;
+
+                bool is_var() const {
+                    return var_value != 0;
+                }
+
             } node_type;
 
             typedef struct edge {
-                uint32_t con = 0;
-                uint32_t var = 0;
+                uint32_t const_value = 0;
+                uint32_t var_value = 0;
                 expr_parser::expr_type expr;
+
+                bool is_label() const {
+                    return expr.type == LAB;
+                }
+
             } edge_type;
 
             typedef struct triple {
@@ -88,11 +98,11 @@ namespace ring {
                 skip_ws(p, str);
                 // Variable
                 if ((str[p] == '?')) {
-                    n.var = parse_variable(p, str, ht);
-                    n.con = 0;
+                    n.var_value = parse_variable(p, str, ht);
+                    n.const_value = 0;
                 }else if (str[p] != ':') {
-                    n.var = 0;
-                    n.con = parse_constant(p, str);
+                    n.var_value = 0;
+                    n.const_value = parse_constant(p, str);
                 }
 
                 skip_ws(p, str);
@@ -129,11 +139,11 @@ namespace ring {
                 skip_ws(p, str);
                 // Variable
                 if ((str[p] == '?')) {
-                    e.var = parse_variable(p, str, ht);
-                    e.con = 0;
+                    e.var_value = parse_variable(p, str, ht);
+                    e.const_value = 0;
                 }else if (str[p] != ':') {
-                    e.var = 0;
-                    e.con = parse_constant(p, str);
+                    e.var_value = 0;
+                    e.const_value = parse_constant(p, str);
                 }
                 skip_ws(p, str);
                 // Etiqueta o expresión
@@ -181,29 +191,29 @@ namespace ring {
 
             static void print(const triple_type& t) {
                 std::cout << "(";
-                if (t.subj.var)
-                    std::cout << "?" << static_cast<int>(t.subj.var);
-                else if (t.subj.con)
-                    std::cout << t.subj.con;
+                if (t.subj.var_value)
+                    std::cout << "?" << static_cast<int>(t.subj.var_value);
+                else if (t.subj.const_value)
+                    std::cout << t.subj.const_value;
                 if (t.subj.expr.type != EMPTY) {
                     std::cout << ":";
                     t.subj.expr.print();
                 }
                 std::cout << ")-";
                 std::cout << "[";
-                if (t.edge.var)
-                    std::cout << "?" << static_cast<int>(t.edge.var);
-                else if (t.edge.con)
-                    std::cout << t.edge.con;
+                if (t.edge.var_value)
+                    std::cout << "?" << static_cast<int>(t.edge.var_value);
+                else if (t.edge.const_value)
+                    std::cout << t.edge.const_value;
                 if (t.edge.expr.type != EMPTY) {
                     std::cout << ":";
                     t.edge.expr.print();
                 }
                 std::cout << "]->(";
-                if (t.obj.var)
-                    std::cout << "?" << static_cast<int>(t.obj.var);
-                else if (t.obj.con)
-                    std::cout << t.obj.con;
+                if (t.obj.var_value)
+                    std::cout << "?" << static_cast<int>(t.obj.var_value);
+                else if (t.obj.const_value)
+                    std::cout << t.obj.const_value;
                 if (t.obj.expr.type != EMPTY) {
                     std::cout << ":";
                     t.obj.expr.print();

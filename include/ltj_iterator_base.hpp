@@ -33,6 +33,7 @@ namespace ring {
     class ltj_iterator_base {
 
     public:
+
         typedef cons_t value_type;
         typedef var_t var_type;
         typedef uint64_t size_type;
@@ -41,6 +42,7 @@ namespace ring {
 
     public:
         virtual bool is_empty() = 0;
+        virtual ~ltj_iterator_base() = default;
 
         virtual void down(var_type var, size_type c) = 0;
         virtual void down(var_type var, size_type c, size_type k) = 0;
@@ -52,12 +54,15 @@ namespace ring {
         virtual value_type leap(var_type var, size_type c) = 0;
 
         virtual bool in_last_level() = 0;
-        //Solo funciona en último nivel, en otro caso habría que reajustar
-        virtual std::vector<uint64_t> seek_all(var_type var) = 0;
 
         virtual bool is_variable_subject(var_type var) = 0;
         virtual bool is_variable_predicate(var_type var) = 0;
         virtual bool is_variable_object(var_type var) = 0;
+
+        virtual value_type seek_last(var_type var)  = 0;
+        virtual value_type seek_last_next(var_type var) = 0;
+
+        virtual size_type interval_length() const = 0;
 
     };
 
