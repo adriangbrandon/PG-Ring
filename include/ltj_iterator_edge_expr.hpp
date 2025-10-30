@@ -76,17 +76,16 @@ namespace ring {
 
             std::vector<range_type> ans, tmp;
             if (expr.type == query::LAB) {
-                ans.emplace_back(range_type{expr.args[0].label, expr.args[0].label});
+                ans.emplace_back(range_type{expr.label, expr.label});
             }else if (expr.type == query::NEG) {
-                if (expr.args[0].label > 1) ans.emplace_back(range_type{1, expr.args[0].label-1});
-                if (expr.args[0].label < m_ptr_ring->max_p) ans.push_back(range_type{expr.args[0].label+1, m_ptr_ring->max_p});
+                if (expr.label > 1) ans.emplace_back(range_type{1, expr.label-1});
+                if (expr.label < m_ptr_ring->max_p) ans.push_back(range_type{expr.label+1, m_ptr_ring->max_p});
             }else if (expr.type == query::OR) {
                 for (const auto &arg : expr.args) {
                     auto r_aux = get_ranges_expr(arg);
-                    ans.insert(ans.end(), r_aux.begin(), r_aux.end());
+                    tmp.insert(tmp.end(), r_aux.begin(), r_aux.end());
                 }
-                tmp = ranges::merge(ans); ans.clear();
-                ans = std::move(tmp);
+                ans = ranges::merge(tmp);
             }else if (expr.type == query::AND) {
                 std::vector<std::vector<range_type>> all_ranges;
                 for (const auto &arg : expr.args) {
@@ -141,7 +140,7 @@ namespace ring {
         bool down_P_to_S(value_type s) {
             //2. facer bwd_step para obter o rango en SPO
             bool exists = false;
-            for (const auto &r : m_ranges_level[0]) {
+            for (auto &r : m_ranges_level[0]) {
                 auto r_aux = m_ptr_ring->edge_expr_down_P_S(r, s);
                 if (!sdsl::empty(r_aux)) {
                     m_ranges_level[1].push_back(r_aux);
@@ -152,7 +151,8 @@ namespace ring {
         }
 
         bool down_P_to_O(value_type o) {
-            auto r = m_ptr_ring->init_O(o);
+            auto aux = m_ptr_ring->init_O(o);
+            auto r = range_type{aux.first, aux.second};
             auto ps =  m_ptr_ring->edge_expr_all_P_in_range(r, m_ranges_expr);
             bool exists = false;
             //2. por cada p posible facer bwd_step con o para obter o rango en POS (vai dar varios rangos)
@@ -168,8 +168,8 @@ namespace ring {
 
         bool down_PS_to_O(value_type o) {
             bool exists = false;
-            for (const auto &r : m_ranges_level[1]) {
-                auto r_aux = m_ptr_ring->edge_expr_down_S_O(r, m_pattern->obj.const_value);
+            for (auto &r : m_ranges_level[1]) {
+                auto r_aux = m_ptr_ring->edge_expr_down_S_O(r, o);
                 if (!sdsl::empty(r_aux)) {
                     m_ranges_level[2].push_back(r_aux);
                     exists = true;
@@ -181,7 +181,7 @@ namespace ring {
         bool down_PO_to_S(value_type s) {
             //2. facer bwd_step para obter o rango en SPO
             bool exists = false;
-            for (const auto &r : m_ranges_level[1]) {
+            for (auto &r : m_ranges_level[1]) {
                 auto r_aux = m_ptr_ring->edge_expr_down_P_S(r, s);
                 if (!sdsl::empty(r_aux)) {
                     m_ranges_level[2].push_back(r_aux);
@@ -193,7 +193,7 @@ namespace ring {
 
         void compute_length(size_type level) {
             m_length_level[level] = 0;
-            for (const auto &r : m_ranges_level[level]) {
+            for (auto &r : m_ranges_level[level]) {
                  m_length_level[level] += sdsl::size(r);
             }
         }
@@ -214,7 +214,7 @@ namespace ring {
             m_ptr_ring = ring;
 
 
-            get_ranges_expr(m_pattern->edge.expr);
+            m_ranges_expr = get_ranges_expr(m_pattern->edge.expr);
             //There is a label expression in P, but can have a lonely variable
             if (m_pattern->subj.is_var() && m_pattern->obj.is_var()) {
                 //TODO: calcular os rangos a partir de m_ranges_expr
@@ -339,7 +339,7 @@ namespace ring {
                     down_P_to_O(c);
                     m_state[m_level] = o;
                 }
-            } else if(m_level == 1) {//m_level = 1
+            } else if(m_level == 1) {//m_level = 1 TODO: revisar que realmente necesite hacer down
                 if (m_state[0] == o) {
                     down_PO_to_S(c);
                     m_state[m_level] = s;
@@ -350,7 +350,7 @@ namespace ring {
             }
             m_consts[m_level] = c;
             ++m_level;
-            compute_length(m_level);
+            if (m_level < 3) compute_length(m_level);
         };
 
         void down(var_type var, size_type c, size_type k){
@@ -360,6 +360,7 @@ namespace ring {
 
         void up(var_type var) { //Go up in the trie
             if(m_level == 0) return;
+            m_ranges_level[m_level].clear();
             --m_level;
         };
 
@@ -397,7 +398,7 @@ namespace ring {
                     return m_ptr_ring->edge_expr_next_O_in_P(m_ranges_expr, c);
                 }
             }else if (m_level == 1){
-                if (m_state[0] == o) {
+                if (is_variable_subject(var)) {
                     return m_ptr_ring->edge_expr_next_S_in_PO(m_ranges_level[1], c);
                 } else {
                     return m_ptr_ring->edge_expr_next_O_in_SP(m_ranges_level[1], c);
@@ -438,7 +439,7 @@ namespace ring {
             return {};
         }*/
 
-        value_type seek_last(var_type var){
+        value_type seek_last(var_type var){ //var should be in an edge
             m_range_i = 0;
             const auto &r = m_ranges_level[2][m_range_i];
             m_triple_j = r[0];
@@ -446,7 +447,7 @@ namespace ring {
                 return m_ptr_ring->edge_expr_map_PSO_to_ID(m_triple_j);
             }else {
                 //TODO: este metodo pode mellorarse, porque sei o valor de O que é o que cae na última columna
-                return m_ptr_ring->edge_expr_map_POS_to_ID(m_triple_j);
+                return m_ptr_ring->edge_expr_map_POS_to_ID(m_triple_j, m_consts[0]);
             }
         }
 
@@ -464,7 +465,7 @@ namespace ring {
                 return m_ptr_ring->edge_expr_map_PSO_to_ID(m_triple_j);
             }else {
                 //TODO: este metodo pode mellorarse, porque sei o valor de O que é o que cae na última columna
-                return m_ptr_ring->edge_expr_map_POS_to_ID(m_triple_j);
+                return m_ptr_ring->edge_expr_map_POS_to_ID(m_triple_j, m_consts[0]);
             }
         }
 

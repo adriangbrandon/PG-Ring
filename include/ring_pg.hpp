@@ -24,6 +24,7 @@
 #include "bwt.hpp"
 #include "bwt_interval.hpp"
 #include <queue>
+#include "ranges_util.hpp"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -737,50 +738,51 @@ namespace ring {
             return m_bwt_p.values_in_range(r[0], r[1], sigma_ranges);
         }
 
-        value_type edge_expr_min_S_in_P(const std::vector<range_type> &ranges) {
+        value_type edge_expr_min_S_in_P(std::vector<range_type> &ranges) {
             return m_bwt_s.range_min_value(ranges);
         }
 
-        value_type edge_expr_min_O_in_P(const std::vector<range_type> &ranges) {
+        value_type edge_expr_min_O_in_P(std::vector<range_type> &ranges) {
             uint64_t pos = m_bwt_p.select_next(1, ranges);
             uint64_t b = m_bwt_p.bsearch_C(pos) - 1;
             return b;
         }
 
-        value_type edge_expr_min_O_in_SP(const std::vector<range_type> &ranges) {
-            return m_bwt_p.range_min_value(ranges);
+        value_type edge_expr_min_O_in_SP(std::vector<range_type> &ranges) {
+            return m_bwt_o.range_min_value(ranges);
         }
 
-        value_type edge_expr_min_S_in_PO(const std::vector<range_type> &ranges) {
+        value_type edge_expr_min_S_in_PO(std::vector<range_type> &ranges) {
             return m_bwt_s.range_min_value(ranges);
         }
 
-        value_type edge_expr_next_S_in_P(const std::vector<range_type> &ranges, uint64_t val) {
+        value_type edge_expr_next_S_in_P(std::vector<range_type> &ranges, uint64_t val) {
             return m_bwt_s.range_next_value(val, ranges);
         }
 
-        value_type edge_expr_next_O_in_P(const std::vector<range_type> &ranges, uint64_t val) {
+        value_type edge_expr_next_O_in_P(std::vector<range_type> &ranges, uint64_t val) {
             uint64_t pos = m_bwt_p.select_next(val, ranges);
             uint64_t b = m_bwt_p.bsearch_C(pos) - 1;
             return b;
         }
 
-        value_type edge_expr_next_O_in_SP(const std::vector<range_type> &ranges, uint64_t val) {
-            return m_bwt_p.range_next_value(val, ranges);
+        value_type edge_expr_next_O_in_SP(std::vector<range_type> &ranges, uint64_t val) {
+            return m_bwt_o.range_next_value(val, ranges);
         }
 
-        value_type edge_expr_next_S_in_PO(const std::vector<range_type> &ranges, uint64_t val) {
+        value_type edge_expr_next_S_in_PO(std::vector<range_type> &ranges, uint64_t val) {
             return m_bwt_s.range_next_value(val, ranges);
         }
 
         size_type edge_expr_map_PSO_to_ID(const size_type osp_i) {
-            return m_bwt_p.LF(osp_i)+1; //OSP -> POS (+1 since IDs start at 1)
+            auto p = m_bwt_p.get_value(osp_i);
+            return m_bwt_s.get_C(p) + m_bwt_p.ranky(osp_i, p); //OSP -> POS
         }
 
-        size_type edge_expr_map_POS_to_ID(const size_type spo_i) {
-            auto osp_i =  m_bwt_o.LF(spo_i); //SPO -> OSP
-            return m_bwt_p.LF(osp_i)+1; //OSP -> POS (+1 since IDs start at 1)
-
+        size_type edge_expr_map_POS_to_ID(const size_type spo_i, const value_type o) {
+            auto osp_i = m_bwt_p.get_C(o) + m_bwt_o.ranky(spo_i, o);
+            auto p = m_bwt_p.get_value(osp_i);
+            return m_bwt_s.get_C(p) + m_bwt_p.ranky(osp_i, p); //OSP -> POS
         }
 
     };

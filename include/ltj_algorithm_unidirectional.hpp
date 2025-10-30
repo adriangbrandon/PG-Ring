@@ -36,7 +36,7 @@
 namespace ring {
 
     template<class iterator_t = ltj_iterator_unidirectional<uring<>, uint8_t, uint64_t>,
-             class veo_t = veo::veo_adaptive<iterator_t, util::trait_size> >
+             class veo_t = veo::veo_adaptive_pg<iterator_t, util::trait_size> >
     class ltj_algorithm_unidirectional {
 
     public:

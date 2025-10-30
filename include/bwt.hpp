@@ -162,6 +162,10 @@ namespace ring {
             return get_C(s) + m_L.rank(i, s) - 1;
         }
 
+        inline uint64_t get_value(uint64_t i) {
+            return m_L[i];
+        }
+
         uint64_t nElems(uint64_t val) {
             return get_C(val + 1) - get_C(val);
         }

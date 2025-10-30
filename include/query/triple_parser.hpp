@@ -50,6 +50,10 @@ namespace ring {
                 uint32_t var_value = 0;
                 expr_parser::expr_type expr;
 
+                bool is_var() const {
+                    return var_value != 0;
+                }
+
                 bool is_label() const {
                     return expr.type == LAB;
                 }

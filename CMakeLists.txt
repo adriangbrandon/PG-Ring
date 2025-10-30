@@ -120,3 +120,6 @@ target_link_libraries(test_expr_parser sdsl divsufsort divsufsort64)
 
 add_executable(test_query_parser test/query_parser.cpp)
 target_link_libraries(test_query_parser sdsl divsufsort divsufsort64)
+
+add_executable(test_query test/query.cpp)
+target_link_libraries(test_query sdsl divsufsort divsufsort64)

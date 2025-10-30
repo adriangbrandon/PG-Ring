@@ -23,7 +23,7 @@
 
 #include <iostream>
 #include <set>
-#include "ring.hpp"
+#include "ring_pg.hpp"
 
 
 namespace ring {

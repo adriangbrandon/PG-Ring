@@ -174,7 +174,7 @@ void query(const std::string &file, const std::string &queries, const uint64_t l
 
             typedef ring::ltj_iterator<ring_type, uint8_t, uint64_t> iterator_type;
 
-            typedef ring::ltj_algorithm<iterator_type,
+            typedef ring::ltj_algorithm_pg<iterator_type,
                     ring::veo::veo_simple<iterator_type, trait_type>> algorithm_type;
             typedef std::vector<typename algorithm_type::tuple_type> results_type;
             results_type res;

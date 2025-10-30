@@ -40,8 +40,8 @@
 namespace ring {
 
     template<class iterator_t = ltj_iterator<ring<>, uint8_t, uint64_t>,
-             class veo_t = veo::veo_adaptive<iterator_t, util::trait_size> >
-    class ltj_algorithm {
+             class veo_t = veo::veo_adaptive_pg<iterator_t, util::trait_size> >
+    class ltj_algorithm_pg {
 
     public:
         typedef uint64_t value_type;
@@ -65,7 +65,7 @@ namespace ring {
         bool m_is_empty = false;
 
 
-        void copy(const ltj_algorithm &o) {
+        void copy(const ltj_algorithm_pg &o) {
             m_ptr_patterns = o.m_ptr_triple_patterns;
             m_veo = o.m_veo;
             m_ptr_ring = o.m_ptr_ring;
@@ -88,9 +88,9 @@ namespace ring {
     public:
 
 
-        ltj_algorithm() = default;
+        ltj_algorithm_pg() = default;
 
-        ltj_algorithm(const std::vector<triple_pattern>* triple_patterns, ring_type* ring){
+        ltj_algorithm_pg(const std::vector<triple_pattern>* triple_patterns, ring_type* ring){
 
             m_ptr_patterns = triple_patterns;
             m_ptr_ring = ring;
@@ -123,17 +123,17 @@ namespace ring {
         }
 
         //! Copy constructor
-        ltj_algorithm(const ltj_algorithm &o) {
+        ltj_algorithm_pg(const ltj_algorithm_pg &o) {
             copy(o);
         }
 
         //! Move constructor
-        ltj_algorithm(ltj_algorithm &&o) {
+        ltj_algorithm_pg(ltj_algorithm_pg &&o) {
             *this = std::move(o);
         }
 
         //! Copy Operator=
-        ltj_algorithm &operator=(const ltj_algorithm &o) {
+        ltj_algorithm_pg &operator=(const ltj_algorithm_pg &o) {
             if (this != &o) {
                 copy(o);
             }
@@ -141,7 +141,7 @@ namespace ring {
         }
 
         //! Move Operator=
-        ltj_algorithm &operator=(ltj_algorithm &&o) {
+        ltj_algorithm_pg &operator=(ltj_algorithm_pg &&o) {
             if (this != &o) {
                 m_ptr_patterns = std::move(o.m_ptr_triple_patterns);
                 m_veo = std::move(o.m_veo);
@@ -153,7 +153,7 @@ namespace ring {
             return *this;
         }
 
-        void swap(ltj_algorithm &o) {
+        void swap(ltj_algorithm_pg &o) {
             std::swap(m_ptr_patterns, o.m_ptr_triple_patterns);
             std::swap(m_veo, o.m_veo);
             std::swap(m_ptr_ring, o.m_ptr_ring);
