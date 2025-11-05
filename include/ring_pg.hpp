@@ -774,12 +774,13 @@ namespace ring {
             return m_bwt_s.range_next_value(val, ranges);
         }
 
-        size_type edge_expr_map_PSO_to_ID(const size_type osp_i) {
+        //SPO->OSP->POS
+        size_type map_OSP_to_POS(const size_type osp_i) {
             auto p = m_bwt_p.get_value(osp_i);
             return m_bwt_s.get_C(p) + m_bwt_p.ranky(osp_i, p); //OSP -> POS
         }
 
-        size_type edge_expr_map_POS_to_ID(const size_type spo_i, const value_type o) {
+        size_type map_SPO_to_POS(const size_type spo_i, const value_type o) {
             auto osp_i = m_bwt_p.get_C(o) + m_bwt_o.ranky(spo_i, o);
             auto p = m_bwt_p.get_value(osp_i);
             return m_bwt_s.get_C(p) + m_bwt_p.ranky(osp_i, p); //OSP -> POS

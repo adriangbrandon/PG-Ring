@@ -19,8 +19,6 @@
 
 
 #include <iostream>
-#include "ring.hpp"
-#include "ring_muthu.hpp"
 #include <fstream>
 #include <sdsl/construct.hpp>
 #include <ltj_algorithm.hpp>

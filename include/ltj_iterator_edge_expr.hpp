@@ -43,7 +43,6 @@ namespace ring {
         //std::vector<value_type> leap_result_type;
 
     private:
-        //TODO: penso que maximo vai ter 2 niveles porque o p xa está fixado de algunha forma (pero o p é unha label, non é o id da arista)
         //Teño que gardar os rangos nunha variable
         //Teño que ter un iterador do wt que filtre polos rangos no alfabeto
         const pattern_type *m_pattern;
@@ -138,7 +137,7 @@ namespace ring {
         }*/
 
         bool down_P_to_S(value_type s) {
-            //2. facer bwd_step para obter o rango en SPO
+            //Bwd step to get the range in SPO
             bool exists = false;
             for (auto &r : m_ranges_level[0]) {
                 auto r_aux = m_ptr_ring->edge_expr_down_P_S(r, s);
@@ -151,11 +150,13 @@ namespace ring {
         }
 
         bool down_P_to_O(value_type o) {
+            //Initial range in OSP
             auto aux = m_ptr_ring->init_O(o);
             auto r = range_type{aux.first, aux.second};
+            //Compute the possible Ps in the range
             auto ps =  m_ptr_ring->edge_expr_all_P_in_range(r, m_ranges_expr);
             bool exists = false;
-            //2. por cada p posible facer bwd_step con o para obter o rango en POS (vai dar varios rangos)
+            //For each p in Ps, Bwd step to get ranges in POS
             for (const auto &p : ps) {
                 auto r_aux = m_ptr_ring->edge_expr_down_O_P(r, p);
                 if (!sdsl::empty(r_aux)) {
@@ -167,6 +168,7 @@ namespace ring {
         }
 
         bool down_PS_to_O(value_type o) {
+            //Bwd step to get the range in OSP
             bool exists = false;
             for (auto &r : m_ranges_level[1]) {
                 auto r_aux = m_ptr_ring->edge_expr_down_S_O(r, o);
@@ -179,7 +181,7 @@ namespace ring {
         }
 
         bool down_PO_to_S(value_type s) {
-            //2. facer bwd_step para obter o rango en SPO
+            //Bwd step to get the range in SPO
             bool exists = false;
             for (auto &r : m_ranges_level[1]) {
                 auto r_aux = m_ptr_ring->edge_expr_down_P_S(r, s);
@@ -209,7 +211,6 @@ namespace ring {
         ltj_iterator_edge_expr(const pattern_type *triple, ring_type *ring) {
 
 
-            //TODO: vou asumir que os rangos de ranges_expr están ben por agora
             m_pattern = triple;
             m_ptr_ring = ring;
 
@@ -217,12 +218,11 @@ namespace ring {
             m_ranges_expr = get_ranges_expr(m_pattern->edge.expr);
             //There is a label expression in P, but can have a lonely variable
             if (m_pattern->subj.is_var() && m_pattern->obj.is_var()) {
-                //TODO: calcular os rangos a partir de m_ranges_expr
+                //Compute ranges from m_ranges_expr
                 compute_ranges_initial_level();
             }else if (!m_pattern->subj.is_var() && m_pattern->obj.is_var()) {
-                //TODO: 1. calcular os rangos a partir de m_ranges_expr
+                //Compute ranges from m_ranges_expr
                 compute_ranges_initial_level();
-                //TODO: 2. facer bwd_step para obter o rango en SPO
                 bool exists = down_P_to_S(m_pattern->subj.const_value);
                 if (!exists) {
                     m_is_empty = true;
@@ -242,10 +242,9 @@ namespace ring {
                 m_level = 1;
 
             }else { //!m_pattern->s_is_variable() && !m_pattern->o_is_variable()
-                //TODO: 1. calcular os rangos a partir de m_ranges_expr
+                //Compute ranges from m_ranges_expr
                 compute_ranges_initial_level();
 
-                //TODO: 2. facer bwd_step con S para obter o rango en SPO
                 bool exists = down_P_to_S(m_pattern->subj.const_value);
                 if (!exists) {
                     m_is_empty = true;
@@ -254,7 +253,6 @@ namespace ring {
                 m_state[0] = s;
                 m_consts[0] = m_pattern->subj.const_value;
 
-                //TODO: 3. facer bwd_step con O para obter o rango en OSP
                 exists = down_PS_to_O(m_pattern->obj.const_value);
                 if (!exists) {
                     m_is_empty = true;
@@ -340,7 +338,7 @@ namespace ring {
                     m_state[m_level] = o;
                 }
             } else if(m_level == 1) {//m_level = 1 TODO: revisar que realmente necesite hacer down
-                if (m_state[0] == o) {
+                if (is_variable_subject(var)) {
                     down_PO_to_S(c);
                     m_state[m_level] = s;
                 } else {
@@ -374,20 +372,13 @@ namespace ring {
                     return m_ptr_ring->edge_expr_min_O_in_P(m_ranges_expr);
                 }
             }else if (m_level == 1){
-                if (m_state[0] == o) {
+                if (is_variable_subject(var)) {
                     return m_ptr_ring->edge_expr_min_S_in_PO(m_ranges_level[1]);
                 } else {
                     return m_ptr_ring->edge_expr_min_O_in_SP(m_ranges_level[1]);
                 }
-            }else{
-                //TODO: esto penso que non e necesario, deberian ser lonely (enton deberian ir por seek_all)
-                if (m_state[0] == o) {
-                    //POS_to_ID
-                }else {
-                    //PSO_to_ID
-                }
             }
-            return 0;
+            throw std::out_of_range("ltj_iterator_edge_expr::leap");
         };
 
         value_type leap(var_type var, size_type c) { //Return the next value greater or equal than c in the range
@@ -403,15 +394,8 @@ namespace ring {
                 } else {
                     return m_ptr_ring->edge_expr_next_O_in_SP(m_ranges_level[1], c);
                 }
-            }else{
-                //TODO: esto penso que non e necesario, deberian ser lonely (enton deberian ir por seek_all)
-                if (m_state[0] == o) {
-                    //POS_to_ID
-                }else {
-                    //PSO_to_ID
-                }
             }
-            return 0;
+            throw std::out_of_range("ltj_iterator_edge_expr::leap");
         }
 
         inline bool in_last_level(){
@@ -422,32 +406,14 @@ namespace ring {
             return m_length_level[m_level];
         }
 
-        //TODO: non vai funcionar (solo se usa para ver o número de valores distintos)
-        /*inline const bwt_interval& interval() const{
-            return m_intervals[m_level];
-        }*/
-
-        //Solo funciona en último nivel, en otro caso habría que reajustar
-        /*std::vector<uint64_t> seek_all(var_type var){
-            if (is_variable_subject(var)){
-                return m_ptr_ring->all_S_in_range(m_intervals[2]);
-            }else if (is_variable_predicate(var)){
-                return m_ptr_ring->all_P_in_range(m_intervals[2]);
-            }else if (is_variable_object(var)){
-                return m_ptr_ring->all_O_in_range(m_intervals[2]);
-            }
-            return {};
-        }*/
-
         value_type seek_last(var_type var){ //var should be in an edge
             m_range_i = 0;
             const auto &r = m_ranges_level[2][m_range_i];
             m_triple_j = r[0];
             if (m_state[1] == o) {
-                return m_ptr_ring->edge_expr_map_PSO_to_ID(m_triple_j);
+                return m_ptr_ring->map_OSP_to_POS(m_triple_j);
             }else {
-                //TODO: este metodo pode mellorarse, porque sei o valor de O que é o que cae na última columna
-                return m_ptr_ring->edge_expr_map_POS_to_ID(m_triple_j, m_consts[0]);
+                return m_ptr_ring->map_SPO_to_POS(m_triple_j, m_consts[0]);
             }
         }
 
@@ -462,10 +428,9 @@ namespace ring {
                 m_triple_j = r[0];
             }
             if (m_state[1] == o) {
-                return m_ptr_ring->edge_expr_map_PSO_to_ID(m_triple_j);
+                return m_ptr_ring->map_OSP_to_POS(m_triple_j);
             }else {
-                //TODO: este metodo pode mellorarse, porque sei o valor de O que é o que cae na última columna
-                return m_ptr_ring->edge_expr_map_POS_to_ID(m_triple_j, m_consts[0]);
+                return m_ptr_ring->map_SPO_to_POS(m_triple_j, m_consts[0]);
             }
         }
 

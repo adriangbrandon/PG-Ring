@@ -58,6 +58,17 @@ namespace ring {
                     return expr.type == LAB;
                 }
 
+                bool is_empty() const {
+                    return expr.type == EMPTY;
+                }
+
+                uint32_t get_label() const {
+                    return expr.label;
+                }
+
+
+
+
             } edge_type;
 
             typedef struct triple {

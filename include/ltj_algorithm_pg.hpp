@@ -34,7 +34,7 @@
 
 namespace ring {
 
-    template<class veo_t = veo::veo_adaptive_pg<> >
+    template<class results_t = ::util::results_collector<std::vector<uint64_t>>, class veo_t = veo::veo_adaptive_pg<>>
     class ltj_algorithm_pg {
 
     public:
@@ -47,9 +47,10 @@ namespace ring {
         typedef typename ltj_iter_type::value_type const_type;
         typedef veo_t veo_type;
         typedef std::unordered_map<var_type, std::vector<ltj_iter_type*>> var_to_iterators_type;
-        typedef std::vector<std::pair<var_type, value_type>> tuple_type;
+        //typedef std::vector<std::pair<var_type, value_type>> tuple_type;
+        typedef std::vector<value_type> tuple_type;
         typedef std::chrono::high_resolution_clock::time_point time_point_type;
-        typedef ::util::results_collector<tuple_type> results_type;
+        typedef results_t results_type;
 
     private:
         const patterns_type* m_ptr_patterns;
@@ -94,10 +95,10 @@ namespace ring {
             m_iterators.reserve(m_ptr_patterns->size()); //minimum number of iterators
             for(const auto& pattern : *m_ptr_patterns){
                 //Bulding iterators
-                if (pattern.edge.var_value == 0 || pattern.edge.is_label()) {
-                    std::cout << "Normal" << std::endl;
+                if (pattern.edge.is_empty()) { //the edge has no expression -> normal iterator
+                    m_iterators.push_back(new ltj_iterator<ring_type, var_type, const_type>(&pattern, m_ptr_ring));
                    // m_iterators.push_back(new ltj_iterator<ring_type, var_type, const_type>(&pattern, m_ptr_ring));
-                }else {
+                }else { //the edge has an expression -> iterator with expression
                     m_iterators.push_back(new ltj_iterator_edge_expr<ring_type, var_type, const_type>(&pattern, m_ptr_ring));
                 }
                 if(m_iterators.back()->is_empty()){
@@ -246,7 +247,7 @@ namespace ring {
                     //std::cout << "Seek (last level): (" << (uint64_t) x_j << ": size=" << results.size() << ")" <<std::endl;
                     while (c != 0) { //If empty c=0
                         //1. Adding result to tuple
-                        tuple[j] = {x_j, c};
+                        tuple[x_j-1] = c;
                         //2. Going down in the trie by setting x_j = c (\mu(t_i) in paper)
                         itrs[0]->down(x_j, c);
                         m_veo.down();
@@ -264,7 +265,7 @@ namespace ring {
                     //std::cout << "Seek (init): (" << (uint64_t) x_j << ": " << c << ")" <<std::endl;
                     while (c != 0) { //If empty c=0
                         //1. Adding result to tuple
-                        tuple[j] = {x_j, c};
+                        tuple[x_j-1] = c;
                         //2. Going down in the tries by setting x_j = c (\mu(t_i) in paper)
                         for (ltj_iter_type* iter : itrs) {
                             iter->down(x_j, c);
@@ -306,8 +307,10 @@ namespace ring {
                 //Report results
                 res.add(tuple);
                 std::cout << "Add result" << std::endl;
+                uint i = 1;
                 for(const auto &dat : tuple){
-                    std::cout << "{" << (uint64_t) dat.first << "=" << dat.second << "} ";
+                    std::cout << "x_" << i << "=" << dat << " ";
+                    ++i;
                 }
                 std::cout << std::endl;
             }else{
@@ -323,7 +326,7 @@ namespace ring {
                     //std::cout << "Seek (last level): (" << (uint64_t) x_j << ": size=" << results.size() << ")" <<std::endl;
                     while (c != 0) { //If empty c=0
                         //1. Adding result to tuple
-                        tuple[j] = {x_j, c};
+                        tuple[x_j-1] = c;
                         //2. Going down in the trie by setting x_j = c (\mu(t_i) in paper)
                         itrs[0]->down(x_j, c);
                         m_veo.down();
@@ -343,7 +346,7 @@ namespace ring {
                     std::cout << "Seek (init): (" << (uint64_t) x_j << ": " << c << ")" <<std::endl;
                     while (c != 0) { //If empty c=0
                         //1. Adding result to tuple
-                        tuple[j] = {x_j, c};
+                        tuple[x_j-1] = c;
                         //2. Going down in the tries by setting x_j = c (\mu(t_i) in paper)
                         for (ltj_iter_type* iter : sorted_itrs) {
                             iter->down(x_j, c);
@@ -444,8 +447,9 @@ namespace ring {
             uint64_t i = 1;
             for(tuple_type &tuple :  res){
                 std::cout << "[" << i << "]: ";
-                for(std::pair<var_type, value_type> &pair : tuple){
-                    std::cout << "?" << ht[pair.first] << "=" << pair.second << " ";
+                uint64_t j = 1;
+                for(value_type &v : tuple){
+                    std::cout << "?x_" << j << "=" << v << " ";
                 }
                 std::cout << std::endl;
                 ++i;

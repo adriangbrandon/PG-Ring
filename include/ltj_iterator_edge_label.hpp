@@ -76,9 +76,18 @@ namespace ring {
             m_pattern = triple;
             m_ptr_ring = ring;
 
-            m_intervals[0] = m_ptr_ring->open_POS();
 
             if (!m_pattern->subj.is_var() && !m_pattern->obj.is_var()) {
+                m_intervals[0] = m_ptr_ring->open_POS();
+                if (m_pattern->edge.expr.type == query::LAB) {
+                    //If it's a label, reduce the initial range
+                    auto p_aux = m_ptr_ring->next_P(m_intervals[0], m_pattern->edge.get_label());
+                    if (p_aux != m_pattern->edge.get_label()) {
+                        m_is_empty = true;
+                        return;
+                    }
+                    m_intervals[0] = m_ptr_ring->down_P(p_aux);
+                }
 
                 //Interval in S
                 auto s_aux = m_ptr_ring->next_S(m_intervals[0], m_pattern->subj.const_value);
@@ -104,6 +113,7 @@ namespace ring {
                 m_intervals[2] = m_ptr_ring->down_S_O(m_intervals[1], o_aux);
                 m_level = 2;
             } else if (m_pattern->subj.is_var() && !m_pattern->obj.is_var()) {
+                m_intervals[0] = m_ptr_ring->open_POS(); //start always with the full range
 
                 //Interval in O
                 auto o_aux = m_ptr_ring->next_O(m_intervals[0], m_pattern->obj.const_value);
@@ -114,9 +124,30 @@ namespace ring {
                 }
                 m_state[0] = o;
                 m_consts[0] = o_aux;
-                m_intervals[1] = m_ptr_ring->down_O(o_aux);
+                m_intervals[0] = m_ptr_ring->down_O(o_aux);
+
+                //If it's a label, reduce the range
+                if (m_pattern->edge.expr.type == query::LAB) {
+                    auto p_aux = m_ptr_ring->next_P(m_intervals[0], m_pattern->edge.get_label());
+                    if (p_aux != m_pattern->edge.get_label()) {
+                        m_is_empty = true;
+                        return;
+                    }
+                    m_intervals[1] = m_ptr_ring->down_O_P(m_intervals[0], p_aux);
+                }
                 m_level = 1;
-            } else if (!m_pattern->subj.is_var()) {//&& m_pattern->obj.is_var()
+            } else if (!m_pattern->subj.is_var()) {
+                //&& m_pattern->obj.is_var()
+                m_intervals[0] = m_ptr_ring->open_POS();
+                if (m_pattern->edge.expr.type == query::LAB) {
+                    //If it's a label, reduce the initial range
+                    auto p_aux = m_ptr_ring->next_P(m_intervals[0], m_pattern->edge.get_label());
+                    if (p_aux != m_pattern->edge.get_label()) {
+                        m_is_empty = true;
+                        return;
+                    }
+                    m_intervals[0] = m_ptr_ring->down_P(p_aux);
+                }
 
                 //Interval in S
                 auto s_aux = m_ptr_ring->next_S(m_intervals[0], m_pattern->subj.const_value);
@@ -129,6 +160,19 @@ namespace ring {
                 m_consts[0] = s_aux;
                 m_intervals[1] = m_ptr_ring->down_S(s_aux);
                 m_level = 1;
+            } else {
+                //Both are variables
+                m_intervals[0] = m_ptr_ring->open_POS();
+                if (m_pattern->edge.expr.type == query::LAB) {
+                    //If it's a label, reduce the initial range
+                    auto p_aux = m_ptr_ring->next_P(m_intervals[0], m_pattern->edge.get_label());
+                    if (p_aux != m_pattern->edge.get_label()) {
+                        m_is_empty = true;
+                        return;
+                    }
+                    m_intervals[0] = m_ptr_ring->down_P(p_aux);
+                }
+                m_level = 0;
             }
         }
 
@@ -200,15 +244,19 @@ namespace ring {
             if (m_level > 2) return;
             if (m_level == 0) {
                 if (is_variable_subject(var)) {
-                    m_intervals[1] = m_ptr_ring->down_S(c);
+                    m_intervals[1] = (m_pattern->edge.is_label())
+                                         ? m_ptr_ring->down_P_S(m_intervals[0], c)
+                                         : m_ptr_ring->down_S(c);
                     m_state[m_level] = s;
                 } else {
-                    m_intervals[1] = m_ptr_ring->down_O(c);
+                    m_intervals[1] = (m_pattern->edge.is_label())
+                                         ? m_ptr_ring->down_P_O(m_intervals[0], m_pattern->edge.get_label(), c)
+                                         : m_ptr_ring->down_O(c);
                     m_state[m_level] = o;
                 }
             } else if (m_level == 1) {
                 if (is_variable_subject(var)) {
-                    m_intervals[2] = m_ptr_ring->down_O_S(m_intervals[1], m_consts[0], c);
+                    m_intervals[2] = m_ptr_ring->down_P_S(m_intervals[1], c);
                     m_state[m_level] = s;
                 } else {
                     m_intervals[2] = m_ptr_ring->down_S_O(m_intervals[1], c);
@@ -235,15 +283,21 @@ namespace ring {
             //0. Which term of our triple pattern is var
             if (m_level == 0) {
                 if (is_variable_subject(var)) {
-                    return m_ptr_ring->min_S(m_intervals[0]);
+                    return (m_pattern->edge.is_label())
+                               ? m_ptr_ring->min_S_in_P(m_intervals[0])
+                               : m_ptr_ring->min_S(m_intervals[0]);
                 } else {
-                    return m_ptr_ring->min_O(m_intervals[0]);
+                    return (m_pattern->edge.is_label())
+                               ? m_ptr_ring->min_O_in_P(m_intervals[0], m_pattern->edge.get_label())
+                               : m_ptr_ring->min_O(m_intervals[0]);
                 }
             } else if (m_level == 1) {
                 if (is_variable_subject(var)) {
-                    return m_ptr_ring->min_S_in_O(m_intervals[1], m_consts[0]);
+                    return (m_pattern->edge.is_label()) ? m_ptr_ring->min_S_in_PO(m_intervals[1])
+                                                        : m_ptr_ring->min_S_in_O(m_intervals[1], m_consts[0]);
                 } else {
-                    return m_ptr_ring->min_O_in_S(m_intervals[1]);
+                    return (m_pattern->edge.is_label()) ? m_ptr_ring->min_O_in_PS(m_intervals[1])
+                                                        : m_ptr_ring->min_O_in_S(m_intervals[1]);
                 }
             }
             throw std::out_of_range("ltj_iterator::leap");
@@ -254,15 +308,21 @@ namespace ring {
             //0. Which term of our triple pattern is var
             if (m_level == 0) {
                 if (is_variable_subject(var)) {
-                    return m_ptr_ring->next_S(m_intervals[0], c);
+                    return (m_pattern->edge.is_label())
+                               ? m_ptr_ring->next_S_in_P(m_intervals[0], c)
+                               : m_ptr_ring->next_S(m_intervals[0], c);
                 } else {
-                    return m_ptr_ring->next_O(m_intervals[0], c);
+                    return (m_pattern->edge.is_label())
+                               ? m_ptr_ring->next_O_in_P(m_intervals[0], m_pattern->edge.get_label(), c)
+                               : m_ptr_ring->next_O(m_intervals[0], c);
                 }
             } else if (m_level == 1) {
                 if (is_variable_subject(var)) {
-                    return  m_ptr_ring->next_S_in_O(m_intervals[1], m_consts[0], c);
+                    return (m_pattern->edge.is_label()) ? m_ptr_ring->next_S_in_PO(m_intervals[1], c)
+                                                        : m_ptr_ring->next_S_in_O(m_intervals[1], m_consts[0], c);
                 } else {
-                    return  m_ptr_ring->next_O_in_S(m_intervals[1], c);
+                    return (m_pattern->edge.is_label()) ? m_ptr_ring->next_O_in_PS(m_intervals[1], c)
+                                                        : m_ptr_ring->next_O_in_S(m_intervals[1], c);
                 }
             }
             throw std::out_of_range("ltj_iterator::leap");
@@ -283,8 +343,11 @@ namespace ring {
         value_type seek_last(var_type var) {
             //var should be in an edge
             m_triple_j = m_intervals[2].left();
-            //both cases are in OSP
-            return m_ptr_ring->map_OSP_to_POS(m_triple_j);
+            if (m_state[1] == o) {
+                return m_ptr_ring->edge_expr_map_PSO_to_ID(m_triple_j);
+            } else {
+                return m_ptr_ring->edge_expr_map_POS_to_ID(m_triple_j, m_consts[0]);
+            }
         }
 
         value_type seek_last_next(var_type var) {
@@ -292,7 +355,11 @@ namespace ring {
             if (m_triple_j > m_intervals[2].right()) {
                 return 0;
             }
-            return m_ptr_ring->map_OSP_to_POS(m_triple_j);
+            if (m_state[1] == o) {
+                return m_ptr_ring->edge_expr_map_PSO_to_ID(m_triple_j);
+            } else {
+                return m_ptr_ring->edge_expr_map_POS_to_ID(m_triple_j, m_consts[0]);
+            }
         }
     };
 }
