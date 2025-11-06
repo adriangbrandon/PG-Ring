@@ -408,8 +408,7 @@ namespace ring {
 
         value_type seek_last(var_type var){ //var should be in an edge
             m_range_i = 0;
-            const auto &r = m_ranges_level[2][m_range_i];
-            m_triple_j = r[0];
+            m_triple_j = m_ranges_level[2][m_range_i][0];
             if (m_state[1] == o) {
                 return m_ptr_ring->map_OSP_to_POS(m_triple_j);
             }else {
@@ -418,14 +417,12 @@ namespace ring {
         }
 
         value_type seek_last_next(var_type var){
-            auto &r = m_ranges_level[2][m_range_i];
             ++m_triple_j;
-            if (m_triple_j > r[1]) {
+            if (m_triple_j >m_ranges_level[2][m_range_i][1]) {
                 if (m_range_i + 1 == m_ranges_level[2].size()) {
                     return 0; //No more triples
                 }
-                r = m_ranges_level[2][++m_range_i];
-                m_triple_j = r[0];
+                 m_triple_j = m_ranges_level[2][++m_range_i][0];
             }
             if (m_state[1] == o) {
                 return m_ptr_ring->map_OSP_to_POS(m_triple_j);

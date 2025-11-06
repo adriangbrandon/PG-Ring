@@ -37,8 +37,8 @@ private:
 public:
     void SetUp() override {
         // Cambia estos paths según lo necesites
-        std::string input_path = "/mnt/movies-ring.short.triples";
-        std::string index_path = "/mnt/movies-ring.short.triples.pg";
+        std::string input_path = "/mnt/movies-ring.triples";
+        std::string index_path = "/mnt/movies-ring.triples.pg";
         read_input(dataset_vec, input_path);
         sdsl::load_from_file(graph, index_path);
     }
@@ -85,10 +85,10 @@ void run_queries_test(const std::vector<std::string>& queries) {
         std::cout << "Obtained results: " << res.size() << std::endl;
         std::cout << "Expected results: " << q_c.res.size() << std::endl;
 
-        ASSERT_EQ(q_c.res.size(), res.size()) << "Error in: " << s;
+        ASSERT_EQ(q_c.res.size(), res.size()) << "Error in size. ";
         for (uint64_t i = 0; i < q_c.res.size(); ++i) {
             for (uint64_t j = 0; j < q_c.res[i].size(); ++j) {
-                ASSERT_EQ(q_c.res[i][j], res.results[i][j]) << "Error in: " << s;
+                ASSERT_EQ(q_c.res[i][j], res.results[i][j]) << "Error in: i=" << i << " j=" << j;
             }
         }
     }
@@ -132,12 +132,21 @@ TEST(QueryTest, ExprIterator)
 TEST(QueryTest, BGPs)
 {
     std::vector<std::string> queries = {
+        "(28)-[?y:(2 OR 3)]->(?z), (?v)-[?w:1]->(?z)",
         "(?k)-[?y:(2 OR 3)]->(?z), (?v)-[?w:1]->(?z)",
         "(?a)-[?b]->(?c), (?c)-[?d]->(?e)",
         "(6)-[?y:(2 OR 3)]->(?z), (?v)-[?w:(NOT 2 AND NOT 1)]->(?z)",
         "(?k)-[?y:(2 OR 3)]->(?z), (?v)-[?w:(NOT 2 AND NOT 1)]->(?z)",
         "(?k)-[?y:(2 OR 3)]->(?z), (?v)-[?w:1]->(?z), (?v)-[?u:(NOT 1)]->(?m)",
         "(?k)-[?y:(2 OR 3)]->(?z), (?v)-[?w:1]->(?z), (?v)-[?u:1]->(?m)"
+    };
+    run_queries_test(queries);
+}
+
+TEST(QueryTest, Error)
+{
+    std::vector<std::string> queries = {
+        "(?k)-[?y:(2 OR 3)]->(?z), (?v)-[?w:1]->(?z)"
     };
     run_queries_test(queries);
 }
