@@ -47,10 +47,6 @@ public:
 // Registrar el entorno de test
 ::testing::Environment* const query_env = ::testing::AddGlobalTestEnvironment(new QueryTestEnvironment);
 
-
-
-
-
 void run_query_test(const std::string& s) {
     auto query = ring::query::pg_query(s);
     typedef ring::ltj_algorithm_pg<::util::results_collector_test<std::vector<uint64_t>>> algorithm_type;
@@ -86,13 +82,13 @@ void run_queries_test(const std::vector<std::string>& queries) {
         res.sort(); q_c.sort();
 
         std::cout << "Query: " << s << "\n";
-        std::cout << "Resultados obtenidos: " << res.size() << std::endl;
-        std::cout << "Resultados esperados: " << q_c.res.size() << std::endl;
+        std::cout << "Obtained results: " << res.size() << std::endl;
+        std::cout << "Expected results: " << q_c.res.size() << std::endl;
 
-        ASSERT_EQ(q_c.res.size(), res.size()) << "Fallo en la query: " << s;
+        ASSERT_EQ(q_c.res.size(), res.size()) << "Error in: " << s;
         for (uint64_t i = 0; i < q_c.res.size(); ++i) {
             for (uint64_t j = 0; j < q_c.res[i].size(); ++j) {
-                ASSERT_EQ(q_c.res[i][j], res.results[i][j]) << "Fallo en la query: " << s;
+                ASSERT_EQ(q_c.res[i][j], res.results[i][j]) << "Error in: " << s;
             }
         }
     }
@@ -115,7 +111,7 @@ TEST(QueryTest, LabelIterator)
         "(?a)-[?b:2]->(?c)",
         "(8)-[?y:3]->(?z)",
         "(?x)-[?y:1]->(1)",
-        "(6)-[?y:2]->(?1)"
+        "(6)-[?y:2]->(1)"
     };
     run_queries_test(queries);
 }
