@@ -13,6 +13,8 @@
 #include <fstream>
 #include <sstream>
 
+#include "configuration.hpp"
+
 class cypher_parser {
 
 
@@ -23,6 +25,8 @@ private:
     std::unordered_map<std::string, int> m_set_label_edges;  // Labels de aristas
     // Triples: (sujeto, predicado, objeto)
     std::vector<std::tuple<int, int, int>> m_triples;
+    typedef std::map<uint32_t, std::vector<uint32_t>> label_nodes_map_type; //para que se mostren ordenados por id de label
+    label_nodes_map_type m_label_nodes_map;
 
     int get_or_add(const std::string& name, std::unordered_map<std::string, int>& set) {
         auto it = set.find(name);
@@ -65,13 +69,14 @@ private:
             for (auto it = node_begin; it != node_end; ++it) {
                 std::string node_name = (*it)[1];
                 std::string labels_str = (*it)[2];
-                get_or_add(node_name, m_set_nodes);
+                int node_id = get_or_add(node_name, m_set_nodes);
                 // Extraer todas las labels separadas por ':'
                 size_t start = 0;
                 while ((start = labels_str.find(':', start)) != std::string::npos) {
                     size_t end = labels_str.find(':', start + 1);
                     std::string label = labels_str.substr(start + 1, end - start - 1);
-                    get_or_add(label, m_set_label_nodes);
+                    int label_id = get_or_add(label, m_set_label_nodes);
+                    m_label_nodes_map[label_id].push_back(node_id);
                     if (end == std::string::npos) break;
                     start = end;
                 }
@@ -80,8 +85,6 @@ private:
     };
 
 public:
-
-
 
     void parse_file(const std::string& filename) {
         std::ifstream file(filename);
@@ -117,9 +120,10 @@ public:
 
 
     void write_file(const std::string& filename) {
-        std::string nodes = filename + ".nodes";
-        std::string node_labels = filename + ".nlabels";
-        std::string edge_labels = filename + ".elabels";
+        std::string nodes = filename + ".nodes.dict";
+        std::string node_labels = filename + ".nlabels.dict";
+        std::string edge_labels = filename + ".elabels.dict";
+        std::string label2nodes = filename + ".label2nodes";
         std::string triples = filename + ".triples";
         // Escribir nodos
         {
@@ -142,6 +146,19 @@ public:
                 file << pair.second << " " << pair.first << "\n";
             }
         }
+
+        //Escribir node_labels map
+        {
+            std::ofstream file(label2nodes);
+            for (const auto& pair : m_label_nodes_map) {
+                file << pair.first << " " << pair.second.size();
+                for (const auto& node_id : pair.second) {
+                    file << " " << node_id;
+                }
+                file << "\n";
+            }
+        }
+
         // Escribir triples
         {
             std::ofstream file(triples);

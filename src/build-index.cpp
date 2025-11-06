@@ -32,22 +32,43 @@ using timer = std::chrono::high_resolution_clock;
 
 template<class ring>
 void build_index(const std::string &dataset, const std::string &output){
-    vector<spo_triple> D, E;
+    vector<spo_triple> triples;
+    vector<vector<uint32_t>> label2nodes;
 
-    std::ifstream ifs(dataset);
-    uint64_t s, p , o;
-    do {
-        ifs >> s >> p >> o;
-        if(ifs.eof()) break;
-        D.push_back(spo_triple(s, p, o));
-    } while (true);
+    std::string triples_file = dataset + ".triples";
+    std::string labels_map = dataset + ".label2nodes";
 
-    D.shrink_to_fit();
-    cout << "--Indexing " << D.size() << " triples" << endl;
+    {
+        std::ifstream ifs(triples_file);
+        uint64_t s, p , o;
+        do {
+            ifs >> s >> p >> o;
+            if(ifs.eof()) break;
+            triples.push_back(spo_triple(s, p, o));
+        } while (true);
+    }
+
+    {
+        std::ifstream ifs(labels_map);
+        uint32_t node, size, label;
+        do {
+            ifs >> label;
+            if(ifs.eof()) break;
+            ifs >> size;
+            label2nodes.emplace_back();
+            for (uint32_t i = 0; i < size; i++) {
+                ifs >> node;
+                label2nodes.back().push_back(node);
+            }
+        } while (true);
+    }
+
+    triples.shrink_to_fit();
+    cout << "--Indexing " << triples.size() << " triples" << endl;
     memory_monitor::start();
     auto start = timer::now();
 
-    ring A(D);
+    ring A(triples, label2nodes);
     auto stop = timer::now();
     memory_monitor::stop();
     cout << "  Index built  " << sdsl::size_in_bytes(A) << " bytes" << endl;
@@ -70,7 +91,7 @@ int main(int argc, char **argv)
     std::string dataset = argv[1];
     std::string type    = argv[2];
     if (type == "pg") {
-        std::string index_name = dataset + ".pg";
+        std::string index_name = dataset + ".ring.pg";
         build_index<ring::ring_pg<>>(dataset, index_name);
     }
    /* if(type == "ring"){

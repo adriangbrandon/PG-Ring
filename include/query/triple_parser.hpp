@@ -43,6 +43,10 @@ namespace ring {
                     return var_value != 0;
                 }
 
+                bool is_empty() const {
+                    return expr.type == EMPTY;
+                }
+
             } node_type;
 
             typedef struct edge {

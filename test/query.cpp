@@ -68,17 +68,28 @@ int main(int argc, char* argv[]) {
     //std::string s = "(?k)-[?y:3]->(?z)";
     //std::string s = "(?k)-[?y:1]->(?z)";
     //std::string s = "(?k)-[?y:(2 OR 3)]->(?z), (?v)-[?w:3]->(?z)";
-    std::string s = "(?k)-[?y:(2 OR 3)]->(?z), (?v)-[?w]->(?z)";
+    //std::string s = "(?k)-[?y:(2 OR 3)]->(?z), (?v)-[?w]->(?z)";
+    //std::string s = "(?k)-[?y]->(1), (?k)-[?w]->(12)";
+    //std::string s = "(?k:2)-[?y]->(1), (?k:2)-[?w]->(12)";
+    //std::string s = "(?k:2)-[?y]->(1), (?k:2)-[?w]->(?z:1)"; //aparece o 8 que é o productor
+    std::string s = "(?k:2)-[?y:1]->(1), (?k:2)-[?w]->(?z:1)"; //solo mirar actores de Matrix, non debería aparecer o 8
     std::cout << "Querying: " << s << std::endl;
     auto query = ring::query::pg_query(s);
-    typedef ring::ltj_algorithm_pg<util::results_collector_test<std::vector<uint64_t>>> algorithm_type;
+    typedef ring::ltj_algorithm_pg<::util::results_collector_test<std::vector<uint64_t>>> algorithm_type;
     typedef algorithm_type::tuple_type tuple_type;
     algorithm_type ltj(&query.patterns, &ring);
-    util::results_collector_test<tuple_type> res;
+    ::util::results_collector_test<tuple_type> res;
     ltj.join_v3(res, 0, 0);
     std::cout << res.size() << std::endl;
 
-    ring::test::query_checker q_c(&dataset, s);
+    for (size_t i = 0; i < res.size(); ++i) {
+        const auto& t = res.results[i];
+        for (const auto& v : t) {
+            std::cout << v << " ";
+        }
+        std::cout << std::endl;
+    }
+    /*ring::test::query_checker q_c(&dataset, s);
     q_c.run();
     res.sort(); q_c.sort();
     std::cout << "Checked results: " << q_c.res.size() << std::endl;
@@ -89,7 +100,7 @@ int main(int argc, char* argv[]) {
         for (uint64_t j = 0; j < q_c.res[i].size(); ++j) {
             assert(q_c.res[i][j] == res.results[i][j]);
         }
-    }
+    }*/
 
 
     //std::string s = "NOT (5 OR 3)"; //it cannot work

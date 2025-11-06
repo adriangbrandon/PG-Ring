@@ -27,6 +27,7 @@
 #include <ltj_iterator.hpp>
 #include <ltj_iterator_edge_expr.hpp>
 #include <ltj_iterator_edge_label.hpp>
+#include <ltj_iterator_node_expr.hpp>
 #include <veo_adaptive_pg.hpp>
 #include <results_collector.hpp>
 #include <query/query_parser.hpp>
@@ -92,8 +93,9 @@ namespace ring {
             m_ptr_patterns = triple_patterns;
             m_ptr_ring = ring;
 
-            size_type i = 0;
             m_iterators.reserve(m_ptr_patterns->size()); //minimum number of iterators
+
+            //iterators of the edge labels
             for(const auto& pattern : *m_ptr_patterns){
                 //Bulding iterators
                 if (pattern.edge.is_empty()) { //the edge has no constraints on the labels -> normal iterator
@@ -104,13 +106,11 @@ namespace ring {
                 }else { //the edge has an expression -> iterator with expression
                     m_iterators.push_back(new ltj_iterator_edge_expr<ring_type, var_type, const_type>(&pattern, m_ptr_ring));
                 }
+
                 if(m_iterators.back()->is_empty()){
                     m_is_empty = true;
                     return;
                 }
-
-
-                //TODO: arreglar esta parte
 
                 if (pattern.subj.is_var()) {
                     add_var_to_iterator(pattern.subj.var_value, m_iterators.back());
@@ -121,20 +121,21 @@ namespace ring {
                 if (pattern.obj.is_var()) {
                     add_var_to_iterator(pattern.obj.var_value, m_iterators.back());
                 }
-                //For each variable we add the pointers to its iterators
-                /*if(triple.o_is_variable()){
-                    add_var_to_iterator(triple.term_o.value, &(m_iterators[i]));
-                }
-                if(triple.p_is_variable()){
-                    add_var_to_iterator(triple.term_p.value, &(m_iterators[i]));
-                }
-                if(triple.s_is_variable()){
-                    add_var_to_iterator(triple.term_s.value, &(m_iterators[i]));
-                }*/
-                ++i;
             }
 
-            //TODO: arreglar veo (que sea adaptive pero solo considere la longitud de los rangos)
+            //iterators of the node labels
+            for(const auto& pattern : *m_ptr_patterns) {
+                if (pattern.subj.is_var() && !pattern.subj.is_empty()) {
+                    m_iterators.push_back(new ltj_iterator_node_expr<ring_type, var_type, const_type>(&pattern, m_ptr_ring, true));
+                    add_var_to_iterator(pattern.subj.var_value, m_iterators.back());
+                }
+
+                if (pattern.obj.is_var() && !pattern.obj.is_empty()) {
+                    m_iterators.push_back(new ltj_iterator_node_expr<ring_type, var_type, const_type>(&pattern, m_ptr_ring, false));
+                    add_var_to_iterator(pattern.obj.var_value, m_iterators.back());
+                }
+            }
+
             m_veo = veo_type(m_ptr_patterns, &m_iterators, &m_var_to_iterators, m_ptr_ring);
 
         }

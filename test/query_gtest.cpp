@@ -37,8 +37,8 @@ private:
 public:
     void SetUp() override {
         // Cambia estos paths según lo necesites
-        std::string input_path = "/mnt/movies-ring.triples";
-        std::string index_path = "/mnt/movies-ring.triples.pg";
+        std::string input_path = "/mnt/movies/real/movies.triples";
+        std::string index_path = "/mnt/movies/real/movies.ring.pg";
         read_input(dataset_vec, input_path);
         sdsl::load_from_file(graph, index_path);
     }
@@ -142,6 +142,14 @@ TEST(QueryTest, BGPs)
     };
     run_queries_test(queries);
 }
+
+/*TEST(QueryTest, NodeLabels)
+{
+    std::vector<std::string> queries = {
+        "(?k)-[?y:(2 OR 3)]->(?z), (?v)-[?w:1]->(?z)"
+    };
+    run_queries_test(queries);
+}*/
 
 TEST(QueryTest, Error)
 {

@@ -25,6 +25,7 @@
 #include "bwt_interval.hpp"
 #include <queue>
 #include "ranges_util.hpp"
+#include <sdsl/succ_support_v.hpp>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,17 +40,24 @@ namespace ring {
         typedef bwt_so_t bwt_type;
         typedef bwt_p_t bwt_p_type;
         typedef std::tuple<uint32_t, uint32_t, uint32_t> spo_triple_type;
+        typedef sdsl::bit_vector bit_vector_type;
+        typedef typename bit_vector_type::succ_0_type succ_0_type;
+        typedef typename bit_vector_type::succ_1_type succ_1_type;
 
 
     private:
-        bwt_type m_bwt_s; //POS
+        bwt_type m_bwt_s;   //POS
         bwt_p_type m_bwt_p; //OSP
-        bwt_type m_bwt_o; //SPO
+        bwt_type m_bwt_o;   //SPO
 
         size_type m_max_s;
         size_type m_max_p;
         size_type m_max_o;
         size_type m_n_triples;  // number of triples
+
+        std::vector<bit_vector_type> m_bvts;
+        std::vector<succ_0_type> m_succs0;
+        std::vector<succ_1_type> m_succs1;
 
         void copy(const ring_pg &o) {
             m_bwt_s = o.m_bwt_s;
@@ -59,6 +67,14 @@ namespace ring {
             m_max_p = o.m_max_p;
             m_max_o = o.m_max_o;
             m_n_triples = o.m_n_triples;
+
+            m_bvts = o.m_bvts;
+            m_succs0 = o.m_succs0;
+            m_succs1 = o.m_succs1;
+            for (size_t i = 0; i < m_bvts.size(); i++) {
+                m_succs0[i].set_vector(&m_bvts[i]);
+                m_succs1[i].set_vector(&m_bvts[i]);
+            }
         }
 
     public:
@@ -75,7 +91,7 @@ namespace ring {
         ring_pg() = default;
 
         // Assumes the triples have been stored in a vector<spo_triple>
-        ring_pg(vector<spo_triple_type> &D) {
+        ring_pg(vector<spo_triple_type> &D, std::vector<std::vector<uint32_t>>& label2nodes) {
             uint64_t i, pos_c;
             vector<spo_triple>::iterator it, triple_begin = D.begin(), triple_end = D.end();
             uint64_t U, n = m_n_triples = D.size();
@@ -113,7 +129,7 @@ namespace ring {
 
             // First O
             {
-                uint64_t i, c;
+                uint64_t c;
                 vector<uint64_t> new_C_O;
                 uint64_t cur_pos = 1;
                 new_C_O.push_back(0); // Dummy value
@@ -147,7 +163,7 @@ namespace ring {
             stable_sort(D.begin(), D.end(), [](const spo_triple& a,
                     const spo_triple& b) {return std::get<2>(a) < std::get<2>(b);});
             {
-                uint64_t c, i;
+                uint64_t c;
                 vector<uint64_t> new_C_P;
 
                 uint64_t cur_pos = 1;
@@ -181,7 +197,7 @@ namespace ring {
                     const spo_triple& b) {return std::get<1>(a) < std::get<1>(b); });
             // Builds BWT_S
             {
-                uint64_t i, c;
+                uint64_t c;
                 vector<uint64_t> new_C_S;
 
                 uint64_t cur_pos = 1;
@@ -205,7 +221,25 @@ namespace ring {
                 m_bwt_s = bwt_type(new_S, new_C_S);
             }
 
-            cout << "-- Index constructed successfully" << endl; fflush(stdout);
+            cout << "-- BWTs built successfully" << endl;
+
+            {
+                m_bvts.resize(label2nodes.size());
+                m_succs0.resize(label2nodes.size());
+                m_succs1.resize(label2nodes.size());
+                for (i = 0; i < label2nodes.size(); i++) {
+                    sdsl::bit_vector bvt(alphabet_SO + 2, 0);
+                    for (uint32_t j = 0; j < label2nodes[i].size(); j++) {
+                        bvt[label2nodes[i][j]] = 1;
+                    }
+                    bvt[alphabet_SO+1] = 1; // sentinel
+                    m_bvts[i] = bit_vector_type(bvt);
+                    sdsl::util::init_support(m_succs0[i], &m_bvts[i]);
+                    sdsl::util::init_support(m_succs1[i], &m_bvts[i]);
+                }
+            }
+
+            cout << "-- Index constructed successfully" << endl;
         };
 
 
@@ -237,6 +271,14 @@ namespace ring {
                 m_max_p = o.m_max_p;
                 m_max_o = o.m_max_o;
                 m_n_triples = o.m_n_triples;
+                m_bvts = std::move(o.m_bvts);
+                m_succs0 = std::move(o.m_succs0);
+                m_succs1 = std::move(o.m_succs1);
+                for (size_t i = 0; i < m_bvts.size(); i++) {
+                    m_succs0[i].set_vector(&m_bvts[i]);
+                    m_succs1[i].set_vector(&m_bvts[i]);
+                }
+
             }
             return *this;
         }
@@ -250,6 +292,11 @@ namespace ring {
             std::swap(m_max_p, o.m_max_p);
             std::swap(m_max_o, o.m_max_o);
             std::swap(m_n_triples, o.m_n_triples);
+            std::swap(m_bvts, o.m_bvts);
+            for (size_t i = 0; i < m_bvts.size(); i++) {
+                sdsl::util::swap_support(m_succs0[i], o.m_succs0[i], &m_bvts[i], &o.m_bvts[i]);
+                sdsl::util::swap_support(m_succs1[i], o.m_succs1[i], &m_bvts[i], &o.m_bvts[i]);
+            }
         }
 
         //! Serializes the data structure into the given ostream
@@ -263,6 +310,10 @@ namespace ring {
             written_bytes += sdsl::write_member(m_max_p, out, child, "max_p");
             written_bytes += sdsl::write_member(m_max_o, out, child, "max_o");
             written_bytes += sdsl::write_member(m_n_triples, out, child, "n_triples");
+            sdsl::write_member(m_bvts.size(), out,  child, "labels");
+            sdsl::serialize_vector(m_bvts, out, child, "bvts");
+            sdsl::serialize_vector(m_succs0, out, child, "succs0");
+            sdsl::serialize_vector(m_succs1, out, child, "succs1");
             sdsl::structure_tree::add_size(child, written_bytes);
             return written_bytes;
         }
@@ -275,6 +326,18 @@ namespace ring {
             sdsl::read_member(m_max_p, in);
             sdsl::read_member(m_max_o, in);
             sdsl::read_member(m_n_triples, in);
+            size_t labels_size;
+            sdsl::read_member(labels_size, in);
+            m_bvts.resize(labels_size);
+            m_succs0.resize(labels_size);
+            m_succs1.resize(labels_size);
+            sdsl::load_vector(m_bvts, in);
+            sdsl::load_vector(m_succs0, in);
+            sdsl::load_vector(m_succs1, in);
+            for (size_t i = 0; i < m_bvts.size(); i++) {
+                m_succs0[i].set_vector(&m_bvts[i]);
+                m_succs1[i].set_vector(&m_bvts[i]);
+            }
             std::cout << "--- SPO ---" << std::endl;
             m_bwt_o.print_size();
             std::cout << "--- OSP ---" << std::endl;
@@ -786,6 +849,18 @@ namespace ring {
             return m_bwt_s.get_C(p) + m_bwt_p.ranky(osp_i, p); //OSP -> POS
         }
 
+
+        value_type next_node_label(uint32_t label, value_type node) {
+            auto n = m_succs1[label-1](node);
+            if (n > m_max_s) return 0;
+            return n;
+        }
+
+        value_type next_node_neg(uint32_t label, value_type node) {
+            auto n =  m_succs0[label-1](node);
+            if (n > m_max_s) return 0;
+            return n;
+        }
     };
 
     typedef ring_pg<bwt_rrr, bwt_rrr> c_ring_pg;
