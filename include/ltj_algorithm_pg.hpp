@@ -25,12 +25,13 @@
 
 #include <triple_pattern.hpp>
 #include <ltj_iterator.hpp>
-#include <ltj_iterator_unidirectional.hpp>
+#include <ltj_iterator_edge_expr.hpp>
+#include <ltj_iterator_edge_label.hpp>
 #include <veo_adaptive_pg.hpp>
 #include <results_collector.hpp>
 #include <query/query_parser.hpp>
 
-#include "ltj_iterator_edge_expr.hpp"
+
 
 namespace ring {
 
@@ -95,9 +96,11 @@ namespace ring {
             m_iterators.reserve(m_ptr_patterns->size()); //minimum number of iterators
             for(const auto& pattern : *m_ptr_patterns){
                 //Bulding iterators
-                if (pattern.edge.is_empty()) { //the edge has no expression -> normal iterator
+                if (pattern.edge.is_empty()) { //the edge has no constraints on the labels -> normal iterator
                     m_iterators.push_back(new ltj_iterator<ring_type, var_type, const_type>(&pattern, m_ptr_ring));
-                   // m_iterators.push_back(new ltj_iterator<ring_type, var_type, const_type>(&pattern, m_ptr_ring));
+                    // m_iterators.push_back(new ltj_iterator<ring_type, var_type, const_type>(&pattern, m_ptr_ring));
+                }else if (pattern.edge.is_label()){ //the edge has a label -> iterator with label
+                    m_iterators.push_back(new ltj_iterator_edge_label<ring_type, var_type, const_type>(&pattern, m_ptr_ring));
                 }else { //the edge has an expression -> iterator with expression
                     m_iterators.push_back(new ltj_iterator_edge_expr<ring_type, var_type, const_type>(&pattern, m_ptr_ring));
                 }

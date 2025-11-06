@@ -76,7 +76,7 @@ namespace ring {
                     if (std::get<1>(triple) != pattern.edge.const_value) return false;
                 } else {
                     // Check expression
-                    return check_expr(pattern.edge.expr, triple);
+                    if (!check_expr(pattern.edge.expr, triple)) return false;
                 }
 
                 // Check object
