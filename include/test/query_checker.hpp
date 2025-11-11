@@ -16,50 +16,104 @@ namespace ring {
 
         private:
             std::vector<spo_triple>* m_ptr_triples; //should be sorted by POS
+            std::vector<std::vector<uint32_t>>* m_ptr_node_labels; //adjlist of node->labels
             query::pg_query m_query;
             std::vector<std::vector<uint32_t>> m_res;
 
 
-            bool check_expr_and(const query::expr_parser::expr_type &expr, const spo_triple &triple) {
-                bool match = false;
+            bool check_expr_edge_and(const query::expr_parser::expr_type &expr, const spo_triple &triple) {
                 for (const auto& arg : expr.args) {
                     if (arg.type == ring::query::LAB) {
                         if (std::get<1>(triple) != arg.label) return false;
                     } else if (arg.type == ring::query::NEG) {
                         if (std::get<1>(triple) == arg.label) return false;
                     } else if (arg.type == ring::query::OR) {
-                        if (!check_expr_or(arg, triple)) return false;
+                        if (!check_expr_edge_or(arg, triple)) return false;
                     } else if (arg.type == ring::query::AND) {
-                        if (!check_expr_and(arg, triple)) return false;
+                        if (!check_expr_edge_and(arg, triple)) return false;
                     }
                 }
                 return true;
             }
 
-            bool check_expr_or(const query::expr_parser::expr_type &expr, const spo_triple &triple) {
+            bool check_expr_edge_or(const query::expr_parser::expr_type &expr, const spo_triple &triple) {
                 for (const auto& arg : expr.args) {
                     if (arg.type == ring::query::LAB) {
                         if (std::get<1>(triple) == arg.label) return true;
                     } else if (arg.type == ring::query::NEG) {
                         if (std::get<1>(triple) != arg.label) return true;
                     } else if (arg.type == ring::query::OR) {
-                        if (check_expr_or(arg, triple)) return true;
+                        if (check_expr_edge_or(arg, triple)) return true;
                     } else if (arg.type == ring::query::AND) {
-                        if (check_expr_and(arg, triple)) return true;
+                        if (check_expr_edge_and(arg, triple)) return true;
                     }
                 }
                 return false;
             }
 
-            bool check_expr(const query::expr_parser::expr_type &expr, const spo_triple &triple) {
+
+
+            bool check_expr_edge(const query::expr_parser::expr_type &expr, const spo_triple &triple) {
                 if (expr.type == ring::query::LAB) {
                     return (std::get<1>(triple) == expr.label);
                 } else if (expr.type == ring::query::NEG) {
                     return (std::get<1>(triple) != expr.label);
                 } else if (expr.type == ring::query::OR) {
-                    return (check_expr_or(expr, triple));
+                    return (check_expr_edge_or(expr, triple));
                 } else if (expr.type == ring::query::AND) {
-                    return (check_expr_and(expr, triple));
+                    return (check_expr_edge_and(expr, triple));
+                }
+                return true;
+            }
+
+            bool check_expr_node_and(const query::expr_parser::expr_type &expr, const uint64_t id) {
+                for (const auto& arg : expr.args) {
+                    if (arg.type == ring::query::LAB) {
+                        if (m_ptr_node_labels->at(id-1).end() == std::find(m_ptr_node_labels->at(id-1).begin(), m_ptr_node_labels->at(id-1).end(), arg.label)) {
+                            return false;
+                        }
+                    }else if (arg.type == ring::query::NEG) {
+                        if (m_ptr_node_labels->at(id-1).end() != std::find(m_ptr_node_labels->at(id-1).begin(), m_ptr_node_labels->at(id-1).end(), arg.label)) {
+                            return false;
+                        }
+                    } else if (arg.type == ring::query::OR) {
+                        if (!check_expr_node_or(arg, id)) return false;
+                    } else if (arg.type == ring::query::AND) {
+                        if (!check_expr_node_and(arg, id)) return false;
+                    }
+                }
+                return true;
+            }
+
+
+            bool check_expr_node_or(const query::expr_parser::expr_type &expr, const uint64_t id) {
+                for (const auto& arg : expr.args) {
+                    if (arg.type == ring::query::LAB) {
+                        if (m_ptr_node_labels->at(id-1).end() != std::find(m_ptr_node_labels->at(id-1).begin(), m_ptr_node_labels->at(id-1).end(), arg.label)) {
+                            return true;
+                        }
+                    }else if (arg.type == ring::query::NEG) {
+                        if (m_ptr_node_labels->at(id-1).end() == std::find(m_ptr_node_labels->at(id-1).begin(), m_ptr_node_labels->at(id-1).end(), arg.label)) {
+                            return true;
+                        }
+                    } else if (arg.type == ring::query::OR) {
+                        if (check_expr_node_or(arg, id)) return true;
+                    } else if (arg.type == ring::query::AND) {
+                        if (check_expr_node_and(arg, id)) return true;
+                    }
+                }
+                return false;
+            }
+
+            bool check_expr_node(const query::expr_parser::expr_type &expr, const uint64_t id) {
+                if (expr.type == ring::query::LAB) {
+                    return (m_ptr_node_labels->at(id-1).end() != std::find(m_ptr_node_labels->at(id-1).begin(), m_ptr_node_labels->at(id-1).end(), expr.label));
+                }else if (expr.type == ring::query::NEG) {
+                    return (m_ptr_node_labels->at(id-1).end() == std::find(m_ptr_node_labels->at(id-1).begin(), m_ptr_node_labels->at(id-1).end(), expr.label));
+                }else if (expr.type == ring::query::OR) {
+                    return check_expr_node_or(expr, id);
+                }else if (expr.type == ring::query::AND) {
+                    return check_expr_node_and(expr, id);
                 }
                 return true;
             }
@@ -69,6 +123,8 @@ namespace ring {
                 // Check subject
                 if (!pattern.subj.is_var()) {
                     if (std::get<0>(triple) != pattern.subj.const_value) return false;
+                }else {
+                    if (!check_expr_node(pattern.subj.expr, std::get<0>(triple))) return false;
                 }
 
                 // Check predicate
@@ -76,12 +132,14 @@ namespace ring {
                     if (std::get<1>(triple) != pattern.edge.const_value) return false;
                 } else {
                     // Check expression
-                    if (!check_expr(pattern.edge.expr, triple)) return false;
+                    if (!check_expr_edge(pattern.edge.expr, triple)) return false;
                 }
 
                 // Check object
                 if (!pattern.obj.is_var()) {
                     if (std::get<2>(triple) != pattern.obj.const_value) return false;
+                }else {
+                    if (!check_expr_node(pattern.obj.expr, std::get<2>(triple))) return false;
                 }
 
                 return true;
@@ -151,8 +209,9 @@ namespace ring {
 
             const std::vector<std::vector<uint32_t>>& res = m_res;
 
-            query_checker(std::vector<spo_triple>* ptr_triples, const std::string& query) {
+            query_checker(std::vector<spo_triple>* ptr_triples, std::vector<std::vector<uint32_t>>* ptr_node_labels, const std::string& query) {
                 m_ptr_triples = ptr_triples;
+                m_ptr_node_labels = ptr_node_labels;
                 m_query = query::pg_query(query);
             };
 

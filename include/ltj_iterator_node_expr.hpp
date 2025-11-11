@@ -75,7 +75,12 @@ namespace ring {
                 while (ans) {
                     aux = next_node_rec(ans, &expr->args[i]);
                     if (aux == 0) return 0;
-                    ok = (aux == ans) ? ok + 1 : 1;
+                    if (aux == ans) {
+                        ++ok;
+                    }else {
+                        ok = 1;
+                        ans = aux;
+                    }
                     if (ok == expr->args.size()) return ans;
                     i = ++i % expr->args.size();
                 }
