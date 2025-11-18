@@ -294,6 +294,18 @@ namespace ring {
             }
             return m_ptr_ring->map_OSP_to_POS(m_triple_j);
         }
+
+        void set_prop_value(var_type var, var_type value) {
+            throw std::out_of_range("ltj_iterator::set_value_property");
+        }
+
+        value_type get_prop_value(var_type var) {
+            throw std::out_of_range("ltj_iterator::get_prop_value");
+        }
+
+        value_type compute_prop_value(var_type var, value_type c) {
+            throw std::out_of_range("ltj_iterator::compute_prop_value");
+        }
     };
 }
 

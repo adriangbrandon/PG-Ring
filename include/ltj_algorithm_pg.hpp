@@ -32,6 +32,7 @@
 #include <results_collector.hpp>
 #include <query/query_parser.hpp>
 
+#include "ltj_iterator_node_comp.hpp"
 
 
 namespace ring {
@@ -43,12 +44,14 @@ namespace ring {
         typedef uint64_t value_type;
         typedef uint64_t size_type;
         typedef typename query::pg_query::patterns_type patterns_type;
+        typedef typename query::pg_query::where_type where_type;
         typedef ltj_iterator_base<uint8_t, uint32_t> ltj_iter_type;
         typedef ring_pg<> ring_type;
         typedef typename ltj_iter_type::var_type var_type;
         typedef typename ltj_iter_type::value_type const_type;
         typedef veo_t veo_type;
         typedef std::unordered_map<var_type, std::vector<ltj_iter_type*>> var_to_iterators_type;
+        typedef std::unordered_map<var_type, std::unordered_map<value_type, std::vector<ltj_iter_type*>>> var_to_prop_iterators_type;
         //typedef std::vector<std::pair<var_type, value_type>> tuple_type;
         typedef std::vector<value_type> tuple_type;
         typedef std::chrono::high_resolution_clock::time_point time_point_type;
@@ -56,19 +59,23 @@ namespace ring {
 
     private:
         const patterns_type* m_ptr_patterns;
+        const where_type* m_ptr_where;
         veo_type m_veo;
         ring_type* m_ptr_ring;
         std::vector<ltj_iter_type*> m_iterators;
         var_to_iterators_type m_var_to_iterators;
+        var_to_prop_iterators_type m_var_to_prop_iterators;
         bool m_is_empty = false;
 
 
         void copy(const ltj_algorithm_pg &o) {
             m_ptr_patterns = o.m_ptr_patterns;
+            m_ptr_where = o.m_ptr_where;
             m_veo = o.m_veo;
             m_ptr_ring = o.m_ptr_ring;
             m_iterators = o.m_iterators;
             m_var_to_iterators = o.m_var_to_iterators;
+            m_var_to_prop_iterators = o.m_var_to_prop_iterators;
             m_is_empty = o.m_is_empty;
         }
 
@@ -83,18 +90,60 @@ namespace ring {
             }
         }
 
+        inline void add_var_to_prop_iterator(const var_type var, const value_type prop_id, ltj_iter_type* ptr_iterator){
+            auto it =  m_var_to_prop_iterators.find(var);
+            if(it != m_var_to_prop_iterators.end()){
+                auto it2 = it->second.find(prop_id);
+                if(it2 != it->second.end()){
+                    it2->second.push_back(ptr_iterator);
+                }else {
+                    std::vector<ltj_iter_type*> vec = {ptr_iterator};
+                    it->second.insert({prop_id, vec});
+                }
+            }else{
+                std::unordered_map<value_type, std::vector<ltj_iter_type*>> umap = {};
+                std::vector<ltj_iter_type*> vec = {ptr_iterator};
+                umap.insert({prop_id, vec});
+                m_var_to_prop_iterators.insert({var, umap});
+            }
+        }
+
+        void setting_properties(const var_type x_j, const value_type c) {
+            //2.a Setting the value of each property
+            for (const auto &prop_map : m_var_to_prop_iterators[x_j]) {
+                //Find value of the property
+                value_type prop_value = 0;
+                for (ltj_iter_type* ptr_iterator : prop_map.second) {
+                    prop_value = ptr_iterator->get_prop_value(x_j);
+                    if (prop_value) break;
+                }
+
+                //If it was not computed previously, compute it now
+                if (!prop_value) {
+                    prop_value = prop_map.second.front()->compute_prop_value(x_j, c);
+                }
+
+                //Update the iterators with the property value
+                for (ltj_iter_type* ptr_iterator : prop_map.second) {
+                    ptr_iterator->set_prop_value(x_j, prop_value);
+                }
+            }
+        }
+
     public:
 
 
         ltj_algorithm_pg() = default;
 
-        ltj_algorithm_pg(const patterns_type* triple_patterns, ring_type* ring){
+        ltj_algorithm_pg(const patterns_type* triple_patterns, const where_type* where, ring_type* ring){
 
             m_ptr_patterns = triple_patterns;
+            m_ptr_where = where;
             m_ptr_ring = ring;
 
             m_iterators.reserve(m_ptr_patterns->size()); //minimum number of iterators
 
+            std::set<value_type> vars_in_nodes;
             //iterators of the edge labels
             for(const auto& pattern : *m_ptr_patterns){
                 //Bulding iterators
@@ -113,12 +162,14 @@ namespace ring {
                 }
 
                 if (pattern.subj.is_var()) {
+                    vars_in_nodes.insert(pattern.subj.var_value);
                     add_var_to_iterator(pattern.subj.var_value, m_iterators.back());
                 }
                 if (pattern.edge.is_var()) {
                     add_var_to_iterator(pattern.edge.var_value, m_iterators.back());
                 }
                 if (pattern.obj.is_var()) {
+                    vars_in_nodes.insert(pattern.obj.var_value);
                     add_var_to_iterator(pattern.obj.var_value, m_iterators.back());
                 }
             }
@@ -126,13 +177,48 @@ namespace ring {
             //iterators of the node labels
             for(const auto& pattern : *m_ptr_patterns) {
                 if (pattern.subj.is_var() && !pattern.subj.is_empty()) {
-                    m_iterators.push_back(new ltj_iterator_node_expr<ring_type, var_type, const_type>(&pattern, m_ptr_ring, true));
+                    m_iterators.push_back(new ltj_iterator_node_expr<ring_type, var_type, const_type>(&(pattern.subj.expr), m_ptr_ring, true));
                     add_var_to_iterator(pattern.subj.var_value, m_iterators.back());
                 }
 
                 if (pattern.obj.is_var() && !pattern.obj.is_empty()) {
-                    m_iterators.push_back(new ltj_iterator_node_expr<ring_type, var_type, const_type>(&pattern, m_ptr_ring, false));
+                    m_iterators.push_back(new ltj_iterator_node_expr<ring_type, var_type, const_type>(&(pattern.obj.expr), m_ptr_ring, false));
                     add_var_to_iterator(pattern.obj.var_value, m_iterators.back());
+                }
+            }
+
+            //iterators of the where expressions
+            //TODO: por agora asumo que soamente son ANDs
+            for (const auto& expr : m_ptr_where->args) {
+                if (expr.is_var[0] && vars_in_nodes.find(expr.values[0]) != vars_in_nodes.end()
+                    || expr.is_var[1] && vars_in_nodes.find(expr.values[1]) != vars_in_nodes.end()) {
+
+                    m_iterators.push_back(new ltj_iterator_node_comp<ring_type, var_type, const_type>(&expr, m_ptr_ring));
+
+                    if (expr.is_var[0] && vars_in_nodes.find(expr.values[0]) != vars_in_nodes.end()) {
+                        add_var_to_iterator(expr.values[0], m_iterators.back());
+                        if (expr.property_values[0]) {
+                            add_var_to_prop_iterator(expr.values[0], expr.property_values[0], m_iterators.back());
+                        }
+                    }
+
+                    if (expr.is_var[1] && vars_in_nodes.find(expr.values[1]) != vars_in_nodes.end()) {
+                        add_var_to_iterator(expr.values[1], m_iterators.back());
+                        if (expr.property_values[1]) {
+                            add_var_to_prop_iterator(expr.values[1], expr.property_values[1], m_iterators.back());
+                        }
+                    }
+
+                }else {
+                    /*m_iterators.push_back(new ltj_iterator_edge_comp<ring_type, var_type, const_type>(&expr, m_ptr_ring));
+
+                    if (expr.is_var[0] && vars_in_nodes.find(expr.values[0]) != vars_in_nodes.end()) {
+                        add_var_to_iterator(expr.values[0], m_iterators.back());
+                    }
+                    if (expr.is_var[1] && vars_in_nodes.find(expr.values[1]) != vars_in_nodes.end()) {
+                        add_var_to_iterator(expr.values[1], m_iterators.back());
+                    }*/
+                    std::cout << "Por agora non entre por aqui!" << std::endl;
                 }
             }
 
@@ -167,9 +253,10 @@ namespace ring {
         //! Move Operator=
         ltj_algorithm_pg &operator=(ltj_algorithm_pg &&o) {
             if (this != &o) {
-                m_ptr_patterns = std::move(o.m_ptr_patterns);
+                m_ptr_patterns = o.m_ptr_patterns;
+                m_ptr_where = o.m_ptr_where;
                 m_veo = std::move(o.m_veo);
-                m_ptr_ring = std::move(o.m_ptr_ring);
+                m_ptr_ring = o.m_ptr_ring;
                 m_iterators = std::move(o.m_iterators);
                 m_var_to_iterators = std::move(o.m_var_to_iterators);
                 m_is_empty = o.m_is_empty;
@@ -179,6 +266,7 @@ namespace ring {
 
         void swap(ltj_algorithm_pg &o) {
             std::swap(m_ptr_patterns, o.m_ptr_patterns);
+            std::swap(m_ptr_where, o.m_ptr_where);
             std::swap(m_veo, o.m_veo);
             std::swap(m_ptr_ring, o.m_ptr_ring);
             std::swap(m_iterators, o.m_iterators);
@@ -355,6 +443,8 @@ namespace ring {
                         for (ltj_iter_type* iter : sorted_itrs) {
                             iter->down(x_j, c);
                         }
+                        //2.a Setting the value of each property
+                        setting_properties(x_j, c);
                         m_veo.down();
                         //3. Search with the next variable x_{j+1}
                         ok = search_v3(j + 1, tuple, res, start, limit_results, timeout_seconds);

@@ -35,7 +35,7 @@ namespace ring {
         typedef ring_t ring_type;
         typedef uint64_t size_type;
         typedef query::triple_parser::triple_type pattern_type;
-        typedef query::expr_parser::expr_type expr_type;
+        typedef query::label_expr_parser::expr_label_type expr_type;
         typedef wt_range_iterator<typename ring_type::bwt_type::wm_type> wt_so_iterator_type;
         typedef wt_range_iterator<typename ring_type::bwt_p_type::wm_type> wt_p_iterator_type;
         //std::vector<value_type> leap_result_type;
@@ -60,7 +60,7 @@ namespace ring {
             if (expr->type == query::LAB) {
                 return m_ptr_ring->next_node_label(expr->label, c);
             }else if (expr->type == query::NEG) {
-                return m_ptr_ring->next_node_neg(expr->label, c);
+                return m_ptr_ring->next_node_neg_label(expr->label, c);
             }else if (expr->type == query::OR) {
                 value_type ans = -1ULL;
                 for (size_type i = 0; i < expr->args.size(); ++i) {
@@ -97,13 +97,9 @@ namespace ring {
 
         ltj_iterator_node_expr() = default;
 
-        ltj_iterator_node_expr(const pattern_type *triple, ring_type *ring, bool is_subject) {
+        ltj_iterator_node_expr(const expr_type *expr, ring_type *ring, bool is_subject) {
             m_is_subject = is_subject;
-            if (m_is_subject) {
-                m_expr = &triple->subj.expr;
-            }else {
-                m_expr = &triple->obj.expr;
-            }
+            m_expr = expr;
             m_ptr_ring = ring;
         }
 
@@ -201,6 +197,18 @@ namespace ring {
 
         value_type seek_last_next(var_type var) {
             return 0;
+        }
+
+        void set_prop_value(var_type var, var_type value) {
+            throw std::out_of_range("ltj_iterator_node_expr::set_value_property");
+        }
+
+        value_type get_prop_value(var_type var) {
+            throw std::out_of_range("ltj_iterator_node_expr::get_prop_value");
+        }
+
+        value_type compute_prop_value(var_type var, value_type c) {
+            throw std::out_of_range("ltj_iterator_node_expr::compute_prop_value");
         }
     };
 }

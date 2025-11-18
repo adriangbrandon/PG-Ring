@@ -81,7 +81,7 @@ void run_query_test(const std::string& s) {
     auto query = ring::query::pg_query(s);
     typedef ring::ltj_algorithm_pg<::util::results_collector_test<std::vector<uint64_t>>> algorithm_type;
     typedef algorithm_type::tuple_type tuple_type;
-    algorithm_type ltj(&query.patterns, &graph);
+    algorithm_type ltj(&query.patterns, &query.where, &graph);
     ::util::results_collector_test<tuple_type> res;
     ltj.join_v3(res, 0, 0);
 
@@ -103,7 +103,7 @@ void run_queries_test(const std::vector<std::string>& queries) {
 
     for (const auto& s : queries) {
         auto query = ring::query::pg_query(s);
-        algorithm_type ltj(&query.patterns, &graph);
+        algorithm_type ltj(&query.patterns, &query.where, &graph);
         ::util::results_collector_test<tuple_type> res;
         ltj.join_v3(res, 0, 0);
 

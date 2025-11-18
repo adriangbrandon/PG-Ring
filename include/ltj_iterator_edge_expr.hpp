@@ -71,7 +71,7 @@ namespace ring {
         }
 
 
-        std::vector<range_type> get_ranges_expr(const query::expr_parser::expr_type &expr) {
+        std::vector<range_type> get_ranges_expr(const query::label_expr_parser::expr_label_type &expr) {
 
             std::vector<range_type> ans, tmp;
             if (expr.type == query::LAB) {
@@ -431,6 +431,17 @@ namespace ring {
             }
         }
 
+        void set_prop_value(var_type var, var_type value) {
+            throw std::out_of_range("ltj_iterator_edge_expr::set_value_property");
+        }
+
+        value_type get_prop_value(var_type var) {
+            throw std::out_of_range("ltj_iterator_edge_expr::get_prop_value");
+        }
+
+        value_type compute_prop_value(var_type var, value_type c) {
+            throw std::out_of_range("ltj_iterator_edge_expr::compute_prop_value");
+        }
 
     };
 

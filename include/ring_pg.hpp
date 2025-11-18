@@ -30,13 +30,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <property_grid.hpp>
+
+#include "query/where_expr_parser.hpp"
+
 namespace ring {
 
     template <class bwt_so_t = bwt_plain, class bwt_p_t = bwt_plain>
     class ring_pg {
     public:
         typedef uint64_t size_type;
-        typedef uint64_t value_type;
+        typedef uint32_t value_type;
         typedef bwt_so_t bwt_type;
         typedef bwt_p_t bwt_p_type;
         typedef std::tuple<uint32_t, uint32_t, uint32_t> spo_triple_type;
@@ -55,9 +59,14 @@ namespace ring {
         size_type m_max_o;
         size_type m_n_triples;  // number of triples
 
+        //labels of nodes
         std::vector<bit_vector_type> m_bvts;
         std::vector<succ_0_type> m_succs0;
         std::vector<succ_1_type> m_succs1;
+
+        //properties
+        std::vector<property_grid<>> m_node_properties;
+        std::vector<property_grid<>> m_edge_properties;
 
         void copy(const ring_pg &o) {
             m_bwt_s = o.m_bwt_s;
@@ -75,6 +84,9 @@ namespace ring {
                 m_succs0[i].set_vector(&m_bvts[i]);
                 m_succs1[i].set_vector(&m_bvts[i]);
             }
+
+            m_node_properties = o.m_node_properties;
+            m_edge_properties = o.m_edge_properties;
         }
 
     public:
@@ -91,7 +103,10 @@ namespace ring {
         ring_pg() = default;
 
         // Assumes the triples have been stored in a vector<spo_triple>
-        ring_pg(vector<spo_triple_type> &D, std::vector<std::vector<uint32_t>>& label2nodes) {
+        ring_pg(vector<spo_triple_type> &D, std::vector<std::vector<uint32_t>>& label2nodes,
+                std::vector<std::vector<std::pair<value_type, value_type>>>& node_properties,
+                std::vector<std::vector<std::pair<value_type, value_type>>>& edge_properties) {
+
             uint64_t i, pos_c;
             vector<spo_triple>::iterator it, triple_begin = D.begin(), triple_end = D.end();
             uint64_t U, n = m_n_triples = D.size();
@@ -239,6 +254,21 @@ namespace ring {
                 }
             }
 
+            {
+                m_node_properties.resize(node_properties.size());
+                for (i = 0; i < node_properties.size(); i++) {
+                    m_node_properties[i] = property_grid<>(node_properties[i], m_max_s);
+                }
+
+                m_edge_properties.resize(edge_properties.size());
+                for (i = 0; i < edge_properties.size(); i++) {
+                    m_edge_properties[i] = property_grid<>(edge_properties[i], m_n_triples);
+                }
+
+            }
+
+            cout << "-- Grids built successfully" << endl;
+
             cout << "-- Index constructed successfully" << endl;
         };
 
@@ -278,6 +308,8 @@ namespace ring {
                     m_succs0[i].set_vector(&m_bvts[i]);
                     m_succs1[i].set_vector(&m_bvts[i]);
                 }
+                m_node_properties = std::move(o.m_node_properties);
+                m_edge_properties = std::move(o.m_edge_properties);
 
             }
             return *this;
@@ -297,6 +329,8 @@ namespace ring {
                 sdsl::util::swap_support(m_succs0[i], o.m_succs0[i], &m_bvts[i], &o.m_bvts[i]);
                 sdsl::util::swap_support(m_succs1[i], o.m_succs1[i], &m_bvts[i], &o.m_bvts[i]);
             }
+            m_node_properties.swap(o.m_node_properties);
+            m_edge_properties.swap(o.m_edge_properties);
         }
 
         //! Serializes the data structure into the given ostream
@@ -311,9 +345,13 @@ namespace ring {
             written_bytes += sdsl::write_member(m_max_o, out, child, "max_o");
             written_bytes += sdsl::write_member(m_n_triples, out, child, "n_triples");
             sdsl::write_member(m_bvts.size(), out,  child, "labels");
-            sdsl::serialize_vector(m_bvts, out, child, "bvts");
-            sdsl::serialize_vector(m_succs0, out, child, "succs0");
-            sdsl::serialize_vector(m_succs1, out, child, "succs1");
+            written_bytes += sdsl::serialize_vector(m_bvts, out, child, "bvts");
+            written_bytes += sdsl::serialize_vector(m_succs0, out, child, "succs0");
+            written_bytes += sdsl::serialize_vector(m_succs1, out, child, "succs1");
+            sdsl::write_member(m_node_properties.size(), out,  child, "node_prop_size");
+            written_bytes += sdsl::serialize_vector(m_node_properties, out, child, "node_properties");
+            sdsl::write_member(m_edge_properties.size(), out,  child, "edge_prop_size");
+            written_bytes += sdsl::serialize_vector(m_edge_properties, out, child, "edge_properties");
             sdsl::structure_tree::add_size(child, written_bytes);
             return written_bytes;
         }
@@ -338,6 +376,16 @@ namespace ring {
                 m_succs0[i].set_vector(&m_bvts[i]);
                 m_succs1[i].set_vector(&m_bvts[i]);
             }
+            size_t node_prop_size;
+            sdsl::read_member(node_prop_size, in);
+            m_node_properties.resize(node_prop_size);
+            sdsl::load_vector(m_node_properties, in);
+            size_t edge_prop_size;
+            sdsl::read_member(edge_prop_size, in);
+            m_edge_properties.resize(edge_prop_size);
+            sdsl::load_vector(m_edge_properties, in);
+
+
             std::cout << "--- SPO ---" << std::endl;
             m_bwt_o.print_size();
             std::cout << "--- OSP ---" << std::endl;
@@ -856,11 +904,53 @@ namespace ring {
             return n;
         }
 
-        value_type next_node_neg(uint32_t label, value_type node) {
+        value_type next_node_neg_label(uint32_t label, value_type node) {
             auto n =  m_succs0[label-1](node);
             if (n > m_max_s) return 0;
             return n;
         }
+
+        std::pair<value_type, value_type> next_node_property(const value_type prop_id, const value_type node_id, const value_type value,
+                                     const query::enum_expr_property_type op) {
+            if (op == query::EQ) {
+                return m_node_properties[prop_id].next_eq(node_id, value);
+            } else if (op == query::ST) {
+                if (value == 1) return {0,0};
+                return m_node_properties[prop_id].next_se(node_id, value-1);
+            } else if (op == query::SE) {
+                return m_node_properties[prop_id].next_se(node_id, value);
+            } else if (op == query::GT) {
+                if (value+1 > m_max_s) return {0,0};
+                return m_node_properties[prop_id].next_ge(node_id, value+1);
+            } else if (op == query::GE) {
+                return m_node_properties[prop_id].next_ge(node_id, value);
+            }else if (op == query::NEQ) {
+                return m_node_properties[prop_id].next_not_eq(node_id, value);
+            }else throw std::runtime_error("Unsupported operator in property graph queries");
+        }
+
+        std::pair<value_type, value_type> next_edge_property(const value_type prop_id, const value_type node_id, const value_type value,
+                                     const query::enum_expr_property_type op) {
+            if (op == query::EQ) {
+                return m_edge_properties[prop_id].next_eq(node_id, value);
+            } else if (op == query::ST) {
+                if (value == 1) return {0,0};
+                return m_edge_properties[prop_id].next_se(node_id, value-1);
+            } else if (op == query::SE) {
+                return m_edge_properties[prop_id].next_se(node_id, value);
+            } else if (op == query::GT) {
+                if (value+1 > m_max_p) return {0,0};
+                return m_edge_properties[prop_id].next_ge(node_id, value+1);
+            } else if (op == query::GE) {
+                return m_edge_properties[prop_id].next_ge(node_id, value);
+            }else if (op == query::NEQ) {
+                return m_edge_properties[prop_id].next_not_eq(node_id, value);
+            }else throw std::runtime_error("Unsupported operator in property graph queries");
+        }
+
+        value_type get_node_property_value(const value_type prop_id, const value_type node_id) {
+            return m_node_properties[prop_id][node_id-1];
+        };
     };
 
     typedef ring_pg<bwt_rrr, bwt_rrr> c_ring_pg;

@@ -23,7 +23,7 @@
 #define RING_TRIPLE_PATTERN_PG_HPP
 #include <cstdint>
 
-#include <query/expr_parser.hpp>
+#include <query/label_expr_parser.hpp>
 #include <unordered_map>
 
 
@@ -37,7 +37,7 @@ namespace ring {
             typedef struct node {
                 uint32_t const_value = 0;
                 uint32_t var_value = 0;
-                expr_parser::expr_type expr;
+                label_expr_parser::expr_label_type expr;
 
                 bool is_var() const {
                     return var_value != 0;
@@ -52,7 +52,7 @@ namespace ring {
             typedef struct edge {
                 uint32_t const_value = 0;
                 uint32_t var_value = 0;
-                expr_parser::expr_type expr;
+                label_expr_parser::expr_label_type expr;
 
                 bool is_var() const {
                     return var_value != 0;
@@ -142,7 +142,7 @@ namespace ring {
                     } else {
                         while (p < str.size() && (isalnum(str[p]) || str[p] == '_')) expr_str += str[p++];
                     }
-                    n.expr = expr_parser::parse(expr_str);
+                    n.expr = label_expr_parser::parse(expr_str);
                 }
                 skip_ws(p, str);
                 if (str[p] != ')') throw std::runtime_error("Expected ')' in node");
@@ -181,7 +181,7 @@ namespace ring {
                     } else {
                         while (p < str.size() && (isalnum(str[p]) || str[p] == '_')) expr_str += str[p++];
                     }
-                    e.expr = expr_parser::parse(expr_str);
+                    e.expr = label_expr_parser::parse(expr_str);
                 }
                 skip_ws(p, str);
                 if (str[p] != ']') throw std::runtime_error("Expected ']' in edge");

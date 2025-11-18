@@ -64,6 +64,12 @@ namespace ring {
 
         virtual size_type interval_length() const = 0;
 
+        virtual void set_prop_value(var_type var, var_type value) = 0;
+
+        virtual value_type get_prop_value(var_type var) = 0;
+
+        virtual value_type compute_prop_value(var_type var, value_type c) = 0;
+
     };
 
 }

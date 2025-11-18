@@ -21,7 +21,7 @@ namespace ring {
             std::vector<std::vector<uint32_t>> m_res;
 
 
-            bool check_expr_edge_and(const query::expr_parser::expr_type &expr, const spo_triple &triple) {
+            bool check_expr_edge_and(const query::label_expr_parser::expr_label_type &expr, const spo_triple &triple) {
                 for (const auto& arg : expr.args) {
                     if (arg.type == ring::query::LAB) {
                         if (std::get<1>(triple) != arg.label) return false;
@@ -36,7 +36,7 @@ namespace ring {
                 return true;
             }
 
-            bool check_expr_edge_or(const query::expr_parser::expr_type &expr, const spo_triple &triple) {
+            bool check_expr_edge_or(const query::label_expr_parser::expr_label_type &expr, const spo_triple &triple) {
                 for (const auto& arg : expr.args) {
                     if (arg.type == ring::query::LAB) {
                         if (std::get<1>(triple) == arg.label) return true;
@@ -53,7 +53,7 @@ namespace ring {
 
 
 
-            bool check_expr_edge(const query::expr_parser::expr_type &expr, const spo_triple &triple) {
+            bool check_expr_edge(const query::label_expr_parser::expr_label_type &expr, const spo_triple &triple) {
                 if (expr.type == ring::query::LAB) {
                     return (std::get<1>(triple) == expr.label);
                 } else if (expr.type == ring::query::NEG) {
@@ -66,7 +66,7 @@ namespace ring {
                 return true;
             }
 
-            bool check_expr_node_and(const query::expr_parser::expr_type &expr, const uint64_t id) {
+            bool check_expr_node_and(const query::label_expr_parser::expr_label_type &expr, const uint64_t id) {
                 for (const auto& arg : expr.args) {
                     if (arg.type == ring::query::LAB) {
                         if (m_ptr_node_labels->at(id-1).end() == std::find(m_ptr_node_labels->at(id-1).begin(), m_ptr_node_labels->at(id-1).end(), arg.label)) {
@@ -86,7 +86,7 @@ namespace ring {
             }
 
 
-            bool check_expr_node_or(const query::expr_parser::expr_type &expr, const uint64_t id) {
+            bool check_expr_node_or(const query::label_expr_parser::expr_label_type &expr, const uint64_t id) {
                 for (const auto& arg : expr.args) {
                     if (arg.type == ring::query::LAB) {
                         if (m_ptr_node_labels->at(id-1).end() != std::find(m_ptr_node_labels->at(id-1).begin(), m_ptr_node_labels->at(id-1).end(), arg.label)) {
@@ -105,7 +105,7 @@ namespace ring {
                 return false;
             }
 
-            bool check_expr_node(const query::expr_parser::expr_type &expr, const uint64_t id) {
+            bool check_expr_node(const query::label_expr_parser::expr_label_type &expr, const uint64_t id) {
                 if (expr.type == ring::query::LAB) {
                     return (m_ptr_node_labels->at(id-1).end() != std::find(m_ptr_node_labels->at(id-1).begin(), m_ptr_node_labels->at(id-1).end(), expr.label));
                 }else if (expr.type == ring::query::NEG) {

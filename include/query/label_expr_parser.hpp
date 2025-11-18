@@ -12,13 +12,13 @@
 namespace ring {
     namespace query {
 
-        enum enum_expr_type { EMPTY, LAB, NEG, AND, OR };
+        enum enum_expr_label_type { EMPTY, LAB, NEG, AND, OR };
 
-        class expr_parser {
+        class label_expr_parser {
         public:
             typedef uint32_t label_type;
             typedef struct expr {
-                enum_expr_type type = EMPTY;
+                enum_expr_label_type type = EMPTY;
                 std::vector<expr> args;
                 uint32_t label = 0; //only for LAB and NEG
 
@@ -53,7 +53,7 @@ namespace ring {
                     }
                 }
 
-            } expr_type;
+            } expr_label_type;
 
         private:
             static void skip_ws(size_t& pos, const std::string& s) {
@@ -70,13 +70,13 @@ namespace ring {
                 return false;
             }
 
-            static expr_type parse_expr(size_t& pos, const std::string& s) {
+            static expr_label_type parse_expr(size_t& pos, const std::string& s) {
                 skip_ws(pos, s);
                 return parse_or(pos, s);
             }
 
-            static expr_type parse_or(size_t& pos, const std::string& s) {
-                std::vector<expr_type> children;
+            static expr_label_type parse_or(size_t& pos, const std::string& s) {
+                std::vector<expr_label_type> children;
                 children.push_back(parse_and(pos, s));
                 skip_ws(pos, s);
                 while (match("OR", pos, s)) {
@@ -84,14 +84,14 @@ namespace ring {
                     skip_ws(pos, s);
                 }
                 if (children.size() == 1) return std::move(children[0]);
-                expr_type e;
+                expr_label_type e;
                 e.type = OR;
                 e.args = std::move(children);
                 return e;
             }
 
-            static expr_type parse_and(size_t& pos, const std::string& s) {
-                std::vector<expr_type> children;
+            static expr_label_type parse_and(size_t& pos, const std::string& s) {
+                std::vector<expr_label_type> children;
                 children.push_back(parse_factor(pos, s));
                 skip_ws(pos, s);
                 while (match("AND", pos, s)) {
@@ -99,16 +99,16 @@ namespace ring {
                     skip_ws(pos, s);
                 }
                 if (children.size() == 1) return std::move(children[0]);
-                expr_type e;
+                expr_label_type e;
                 e.type = AND;
                 e.args = std::move(children);
                 return e;
             }
 
-            static expr_type parse_factor(size_t& pos, const std::string& s) {
+            static expr_label_type parse_factor(size_t& pos, const std::string& s) {
                 skip_ws(pos, s);
                 if (match("(", pos, s)) {
-                    expr_type e = parse_expr(pos, s);
+                    expr_label_type e = parse_expr(pos, s);
                     skip_ws(pos, s);
                     if (!match(")", pos, s)) throw std::runtime_error("Missing ')' in expression");
                     return e;
@@ -119,13 +119,13 @@ namespace ring {
                 }
             }
 
-            static expr_type parse_label(size_t& pos, const std::string& s, enum_expr_type t = LAB) {
+            static expr_label_type parse_label(size_t& pos, const std::string& s, enum_expr_label_type t = LAB) {
                 skip_ws(pos, s);
                 size_t start = pos;
                 while (pos < s.size() && isdigit(s[pos])) ++pos;
                 if (start == pos) throw std::runtime_error("Expected number");
                 uint32_t lab = std::stoul(s.substr(start, pos - start));
-                expr_type e;
+                expr_label_type e;
                 e.type = t;
                 e.label = lab;
                 return e;
@@ -133,7 +133,7 @@ namespace ring {
 
         public:
 
-            static expr_type parse(const std::string& str) {
+            static expr_label_type parse(const std::string& str) {
                 size_t pos = 0;
                 return parse_expr(pos, str);
             }

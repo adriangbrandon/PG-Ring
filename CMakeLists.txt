@@ -115,7 +115,7 @@ target_link_libraries(proba sdsl divsufsort divsufsort64)
 add_executable(cypher2ids src/cypher2ids.cpp)
 target_link_libraries(cypher2ids sdsl divsufsort divsufsort64)
 
-add_executable(test_expr_parser test/expr_parser.cpp)
+add_executable(test_expr_parser test/label_expr_parser.cpp)
 target_link_libraries(test_expr_parser sdsl divsufsort divsufsort64)
 
 add_executable(test_query_parser test/query_parser.cpp)

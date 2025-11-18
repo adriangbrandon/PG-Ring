@@ -329,6 +329,18 @@ namespace ring {
                 return m_ptr_ring->map_SPO_to_POS(m_triple_j, m_consts[0]);
             }
         }
+
+        void set_prop_value(var_type var, var_type value) {
+            throw std::out_of_range("ltj_iterator_edge_label::set_value_property");
+        }
+
+        value_type get_prop_value(var_type var) {
+            throw std::out_of_range("ltj_iterator_edge_label::get_prop_value");
+        }
+
+        value_type compute_prop_value(var_type var, value_type c) {
+            throw std::out_of_range("ltj_iterator_edge_label::compute_prop_value");
+        }
     };
 }
 

@@ -34,9 +34,13 @@ template<class ring>
 void build_index(const std::string &dataset, const std::string &output){
     vector<spo_triple> triples;
     vector<vector<uint32_t>> label2nodes;
+    std::vector<std::vector<std::pair<uint32_t, uint32_t>>> nprop2values;
+    std::vector<std::vector<std::pair<uint32_t, uint32_t>>> eprop2values;
 
     std::string triples_file = dataset + ".triples";
     std::string labels_map = dataset + ".label2nodes";
+    std::string base_nprop = dataset + ".nprop2values.";
+    std::string base_eprop = dataset + ".eprop2values.";
 
     {
         std::ifstream ifs(triples_file);
@@ -44,7 +48,7 @@ void build_index(const std::string &dataset, const std::string &output){
         do {
             ifs >> s >> p >> o;
             if(ifs.eof()) break;
-            triples.push_back(spo_triple(s, p, o));
+            triples.emplace_back(spo_triple(s, p, o));
         } while (true);
     }
 
@@ -63,12 +67,59 @@ void build_index(const std::string &dataset, const std::string &output){
         } while (true);
     }
 
+    {
+        uint32_t prop_id = 1;
+        uint32_t node_id, size, value;
+        do {
+            std::string file = base_nprop + std::to_string(prop_id);
+            std::ifstream ifs(file);
+            if (!ifs.good()) break;
+            do {
+                ifs >> node_id;
+                if(ifs.eof()) break;
+                if (prop_id > nprop2values.size()) {
+                    nprop2values.emplace_back();
+                }
+                ifs >> size;
+                for (uint32_t i = 0; i < size; i++) {
+                    ifs >> value;
+                    nprop2values[prop_id-1].emplace_back(node_id, value);
+                }
+            } while (true);
+            ifs.close();
+            ++prop_id;
+        } while (true);
+    }
+
+    {
+        uint32_t prop_id = 1;
+        uint32_t edge_id, size, value;
+        do {
+            std::string file = base_eprop + std::to_string(prop_id);
+            std::ifstream ifs(file);
+            if (!ifs.good()) break;
+            do {
+                ifs >> edge_id >> size;
+                if(ifs.eof()) break;
+                if (prop_id > eprop2values.size()) {
+                    eprop2values.emplace_back();
+                }
+                for (uint32_t i = 0; i < size; i++) {
+                    ifs >> value;
+                    eprop2values[prop_id-1].emplace_back(edge_id, value);
+                }
+            } while (true);
+            ++prop_id;
+        } while (true);
+    }
+
+
     triples.shrink_to_fit();
     cout << "--Indexing " << triples.size() << " triples" << endl;
     memory_monitor::start();
     auto start = timer::now();
 
-    ring A(triples, label2nodes);
+    ring A(triples, label2nodes, nprop2values, eprop2values);
     auto stop = timer::now();
     memory_monitor::stop();
     cout << "  Index built  " << sdsl::size_in_bytes(A) << " bytes" << endl;
