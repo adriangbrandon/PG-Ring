@@ -20,7 +20,7 @@ namespace ring {
             typedef uint32_t value_type;
 
             typedef struct expr {
-                enum_expr_property_type type;
+                enum_expr_property_type type = WAND;
                 //used in AND and OR
                 std::vector<expr> args;
                 //used in comparisons

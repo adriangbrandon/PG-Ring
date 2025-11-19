@@ -10,7 +10,7 @@
 
 namespace ring {
 
-    template<class wm_bit_vector_t = sdsl::bit_vector>
+    template<class bit_vector_t = sdsl::bit_vector, class wm_bit_vector_t = sdsl::bit_vector>
     class property_grid {
 
     public:
@@ -39,10 +39,15 @@ namespace ring {
 
         //PRE: sorted by id (first) and value (second)
         property_grid(const std::vector<std::pair<value_type, value_type>> &values, const value_type max_id) {
-            sdsl::int_vector<> grid_y(values.size());
+            sdsl::int_vector<> grid_y(max_id+1);
             for (size_type i = 0; i < values.size(); i++) {
-                grid_y[i] = values[i].second;
+                grid_y[values[i].first] = values[i].second;
             }
+            grid_y[0] = 0; //dummy
+            for (uint32_t i = 0; i < grid_y.size(); i++) {
+                std::cout << grid_y[i] << " ";
+            }
+            std::cout << std::endl;
             sdsl::util::bit_compress(grid_y);
             sdsl::construct_im(m_grid, grid_y);
         }

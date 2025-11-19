@@ -912,44 +912,45 @@ namespace ring {
 
         std::pair<value_type, value_type> next_node_property(const value_type prop_id, const value_type node_id, const value_type value,
                                      const query::enum_expr_property_type op) {
+            std::cout << "Next node property called: prop_id=" << prop_id << " node_id=" << node_id << " value=" << value << " op=" << op << std::endl;
             if (op == query::EQ) {
-                return m_node_properties[prop_id].next_eq(node_id, value);
+                return m_node_properties[prop_id-1].next_eq(node_id, value);
             } else if (op == query::ST) {
-                if (value == 1) return {0,0};
-                return m_node_properties[prop_id].next_se(node_id, value-1);
+                //if (value == 1) return {0,0};
+                return m_node_properties[prop_id-1].next_se(node_id, value-1);
             } else if (op == query::SE) {
-                return m_node_properties[prop_id].next_se(node_id, value);
+                return m_node_properties[prop_id-1].next_se(node_id, value);
             } else if (op == query::GT) {
-                if (value+1 > m_max_s) return {0,0};
-                return m_node_properties[prop_id].next_ge(node_id, value+1);
+                //if (value+1 > m_max_s) return {0,0};
+                return m_node_properties[prop_id-1].next_ge(node_id, value+1);
             } else if (op == query::GE) {
-                return m_node_properties[prop_id].next_ge(node_id, value);
+                return m_node_properties[prop_id-1].next_ge(node_id, value);
             }else if (op == query::NEQ) {
-                return m_node_properties[prop_id].next_not_eq(node_id, value);
+                return m_node_properties[prop_id-1].next_not_eq(node_id, value);
             }else throw std::runtime_error("Unsupported operator in property graph queries");
         }
 
         std::pair<value_type, value_type> next_edge_property(const value_type prop_id, const value_type node_id, const value_type value,
                                      const query::enum_expr_property_type op) {
             if (op == query::EQ) {
-                return m_edge_properties[prop_id].next_eq(node_id, value);
+                return m_edge_properties[prop_id-1].next_eq(node_id, value);
             } else if (op == query::ST) {
                 if (value == 1) return {0,0};
-                return m_edge_properties[prop_id].next_se(node_id, value-1);
+                return m_edge_properties[prop_id-1].next_se(node_id, value-1);
             } else if (op == query::SE) {
-                return m_edge_properties[prop_id].next_se(node_id, value);
+                return m_edge_properties[prop_id-1].next_se(node_id, value);
             } else if (op == query::GT) {
                 if (value+1 > m_max_p) return {0,0};
-                return m_edge_properties[prop_id].next_ge(node_id, value+1);
+                return m_edge_properties[prop_id-1].next_ge(node_id, value+1);
             } else if (op == query::GE) {
-                return m_edge_properties[prop_id].next_ge(node_id, value);
+                return m_edge_properties[prop_id-1].next_ge(node_id, value);
             }else if (op == query::NEQ) {
-                return m_edge_properties[prop_id].next_not_eq(node_id, value);
+                return m_edge_properties[prop_id-1].next_not_eq(node_id, value);
             }else throw std::runtime_error("Unsupported operator in property graph queries");
         }
 
         value_type get_node_property_value(const value_type prop_id, const value_type node_id) {
-            return m_node_properties[prop_id][node_id-1];
+            return m_node_properties[prop_id-1][node_id];
         };
     };
 

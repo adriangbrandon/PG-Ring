@@ -199,7 +199,7 @@ namespace ring {
             return 0;
         }
 
-        void set_prop_value(var_type var, var_type value) {
+        void set_prop_value(var_type var, value_type value) {
             throw std::out_of_range("ltj_iterator_node_expr::set_value_property");
         }
 

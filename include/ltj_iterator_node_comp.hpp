@@ -142,7 +142,7 @@ namespace ring {
             //Go down in the trie
             if (m_expr->is_var[0] && var == m_expr->values[0]) {
                 m_state[0] = true;
-            }else if (m_expr->is_var[1] && !var == m_expr->values[1]) {
+            }else if (m_expr->is_var[1] && var == m_expr->values[1]) {
                 m_state[1] = true;
             }
             ++m_nfixed;
@@ -152,7 +152,7 @@ namespace ring {
             down(var, c);
         };
 
-        void set_prop_value(var_type var, var_type value) {
+        void set_prop_value(var_type var, value_type value) {
             if (!m_nfixed) return;
             if (m_expr->is_var[0] && var == m_expr->values[0] && m_state[0]) {
                 m_prop_values[0] = value;
@@ -202,10 +202,10 @@ namespace ring {
         value_type leap(var_type var, size_type c) {
             if (!m_nfixed) return c; // no filter is applied
             if (m_expr->is_var[0] && var == m_expr->values[0]) {
-                auto res = m_ptr_ring->next_node_property(m_expr->property_values[0], c, m_prop_values[0], m_expr->type);
+                auto res = m_ptr_ring->next_node_property(m_expr->property_values[0], c, m_prop_values[1], m_expr->type);
                 m_prop_values[0] = res.second; // set the value of the property
                 return res.first;
-            }else if (m_expr->is_var[1] && !var == m_expr->values[1]) {
+            }else if (m_expr->is_var[1] && var == m_expr->values[1]) {
                 auto res = m_ptr_ring->next_node_property(m_expr->property_values[1], c, m_prop_values[0], query::opposite_expr_property[m_expr->type]);
                 m_prop_values[1] = res.second; // set the value of the property
                 return res.first;

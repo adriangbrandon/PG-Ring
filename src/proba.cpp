@@ -9,7 +9,7 @@
 int main(int argc, char* argv[]) {
     sdsl::wm_int<> wm;
     //sdsl::int_vector<> vec = {2, 3, 6 , 8, 2, 1, 2, 3, 4, 5 ,6, 3 ,4, 3, 5, 8};
-    sdsl::int_vector<> vec = {2, 3, 6, 7, 2, 1, 2, 3, 4, 5 ,6, 3 ,4, 3, 5, 7};
+    sdsl::int_vector<> vec = {0, 2, 3, 6, 7, 2, 1, 2, 3, 4, 5 ,6, 3 ,4, 3, 5, 7};
     sdsl::construct_im(wm , vec);
 
     sdsl::wt_range_iterator<sdsl::wm_int<>> iterator(&wm, sdsl::range_type{3, 9});
@@ -58,5 +58,9 @@ int main(int argc, char* argv[]) {
     sigma_ranges = {sdsl::range_type{1,1}, sdsl::range_type{3,7}};
     p = wm.select_next_pos_with_value(0, sigma_ranges);
     std::cout << "Select next pos with value 0: " << p.first << ", " << p.second << std::endl;
+
+    sigma_ranges = {sdsl::range_type{6,6}};
+    a =  wm.select_next(4, sigma_ranges);
+    std::cout << "Select next of 3: " << a << std::endl;
 
 }
