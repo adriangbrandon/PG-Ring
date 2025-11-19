@@ -7,6 +7,7 @@
 // Variables globales para el dataset y el ring
 std::vector<spo_triple> dataset_vec;
 std::vector<std::vector<uint32_t>> node_labels;
+std::vector<std::vector<std::pair<uint32_t, uint32_t>>> node_properties, edge_properties;
 //typedef ring::ring_pg<> ring_type;
 ring::ring_pg<> graph;
 
@@ -15,7 +16,8 @@ class QueryTestEnvironment : public ::testing::Environment {
 
 private:
 
-    void read_input(vector<spo_triple> &vec, const std::string &triples_path, const std::string &label2nodes_path) {
+    void read_input(vector<spo_triple> &vec, const std::string &triples_path, const std::string &label2nodes_path,
+                    const std::string &base_nprop, const std::string &base_eprop) {
         {
             std::ifstream ifs(triples_path);
             uint64_t s, p , o;
@@ -59,17 +61,65 @@ private:
                     node_labels[n-1].push_back(l_i+1);
                 }
             }
+        }
 
+        {
+            uint32_t prop_id = 1;
+            uint32_t node_id, size, value;
+            do {
+                std::string file = base_nprop + std::to_string(prop_id);
+                std::ifstream ifs(file);
+                if (!ifs.good()) break;
+                do {
+                    ifs >> node_id;
+                    if(ifs.eof()) break;
+                    if (prop_id > node_properties.size()) {
+                        node_properties.emplace_back();
+                    }
+                    ifs >> size;
+                    for (uint32_t i = 0; i < size; i++) {
+                        ifs >> value;
+                        node_properties[prop_id-1].emplace_back(node_id, value);
+                    }
+                } while (true);
+                ifs.close();
+                ++prop_id;
+            } while (true);
+        }
+
+        {
+            uint32_t prop_id = 1;
+            uint32_t edge_id, size, value;
+            do {
+                std::string file = base_eprop + std::to_string(prop_id);
+                std::ifstream ifs(file);
+                if (!ifs.good()) break;
+                do {
+                    ifs >> edge_id >> size;
+                    if(ifs.eof()) break;
+                    if (prop_id > edge_properties.size()) {
+                        edge_properties.emplace_back();
+                    }
+                    for (uint32_t i = 0; i < size; i++) {
+                        ifs >> value;
+                        edge_properties[prop_id-1].emplace_back(edge_id, value);
+                    }
+                } while (true);
+                ++prop_id;
+            } while (true);
         }
     }
 
 public:
     void SetUp() override {
         // Cambia estos paths según lo necesites
-        std::string triples_path = "/mnt/movies/short/movies.triples";
-        std::string label2nodes_path = "/mnt/movies/short/movies.label2nodes";
-        std::string index_path = "/mnt/movies/short/movies.ring.pg";
-        read_input(dataset_vec, triples_path, label2nodes_path);
+        std::string dataset = "/mnt/movies/short/movies";
+        std::string triples_path = dataset + ".triples";
+        std::string label2nodes_path = dataset + ".label2nodes";
+        std::string index_path = dataset + ".ring.pg";
+        std::string base_nprop = dataset + ".nprop2values.";
+        std::string base_eprop = dataset + ".eprop2values.";
+        read_input(dataset_vec, triples_path, label2nodes_path, base_nprop, base_eprop);
         sdsl::load_from_file(graph, index_path);
     }
 };
@@ -81,11 +131,11 @@ void run_query_test(const std::string& s) {
     auto query = ring::query::pg_query(s);
     typedef ring::ltj_algorithm_pg<::util::results_collector_test<std::vector<uint64_t>>> algorithm_type;
     typedef algorithm_type::tuple_type tuple_type;
-    algorithm_type ltj(&query.patterns, &query.where, &graph);
+    algorithm_type ltj(&query, &graph);
     ::util::results_collector_test<tuple_type> res;
     ltj.join_v3(res, 0, 0);
 
-    ring::test::query_checker q_c(&dataset_vec, &node_labels, s);
+    ring::test::query_checker q_c(&dataset_vec, &node_labels, &node_properties, &edge_properties, s);
     q_c.run();
     res.sort(); q_c.sort();
 
@@ -103,11 +153,11 @@ void run_queries_test(const std::vector<std::string>& queries) {
 
     for (const auto& s : queries) {
         auto query = ring::query::pg_query(s);
-        algorithm_type ltj(&query.patterns, &query.where, &graph);
+        algorithm_type ltj(&query, &graph);
         ::util::results_collector_test<tuple_type> res;
         ltj.join_v3(res, 0, 0);
 
-        ring::test::query_checker q_c(&dataset_vec, &node_labels, s);
+        ring::test::query_checker q_c(&dataset_vec, &node_labels, &node_properties, &edge_properties, s);
         q_c.run();
         res.sort(); q_c.sort();
 
@@ -115,12 +165,13 @@ void run_queries_test(const std::vector<std::string>& queries) {
         std::cout << "Obtained results: " << res.size() << std::endl;
         std::cout << "Expected results: " << q_c.res.size() << std::endl;
 
-        for (auto i = 0; i < res.size(); ++i) {
+        // Print results
+        /*for (auto i = 0; i < res.size(); ++i) {
             for (auto j = 0; j < res.results[i].size(); ++j) {
                 std::cout << res.results[i][j] << " ";
             }
             std::cout << std::endl;
-        }
+        }*/
 
         ASSERT_EQ(q_c.res.size(), res.size()) << "Error in size. ";
         for (uint64_t i = 0; i < q_c.res.size(); ++i) {
@@ -198,6 +249,21 @@ TEST(QueryTest, NodeLabels)
     };
     run_queries_test(queries);
 }
+
+TEST(QueryTest, NodeProperties)
+{
+    std::vector<std::string> queries = {
+        "(?k:2)-[?y]->(?z) WHERE (?k.5 = 1964)",
+        "(?k:2)-[?y]->(1) WHERE (?k.5 >= 1964)",
+        "(?k:2)-[?y]->(1) WHERE (?k.5 >= 1964) AND (?k.5 <= 1967)",
+        "(?k:2)-[?y]->(1) WHERE (?k.5 >= 1964) AND (?k.5 != 1967)",
+        "(?k:2)-[?y]->(1), (?j:2)-[?w]->(30) WHERE (?j.5 > ?k.5)",
+        "(?mx:2)-[?y]->(1), (?tg:2)-[?w]->(30) WHERE (?tg.5 > ?mx.5) AND (?tg.5 != 1962)",
+        "(?tg:2)-[?w]->(30), (?mx:2)-[?y]->(1) WHERE (?tg.5 > ?mx.5) AND (?tg.5 != 1962)"
+    };
+    run_queries_test(queries);
+}
+
 
 TEST(QueryTest, Error)
 {

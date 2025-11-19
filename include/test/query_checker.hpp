@@ -17,6 +17,8 @@ namespace ring {
         private:
             std::vector<spo_triple>* m_ptr_triples; //should be sorted by POS
             std::vector<std::vector<uint32_t>>* m_ptr_node_labels; //adjlist of node->labels
+            std::vector<std::vector<std::pair<uint32_t, uint32_t>>>* m_ptr_node_properties;
+            std::vector<std::vector<std::pair<uint32_t, uint32_t>>>* m_ptr_edge_properties;
             query::pg_query m_query;
             std::vector<std::vector<uint32_t>> m_res;
 
@@ -202,22 +204,163 @@ namespace ring {
                     }
                 }
                 run(p_i, t_i + 1, tuple);
+            }
 
+            bool get_node_property_value(uint32_t prop_id, uint32_t node_id, uint32_t &value) {
+                const auto& vec = m_ptr_node_properties->at(prop_id-1);
+                for (const auto& pair : vec) {
+                    if (pair.first == node_id) {
+                        value =  pair.second;
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            bool get_edge_property_value(uint32_t prop_id, uint32_t node_id, uint32_t &value) {
+                const auto& vec = m_ptr_edge_properties->at(prop_id-1);
+                for (const auto& pair : vec) {
+                    if (pair.first == node_id) {
+                        value =  pair.second;
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            bool check_expr_eq(query::where_expr_parser::expr expr, std::vector<uint32_t> &tuple) {
+                uint32_t e0, e1;
+                if (expr.is_var[0] && expr.is_var[0]) {
+                    if (m_query.vnodes[expr.values[0]]) {
+                        auto ok0 = get_node_property_value(expr.property_values[0], tuple[expr.values[0]-1], e0);
+                        auto ok1 = get_node_property_value(expr.property_values[1], tuple[expr.values[1]-1], e1);
+                        if (!(ok0 && ok1)) return false;
+                        return e0 == e1;
+                    }else {
+                        auto ok0 = get_edge_property_value(expr.property_values[0], tuple[expr.values[0]-1], e0);
+                        auto ok1 = get_edge_property_value(expr.property_values[1], tuple[expr.values[1]-1], e1);
+                        if (!(ok0 && ok1)) return false;
+                        return e0 == e1;
+                    }
+                }else if (!expr.is_var[0] && expr.is_var[1]) {
+                    if (m_query.vnodes[expr.values[1]]) {
+                        auto ok1 = get_node_property_value(expr.property_values[1], tuple[expr.values[1]-1], e1);
+                        if (!ok1) return false;
+                        return expr.values[0] == e1;
+                    }else {
+                        auto ok1 = get_edge_property_value(expr.property_values[1], tuple[expr.values[1]-1], e1);
+                        if (!(ok1)) return false;
+                        return expr.values[0] == e1;
+                    }
+
+                }else if (expr.is_var[0] && !expr.is_var[1]) {
+                    if (m_query.vnodes[expr.values[0]]) {
+                        auto ok1 = get_node_property_value(expr.property_values[0], tuple[expr.values[0]-1], e1);
+                        if (!ok1) return false;
+                        return expr.values[1] == e1;
+                    }else {
+                        auto ok1 = get_edge_property_value(expr.property_values[0], tuple[expr.values[0]-1], e1);
+                        if (!(ok1)) return false;
+                        return expr.values[1] == e1;
+                    }
+                }
+            }
+
+
+            bool check_expr_cmp(query::where_expr_parser::expr expr, const std::vector<uint32_t> &tuple) {
+                uint32_t e0, e1;
+                auto cmp = [&](uint32_t a, uint32_t b) {
+                    switch (expr.type) {
+                        case query::EQ: return a == b;
+                        case query::NEQ: return a != b;
+                        case query::ST: return a < b;
+                        case query::GT: return a > b;
+                        case query::SE: return a <= b;
+                        case query::GE: return a >= b;
+                    }
+                    return false;
+                };
+                if (expr.is_var[0] && expr.is_var[1]) {
+                    if (m_query.vnodes[expr.values[0]]) {
+                        auto ok0 = get_node_property_value(expr.property_values[0], tuple[expr.values[0]-1], e0);
+                        auto ok1 = get_node_property_value(expr.property_values[1], tuple[expr.values[1]-1], e1);
+                        if (!(ok0 && ok1)) return false;
+                        return cmp(e0, e1);
+                    } else {
+                        auto ok0 = get_edge_property_value(expr.property_values[0], tuple[expr.values[0]-1], e0);
+                        auto ok1 = get_edge_property_value(expr.property_values[1], tuple[expr.values[1]-1], e1);
+                        if (!(ok0 && ok1)) return false;
+                        return cmp(e0, e1);
+                    }
+                } else if (!expr.is_var[0] && expr.is_var[1]) {
+                    if (m_query.vnodes[expr.values[1]]) {
+                        auto ok1 = get_node_property_value(expr.property_values[1], tuple[expr.values[1]-1], e1);
+                        if (!ok1) return false;
+                        return cmp(expr.values[0], e1);
+                    } else {
+                        auto ok1 = get_edge_property_value(expr.property_values[1], tuple[expr.values[1]-1], e1);
+                        if (!ok1) return false;
+                        return cmp(expr.values[0], e1);
+                    }
+                } else if (expr.is_var[0] && !expr.is_var[1]) {
+                    if (m_query.vnodes[expr.values[0]]) {
+                        auto ok1 = get_node_property_value(expr.property_values[0], tuple[expr.values[0]-1], e1);
+                        if (!ok1) return false;
+                        return cmp(e1, expr.values[1]);
+                    } else {
+                        auto ok1 = get_edge_property_value(expr.property_values[0], tuple[expr.values[0]-1], e1);
+                        if (!ok1) return false;
+                        return cmp(e1, expr.values[1]);
+                    }
+                }
+                return false;
+            }
+
+            bool check_expr(query::where_expr_parser::expr expr, const std::vector<uint32_t> &tuple) {
+                if (expr.type == query::WAND) {
+                    for (const auto &e : expr.args) {
+                        if (!check_expr_cmp(e, tuple)) return false;
+                    }
+                    return true;
+                }else if (expr.type == query::WOR) {
+                    for (const auto &e : expr.args) {
+                        if (check_expr_cmp(e, tuple)) return true;
+                    }
+                    return false;
+                }else {
+                    return check_expr_cmp(expr, tuple);
+                }
+            }
+
+            void filter() {
+                std::vector<std::vector<uint32_t>> res_filtered;
+                for (const auto &tuple : m_res) {
+                    if (check_expr(m_query.where, tuple)) {
+                        res_filtered.push_back(tuple);
+                    }
+                }
+                m_res = std::move(res_filtered);
             }
 
         public:
 
             const std::vector<std::vector<uint32_t>>& res = m_res;
 
-            query_checker(std::vector<spo_triple>* ptr_triples, std::vector<std::vector<uint32_t>>* ptr_node_labels, const std::string& query) {
+            query_checker(std::vector<spo_triple>* ptr_triples, std::vector<std::vector<uint32_t>>* ptr_node_labels,
+                          std::vector<std::vector<std::pair<uint32_t, uint32_t>>>* ptr_node_properties,
+                          std::vector<std::vector<std::pair<uint32_t, uint32_t>>>* ptr_edge_properties,
+                          const std::string& query) {
                 m_ptr_triples = ptr_triples;
                 m_ptr_node_labels = ptr_node_labels;
+                m_ptr_node_properties = ptr_node_properties;
+                m_ptr_edge_properties = ptr_edge_properties;
                 m_query = query::pg_query(query);
             };
 
             void run() {
                 std::vector<uint32_t> tuple(m_query.ht.size(), 0);
                 run(0, 1, tuple);
+                filter();
             }
 
             void sort() {

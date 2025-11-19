@@ -1,6 +1,7 @@
 #ifndef RING_CYPHER_QUERY_PARSER_HPP
 #define RING_CYPHER_QUERY_PARSER_HPP
 #include <string>
+#include <set>
 #include <vector>
 #include <query/triple_parser.hpp>
 
@@ -23,11 +24,13 @@ namespace query {
         where_type m_where;
 
         std::unordered_map<std::string, uint8_t> m_ht;
+        std::vector<bool> m_vnodes; // to know if the variable is in a node or in an edge
 
         void copy(const pg_query &o) {
             m_patterns = o.m_patterns;
             m_ht = o.m_ht;
             m_where = o.m_where;
+            m_vnodes = o.m_vnodes;
         }
 
         static void skip_ws(size_t& pos, const std::string& s) {
@@ -49,10 +52,12 @@ namespace query {
         const patterns_type& patterns = m_patterns;
         const where_type& where = m_where;
         const std::unordered_map<std::string, uint8_t>& ht = m_ht;
+        const std::vector<bool>& vnodes = m_vnodes;
 
         pg_query() = default;
 
         pg_query(const std::string& query) {
+            m_vnodes.resize(50); //initial size
             size_t start = 0; bool in_where = false;
             while (start < query.size() && !in_where) {
                 // Find the next comma outside parentheses/brackets
@@ -70,13 +75,14 @@ namespace query {
                 }
                 std::string pat = query.substr(start, pos - start);
                 if (!pat.empty()) {
-                    m_patterns.push_back(triple_parser::parse(pat, m_ht));
+                    m_patterns.push_back(triple_parser::parse(pat, m_ht, m_vnodes));
                 }
                 if (!in_where) start = pos + 1;
                 else start = pos + 6; // length of "WHERE" + 1
 
                 skip_ws(start, query);
             }
+            m_vnodes.resize(m_ht.size()+1);
             if (start < query.size()) {
                 std::string where_str = query.substr(start);
                 m_where = where_expr_parser::parse(where_str, m_ht);
@@ -101,7 +107,9 @@ namespace query {
         pg_query& operator=(pg_query &&o) {
             if (this != &o) {
                 m_patterns = std::move(o.m_patterns);
+                m_where = std::move(o.m_where);
                 m_ht = std::move(o.m_ht);
+                m_vnodes = std::move(o.m_vnodes);
             }
             return *this;
         }

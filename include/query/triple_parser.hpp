@@ -109,7 +109,7 @@ namespace ring {
                 }
             }
 
-            static node_type parse_node(size_t& p, const std::string& str, std::unordered_map<std::string, std::uint8_t> &ht) {
+            static node_type parse_node(size_t& p, const std::string& str, std::unordered_map<std::string, std::uint8_t> &ht, std::vector<bool> &vnodes) {
                 node_type n;
                 skip_ws(p, str);
                 if (str[p] != '(') throw std::runtime_error("Expected '('");
@@ -147,10 +147,16 @@ namespace ring {
                 skip_ws(p, str);
                 if (str[p] != ')') throw std::runtime_error("Expected ')' in node");
                 ++p;
+                if (n.is_var()) {
+                    if (vnodes.size() < n.var_value) {
+                        vnodes.resize(n.var_value+1);
+                    }
+                    vnodes[n.var_value] = true;
+                }
                 return n;
             }
 
-            static edge_type parse_edge(size_t& p, const std::string& str, std::unordered_map<std::string, std::uint8_t> &ht) {
+            static edge_type parse_edge(size_t& p, const std::string& str, std::unordered_map<std::string, std::uint8_t> &ht, std::vector<bool> &vnodes) {
                 edge_type e;
                 skip_ws(p, str);
                 if (str[p] != '[') throw std::runtime_error("Expected '['");
@@ -186,25 +192,31 @@ namespace ring {
                 skip_ws(p, str);
                 if (str[p] != ']') throw std::runtime_error("Expected ']' in edge");
                 ++p;
+                if (e.is_var()) {
+                    if (vnodes.size() < e.var_value) {
+                        vnodes.resize(e.var_value+1);
+                    }
+                    vnodes[e.var_value] = false;
+                }
                 return e;
             }
 
         public:
-            static triple_type parse(const std::string& str, std::unordered_map<std::string, std::uint8_t> &ht) {
+            static triple_type parse(const std::string& str, std::unordered_map<std::string, std::uint8_t> &ht, std::vector<bool> &vnodes) {
                 // Ejemplo de str: (a:Person)-[p:(Direct OR ACT)]->(b)
                 triple_type t;
                 size_t pos = 0;
-                t.subj = parse_node(pos, str, ht);
+                t.subj = parse_node(pos, str, ht, vnodes);
                 skip_ws(pos, str);
                 if (str.substr(pos, 1) != "-") throw std::runtime_error("Expected '-' after subject");
                 ++pos;
                 skip_ws(pos, str);
-                t.edge = parse_edge(pos, str, ht);
+                t.edge = parse_edge(pos, str, ht, vnodes);
                 skip_ws(pos, str);
                 if (str.substr(pos, 2) != "->") throw std::runtime_error("Expected '->' after edge");
                 pos += 2;
                 skip_ws(pos, str);
-                t.obj = parse_node(pos, str, ht);
+                t.obj = parse_node(pos, str, ht, vnodes);
                 return t;
             }
 

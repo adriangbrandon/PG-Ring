@@ -56,8 +56,8 @@ namespace ring {
         typedef results_t results_type;
 
     private:
-        const patterns_type *m_ptr_patterns;
-        const where_type *m_ptr_where;
+        const query::pg_query *m_ptr_query;
+
         veo_type m_veo;
         ring_type *m_ptr_ring;
         std::vector<ltj_iter_type *> m_iterators;
@@ -67,8 +67,7 @@ namespace ring {
 
 
         void copy(const ltj_algorithm_pg &o) {
-            m_ptr_patterns = o.m_ptr_patterns;
-            m_ptr_where = o.m_ptr_where;
+            m_ptr_query = o.m_ptr_query;
             m_veo = o.m_veo;
             m_ptr_ring = o.m_ptr_ring;
             m_iterators = o.m_iterators;
@@ -129,13 +128,12 @@ namespace ring {
             }
         }
 
-        void process_where_expression(const query::where_expr_parser::expr &expr, const std::set<value_type> &vars_in_nodes) {
-            if (expr.is_var[0] && vars_in_nodes.find(expr.values[0]) != vars_in_nodes.end()
-                || expr.is_var[1] && vars_in_nodes.find(expr.values[1]) != vars_in_nodes.end()) {
+        void process_where_expression(const query::where_expr_parser::expr &expr, const std::vector<bool> &vars_in_nodes) {
+            if (expr.is_var[0] && vars_in_nodes[expr.values[0]] || expr.is_var[1] && vars_in_nodes[expr.values[1]]) {
                 m_iterators.push_back(
                     new ltj_iterator_node_comp<ring_type, var_type, const_type>(&expr, m_ptr_ring));
 
-                if (expr.is_var[0] && vars_in_nodes.find(expr.values[0]) != vars_in_nodes.end()) {
+                if (expr.is_var[0] && vars_in_nodes[expr.values[0]]) {
                     add_var_to_iterator(expr.values[0], m_iterators.back());
                     if (expr.property_values[0]) {
                         add_var_to_prop_iterator(expr.values[0], expr.property_values[0],
@@ -143,7 +141,7 @@ namespace ring {
                     }
                 }
 
-                if (expr.is_var[1] && vars_in_nodes.find(expr.values[1]) != vars_in_nodes.end()) {
+                if (expr.is_var[1] && vars_in_nodes[expr.values[1]]) {
                     add_var_to_iterator(expr.values[1], m_iterators.back());
                     if (expr.property_values[1]) {
                         add_var_to_prop_iterator(expr.values[1], expr.property_values[1],
@@ -168,16 +166,14 @@ namespace ring {
     public:
         ltj_algorithm_pg() = default;
 
-        ltj_algorithm_pg(const patterns_type *triple_patterns, const where_type *where, ring_type *ring) {
-            m_ptr_patterns = triple_patterns;
-            m_ptr_where = where;
+        ltj_algorithm_pg(const query::pg_query *query, ring_type *ring) {
+            m_ptr_query = query;
             m_ptr_ring = ring;
 
-            m_iterators.reserve(m_ptr_patterns->size()); //minimum number of iterators
+            m_iterators.reserve(m_ptr_query->patterns.size()); //minimum number of iterators
 
-            std::set<value_type> vars_in_nodes;
             //iterators of the edge labels
-            for (const auto &pattern: *m_ptr_patterns) {
+            for (const auto &pattern: m_ptr_query->patterns) {
                 //Bulding iterators
                 if (pattern.edge.is_empty()) {
                     //the edge has no constraints on the labels -> normal iterator
@@ -199,20 +195,18 @@ namespace ring {
                 }
 
                 if (pattern.subj.is_var()) {
-                    vars_in_nodes.insert(pattern.subj.var_value);
                     add_var_to_iterator(pattern.subj.var_value, m_iterators.back());
                 }
                 if (pattern.edge.is_var()) {
                     add_var_to_iterator(pattern.edge.var_value, m_iterators.back());
                 }
                 if (pattern.obj.is_var()) {
-                    vars_in_nodes.insert(pattern.obj.var_value);
                     add_var_to_iterator(pattern.obj.var_value, m_iterators.back());
                 }
             }
 
             //iterators of the node labels
-            for (const auto &pattern: *m_ptr_patterns) {
+            for (const auto &pattern: m_ptr_query->patterns) {
                 if (pattern.subj.is_var() && !pattern.subj.is_empty()) {
                     m_iterators.push_back(
                         new ltj_iterator_node_expr<ring_type, var_type, const_type>(
@@ -229,16 +223,16 @@ namespace ring {
             }
 
             //iterators of the where expressions
-            if (m_ptr_where->type != query::WAND) {
-                process_where_expression(*m_ptr_where, vars_in_nodes);
+            if (m_ptr_query->where.type != query::WAND) {
+                process_where_expression(m_ptr_query->where, m_ptr_query->vnodes);
             }else {
-                for (const auto &expr: m_ptr_where->args) {
-                    process_where_expression(expr, vars_in_nodes);
+                for (const auto &expr: m_ptr_query->where.args) {
+                    process_where_expression(expr, m_ptr_query->vnodes);
                 }
             }
 
 
-            m_veo = veo_type(m_ptr_patterns, &m_iterators, &m_var_to_iterators, m_ptr_ring);
+            m_veo = veo_type(&(m_ptr_query->patterns), &m_iterators, &m_var_to_iterators, m_ptr_ring);
         }
 
         //! Copy constructor
@@ -269,8 +263,7 @@ namespace ring {
         //! Move Operator=
         ltj_algorithm_pg &operator=(ltj_algorithm_pg &&o) {
             if (this != &o) {
-                m_ptr_patterns = o.m_ptr_patterns;
-                m_ptr_where = o.m_ptr_where;
+                m_ptr_query = o.m_ptr_query;
                 m_veo = std::move(o.m_veo);
                 m_ptr_ring = o.m_ptr_ring;
                 m_iterators = std::move(o.m_iterators);
@@ -281,8 +274,7 @@ namespace ring {
         }
 
         void swap(ltj_algorithm_pg &o) {
-            std::swap(m_ptr_patterns, o.m_ptr_patterns);
-            std::swap(m_ptr_where, o.m_ptr_where);
+            std::swap(m_ptr_query, o.m_ptr_query);
             std::swap(m_veo, o.m_veo);
             std::swap(m_ptr_ring, o.m_ptr_ring);
             std::swap(m_iterators, o.m_iterators);
