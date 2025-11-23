@@ -200,16 +200,16 @@ namespace ring {
             return m_L.select_next(get_C(pos), ranges);
         }
 
+        inline uint64_t select_next_ranges(std::vector<range_type> &ranges, uint64_t val) {
+            return m_L.select_next_ranges(ranges, val);
+        }
+
         inline uint64_t min_in_range(uint64_t l, uint64_t r) {
             return m_L.range_minimum_query(l, r);
         }
 
         inline uint64_t range_next_value(uint64_t x, uint64_t l, uint64_t r) {
             return m_L.range_next_value(x, l, r);
-        }
-
-        inline uint64_t range_next_value(uint64_t x, std::vector<range_type> &ranges) {
-            return m_L.range_next_value(x, ranges);
         }
 
         std::vector<uint64_t>
@@ -223,8 +223,12 @@ namespace ring {
             return m_L.range2d_values(range_type{pos_min, pos_max}, sigma_ranges);
         }
 
-        uint64_t range_min_value(const std::vector<range_type> &ranges) {
+        std::pair<value_type, size_type> range_min_value(const std::vector<range_type> &ranges) {
             return m_L.range_min_value(ranges);
+        }
+
+        std::pair<value_type, size_type> range_next_value(const value_type val, const std::vector<range_type> &ranges) {
+            return m_L.range_next_value(val, ranges);
         }
 
         // backward search for pattern of length 1

@@ -63,4 +63,8 @@ int main(int argc, char* argv[]) {
     a =  wm.select_next(4, sigma_ranges);
     std::cout << "Select next of 3: " << a << std::endl;
 
+    ranges = { sdsl::range_type{1,2}, sdsl::range_type{4,13}};
+    a = wm.select_next_ranges(ranges, 2);
+    std::cout << "Select next of 6 in ranges: " << a << std::endl;
+
 }

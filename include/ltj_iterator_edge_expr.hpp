@@ -53,11 +53,11 @@ namespace ring {
         bool m_is_empty = false;
         //std::stack<state_type> m_states;
 
-        std::vector<range_type> m_ranges_expr; //TODO calcular a partir de expresión. rangos en alfabeto de P
+        std::vector<range_type> m_ranges_expr;
         std::array<std::vector<range_type>, 3> m_ranges_level;
         std::array<size_type, 3> m_length_level;
 
-        //Mechanism to simulate leap on the last level
+        //Mechanism to simulate leap on the edges
         size_type m_range_i = 0; //current range in last level
         size_type m_triple_j = 0; //current triple in current range
 
@@ -167,6 +167,7 @@ namespace ring {
             return exists;
         }
 
+
         bool down_PS_to_O(value_type o) {
             //Bwd step to get the range in OSP
             bool exists = false;
@@ -192,6 +193,31 @@ namespace ring {
             }
             return exists;
         }
+
+        bool down_to_E(value_type e, size_type l) {
+            m_ranges_level[l].push_back(range_type{e, e});
+            return true;
+        }
+
+        value_type min_in_ranges(size_type level) {
+            m_range_i = 0;
+            return m_ranges_level[level][0][0];
+        }
+
+        value_type next_in_ranges(size_type level, value_type current) {
+            while (m_ranges_level[level][m_range_i][1] < current) {
+                //Move to next range
+                m_range_i++;
+                if (m_range_i == m_ranges_level[level].size()) {
+                    return 0; //No more triples
+                }
+            }
+            if (m_ranges_level[level][m_range_i][0] > current) {
+                return m_ranges_level[level][m_range_i][0];
+            }
+            return current;
+        }
+
 
         void compute_length(size_type level) {
             m_length_level[level] = 0;
@@ -333,14 +359,20 @@ namespace ring {
                 if (is_variable_subject(var)) {
                     down_P_to_S(c);
                     m_state[m_level] = s;
+                } else if (is_variable_predicate(var)) {
+                    down_to_E(c, m_level);
+                    m_state[m_level] = p;
                 } else {
                     down_P_to_O(c);
                     m_state[m_level] = o;
                 }
-            } else if(m_level == 1) {//m_level = 1 TODO: revisar que realmente necesite hacer down
+            } else if(m_level == 1) {//m_level = 1
                 if (is_variable_subject(var)) {
                     down_PO_to_S(c);
                     m_state[m_level] = s;
+                } else if (is_variable_predicate(var)) {
+                    down_to_E(c, m_level);
+                    m_state[m_level] = p;
                 } else {
                     down_PS_to_O(c);
                     m_state[m_level] = o;
@@ -366,16 +398,49 @@ namespace ring {
         leap(var_type var) { //Return the minimum in the range
             //0. Which term of our triple pattern is var
             if(m_level == 0){
-                if(is_variable_subject(var)){
+                if(is_variable_subject(var)) {
                     return m_ptr_ring->edge_expr_min_S_in_P(m_ranges_level[0]);
+                } else if (is_variable_predicate(var)) {
+                    return min_in_ranges(m_level);
                 }else {
                     return m_ptr_ring->edge_expr_min_O_in_P(m_ranges_expr);
                 }
             }else if (m_level == 1){
+                if (m_state[0] == s) { //fixed subject
+                    if (is_variable_object(var)) {
+                        return m_ptr_ring->edge_expr_min_O_in_SP(m_ranges_level[1]);
+                    }
+                    if (is_variable_predicate(var)) {
+                        //Select next in POS with constant of s
+                        return m_ptr_ring->edge_expr_min_E_in_SP(m_ranges_level[0], m_consts[0]);
+                    }
+                }else if (m_state[0] == p) { //fixed edge
+                    if (is_variable_subject(var)) {
+                        return m_ptr_ring->edge_expr_get_S(m_consts[0]); //TODO: chequear que estea en consts fixado
+                    }
+                    if (is_variable_object(var)) {
+                        //TODO: LF mapping + get value at position in SPO
+                        return m_ptr_ring->edge_expr_get_O(m_consts[0]);
+                    }
+                }else if (m_state[0] == o) { //fixed object
+                    if (is_variable_subject(var)) {
+                        return m_ptr_ring->edge_expr_min_S_in_PO(m_ranges_level[1]);
+                    }
+                    if (is_variable_predicate(var)) {
+                        return min_in_ranges(m_level);
+                    }
+                }
+            }else if (m_level == 2) {
                 if (is_variable_subject(var)) {
-                    return m_ptr_ring->edge_expr_min_S_in_PO(m_ranges_level[1]);
-                } else {
-                    return m_ptr_ring->edge_expr_min_O_in_SP(m_ranges_level[1]);
+                    auto i = (m_state[0] == p) ? 0 : 1;
+                    return m_ptr_ring->edge_expr_get_S(m_consts[i]);
+                }
+                if (is_variable_object(var)) {
+                    auto i = (m_state[0] == p) ? 0 : 1;
+                    return m_ptr_ring->edge_expr_get_O(m_consts[i]);
+                }
+                if (is_variable_predicate(var)) {
+                    return m_ptr_ring->edge_expr_min_E_in_OS(m_ranges_level[2]);
                 }
             }
             throw std::out_of_range("ltj_iterator_edge_expr::leap");
@@ -385,14 +450,54 @@ namespace ring {
             if(m_level == 0){
                 if(is_variable_subject(var)){
                     return m_ptr_ring->edge_expr_next_S_in_P(m_ranges_level[0], c);
+                } else if (is_variable_predicate(var)) {
+                    return next_in_ranges(m_level, c);
                 }else {
                     return m_ptr_ring->edge_expr_next_O_in_P(m_ranges_expr, c);
                 }
             }else if (m_level == 1){
+                if (m_state[0] == s) { //fixed subject
+                    if (is_variable_object(var)) {
+                        return m_ptr_ring->edge_expr_next_O_in_SP(m_ranges_level[1], c);
+                    }
+                    if (is_variable_predicate(var)) {
+                        //Select next in POS with constant of s
+                        return m_ptr_ring->edge_expr_next_E_in_SP(m_ranges_level[0], m_consts[0], c);
+                    }
+                }else if (m_state[0] == p) { //fixed edge
+                    if (is_variable_subject(var)) {
+                        auto v = m_ptr_ring->edge_expr_get_S(m_consts[0]);
+                        if (v >= c) return v;
+                        return 0;
+                    }
+                    if (is_variable_object(var)) {
+                        auto v = m_ptr_ring->edge_expr_get_O(m_consts[0]);
+                        if (v >= c) return v;
+                        return 0;
+                    }
+                }else if (m_state[0] == o) { //fixed object
+                    if (is_variable_subject(var)) {
+                        return m_ptr_ring->edge_expr_next_S_in_PO(m_ranges_level[1], c);
+                    }
+                    if (is_variable_predicate(var)) {
+                        return next_in_ranges(m_level, c);
+                    }
+                }
+            }else if (m_level == 2) {
                 if (is_variable_subject(var)) {
-                    return m_ptr_ring->edge_expr_next_S_in_PO(m_ranges_level[1], c);
-                } else {
-                    return m_ptr_ring->edge_expr_next_O_in_SP(m_ranges_level[1], c);
+                    auto i = (m_state[0] == p) ? 0 : 1;
+                    auto v = m_ptr_ring->edge_expr_get_S(m_consts[i]);
+                    if (v >= c) return v;
+                    return 0;
+                }
+                if (is_variable_object(var)) {
+                    auto i = (m_state[0] == p) ? 0 : 1;
+                    auto v = m_ptr_ring->edge_expr_get_O(m_consts[i]);
+                    if (v >= c) return v;
+                    return 0;
+                }
+                if (is_variable_predicate(var)) {
+                    return m_ptr_ring->edge_expr_next_E_in_OS(m_ranges_level[2], c);
                 }
             }
             throw std::out_of_range("ltj_iterator_edge_expr::leap");
@@ -407,16 +512,28 @@ namespace ring {
         }
 
         value_type seek_last(var_type var){ //var should be in an edge
-            m_range_i = 0;
-            m_triple_j = m_ranges_level[2][m_range_i][0];
-            if (m_state[1] == o) {
-                return m_ptr_ring->map_OSP_to_POS(m_triple_j);
-            }else {
-                return m_ptr_ring->map_SPO_to_POS(m_triple_j, m_consts[0]);
+            if (is_variable_subject(var)) {
+                auto i = (m_state[0] == p) ? 0 : 1;
+                return m_ptr_ring->edge_expr_get_S(m_consts[i]);
             }
+            if (is_variable_object(var)) {
+                auto i = (m_state[0] == p) ? 0 : 1;
+                return m_ptr_ring->edge_expr_get_O(m_consts[i]);
+            }
+            if (is_variable_predicate(var)) {
+                m_range_i = 0;
+                m_triple_j = m_ranges_level[2][m_range_i][0];
+                if (m_state[1] == o) {
+                    return m_ptr_ring->map_OSP_to_POS(m_triple_j);
+                }else {
+                    return m_ptr_ring->map_SPO_to_POS(m_triple_j, m_consts[0]);
+                }
+            }
+
         }
 
         value_type seek_last_next(var_type var){
+            if (!is_variable_predicate(var)) return 0; //no more triples
             ++m_triple_j;
             if (m_triple_j >m_ranges_level[2][m_range_i][1]) {
                 if (m_range_i + 1 == m_ranges_level[2].size()) {

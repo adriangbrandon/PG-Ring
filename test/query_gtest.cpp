@@ -166,12 +166,12 @@ void run_queries_test(const std::vector<std::string>& queries) {
         std::cout << "Expected results: " << q_c.res.size() << std::endl;
 
         // Print results
-        /*for (auto i = 0; i < res.size(); ++i) {
+        for (auto i = 0; i < res.size(); ++i) {
             for (auto j = 0; j < res.results[i].size(); ++j) {
                 std::cout << res.results[i][j] << " ";
             }
             std::cout << std::endl;
-        }*/
+        }
 
         ASSERT_EQ(q_c.res.size(), res.size()) << "Error in size. ";
         for (uint64_t i = 0; i < q_c.res.size(); ++i) {
@@ -259,7 +259,11 @@ TEST(QueryTest, NodeProperties)
         "(?k:2)-[?y]->(1) WHERE (?k.5 >= 1964) AND (?k.5 != 1967)",
         "(?k:2)-[?y]->(1), (?j:2)-[?w]->(30) WHERE (?j.5 > ?k.5)",
         "(?mx:2)-[?y]->(1), (?tg:2)-[?w]->(30) WHERE (?tg.5 > ?mx.5) AND (?tg.5 != 1962)",
-        "(?tg:2)-[?w]->(30), (?mx:2)-[?y]->(1) WHERE (?tg.5 > ?mx.5) AND (?tg.5 != 1962)"
+        "(?tg:2)-[?w]->(30), (?mx:2)-[?y]->(1) WHERE (?tg.5 > ?mx.5) AND (?tg.5 != 1962)",
+        "(?a1:2)-[?w]->(?m), (?a2:2)-[?y]->(?m) WHERE (?a1.5 = ?a2.5)",
+        "(?a1)-[?w]->(?m), (?a2)-[?y]->(?m) WHERE (?a1.5 = ?a2.5)",
+        "(?a1)-[?w:1]->(?m), (?a2)-[?y:1]->(?m) WHERE (?a1.5 = ?a2.5)",
+        "(?a1)-[?w:1]->(?m), (?a2)-[?y:1]->(?m) WHERE (?a1.5 = ?a2.5) AND (?a1.5 != 1962)"
     };
     run_queries_test(queries);
 }
@@ -267,7 +271,7 @@ TEST(QueryTest, NodeProperties)
 
 TEST(QueryTest, Error)
 {
-    std::vector<std::string> queries = {
+    /*std::vector<std::string> queries = {
         //"(?k:2)-[?y]->(?z) WHERE (?k.5 = 1964)" OK
         //"(?k:2)-[?y]->(1) WHERE (?k.5 >= 1964)" OK
         //"(?k:2)-[?y]->(1) WHERE (?k.5 >= 1964) AND (?k.5 <= 1967)" OK
@@ -275,6 +279,7 @@ TEST(QueryTest, Error)
         //"(?k:2)-[?y]->(1), (?j:2)-[?w]->(30) WHERE (?j.5 > ?k.5)" OK
         //"(?mx:2)-[?y]->(1), (?tg:2)-[?w]->(30) WHERE (?tg.5 > ?mx.5) AND (?tg.5 != 1962)" OK
         "(?tg:2)-[?w]->(30), (?mx:2)-[?y]->(1) WHERE (?tg.5 > ?mx.5) AND (?tg.5 != 1962)"
-    };
+    };*/
+    std::vector<std::string> queries = {"(5)-[?b]->(11)"};
     run_queries_test(queries);
 }

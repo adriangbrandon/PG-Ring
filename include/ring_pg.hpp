@@ -826,6 +826,16 @@ namespace ring {
        /************** Functions needed for Property Graphs ********************/
 
 
+        value_type edge_expr_get_O(size_type pos_i) {
+            auto r_s = m_bwt_s.inverse_select(pos_i);
+            auto spo_i = m_bwt_o.get_C(r_s.second) + r_s.first;
+            return m_bwt_o.get_value(spo_i);
+        }
+
+        value_type edge_expr_get_S(size_type pos_i) {
+            return m_bwt_s.get_value(pos_i);
+        }
+
         range_type edge_expr_down_P_S(range_type &s_int, uint64_t s) {
             pair<uint64_t, uint64_t> I = m_bwt_s.backward_step(s_int[0], s_int[1], s);
             uint64_t c = m_bwt_o.get_C(s);
@@ -850,7 +860,7 @@ namespace ring {
         }
 
         value_type edge_expr_min_S_in_P(std::vector<range_type> &ranges) {
-            return m_bwt_s.range_min_value(ranges);
+            return m_bwt_s.range_min_value(ranges).first;
         }
 
         value_type edge_expr_min_O_in_P(std::vector<range_type> &ranges) {
@@ -860,15 +870,19 @@ namespace ring {
         }
 
         value_type edge_expr_min_O_in_SP(std::vector<range_type> &ranges) {
-            return m_bwt_o.range_min_value(ranges);
+            return m_bwt_o.range_min_value(ranges).first;
+        }
+
+        value_type edge_expr_min_E_in_SP(std::vector<range_type> &ranges, value_type current_s) {
+            return m_bwt_s.select_next_ranges(ranges, current_s);
         }
 
         value_type edge_expr_min_S_in_PO(std::vector<range_type> &ranges) {
-            return m_bwt_s.range_min_value(ranges);
+            return m_bwt_s.range_min_value(ranges).first;
         }
 
         value_type edge_expr_next_S_in_P(std::vector<range_type> &ranges, uint64_t val) {
-            return m_bwt_s.range_next_value(val, ranges);
+            return m_bwt_s.range_next_value(val, ranges).first;
         }
 
         value_type edge_expr_next_O_in_P(std::vector<range_type> &ranges, uint64_t val) {
@@ -878,23 +892,48 @@ namespace ring {
         }
 
         value_type edge_expr_next_O_in_SP(std::vector<range_type> &ranges, uint64_t val) {
-            return m_bwt_o.range_next_value(val, ranges);
+            return m_bwt_o.range_next_value(val, ranges).first;
+        }
+
+        value_type edge_expr_next_E_in_SP(const std::vector<range_type> &ranges, value_type current_s, value_type current_e) {
+
+            std::vector<range_type> aux;
+            for (const auto &r : ranges) {
+                if (r[1] < current_e) continue;
+                if (r[0] < current_e) {
+                    aux.push_back({{current_e, r[1]}});
+                }else {
+                    aux.push_back({r[0], r[1]});
+                }
+            }
+            return m_bwt_s.select_next_ranges(aux, current_s);
         }
 
         value_type edge_expr_next_S_in_PO(std::vector<range_type> &ranges, uint64_t val) {
-            return m_bwt_s.range_next_value(val, ranges);
+            return m_bwt_s.range_next_value(val, ranges).first;
+        }
+
+        value_type edge_expr_min_E_in_OS(std::vector<range_type> &ranges) {
+            auto s_r = m_bwt_p.range_min_value(ranges);
+            return m_bwt_s.get_C(s_r.first) + s_r.second;
+        }
+
+        value_type edge_expr_next_E_in_OS(std::vector<range_type> &ranges, uint64_t val) {
+            auto p_c = m_bwt_s.bsearch_C(val) - 1;
+            auto s_r = m_bwt_p.range_next_value(p_c, ranges);
+            return m_bwt_s.get_C(s_r.first) + s_r.second;
         }
 
         //SPO->OSP->POS
         size_type map_OSP_to_POS(const size_type osp_i) {
-            auto p = m_bwt_p.get_value(osp_i);
-            return m_bwt_s.get_C(p) + m_bwt_p.ranky(osp_i, p); //OSP -> POS
+            auto r_s = m_bwt_p.inverse_select(osp_i);
+            return m_bwt_s.get_C(r_s.second) + r_s.first; //OSP -> POS
         }
 
         size_type map_SPO_to_POS(const size_type spo_i, const value_type o) {
             auto osp_i = m_bwt_p.get_C(o) + m_bwt_o.ranky(spo_i, o);
-            auto p = m_bwt_p.get_value(osp_i);
-            return m_bwt_s.get_C(p) + m_bwt_p.ranky(osp_i, p); //OSP -> POS
+            auto r_s = m_bwt_p.inverse_select(osp_i);
+            return m_bwt_s.get_C(r_s.second) + r_s.first; //OSP -> POS
         }
 
 
