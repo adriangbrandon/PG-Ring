@@ -32,6 +32,7 @@
 #include <query/query_parser.hpp>
 
 #include "ltj_iterator_node_comp.hpp"
+#include "ltj_iterator_edge_comp.hpp"
 
 
 namespace ring {
@@ -128,7 +129,8 @@ namespace ring {
             }
         }
 
-        void process_where_expression(const query::where_expr_parser::expr &expr, const std::vector<bool> &vars_in_nodes) {
+        void process_where_expression(const query::where_expr_parser::expr &expr,
+                                      const std::vector<bool> &vars_in_nodes) {
             if (expr.is_var[0] && vars_in_nodes[expr.values[0]] || expr.is_var[1] && vars_in_nodes[expr.values[1]]) {
                 m_iterators.push_back(
                     new ltj_iterator_node_comp<ring_type, var_type, const_type>(&expr, m_ptr_ring));
@@ -148,17 +150,25 @@ namespace ring {
                                                  m_iterators.back());
                     }
                 }
-                } else {
-                    /*m_iterators.push_back(new ltj_iterator_edge_comp<ring_type, var_type, const_type>(&expr, m_ptr_ring));
+            } else {
+                m_iterators.push_back(new ltj_iterator_edge_comp<ring_type, var_type, const_type>(&expr, m_ptr_ring));
 
-                    if (expr.is_var[0] && vars_in_nodes.find(expr.values[0]) != vars_in_nodes.end()) {
-                        add_var_to_iterator(expr.values[0], m_iterators.back());
+                if (expr.is_var[0] && !vars_in_nodes[expr.values[0]]) {
+                    add_var_to_iterator(expr.values[0], m_iterators.back());
+                    if (expr.property_values[0]) {
+                        add_var_to_prop_iterator(expr.values[0], expr.property_values[0],
+                                                 m_iterators.back());
                     }
-                    if (expr.is_var[1] && vars_in_nodes.find(expr.values[1]) != vars_in_nodes.end()) {
-                        add_var_to_iterator(expr.values[1], m_iterators.back());
-                    }*/
-                    std::cout << "Por agora non entre por aqui!" << std::endl;
                 }
+
+                if (expr.is_var[1] && !vars_in_nodes[expr.values[1]]) {
+                    add_var_to_iterator(expr.values[1], m_iterators.back());
+                    if (expr.property_values[1]) {
+                        add_var_to_prop_iterator(expr.values[1], expr.property_values[1],
+                                                 m_iterators.back());
+                    }
+                }
+            }
         }
 
 

@@ -272,14 +272,14 @@ TEST(QueryTest, NodeProperties)
 TEST(QueryTest, Error)
 {
     /*std::vector<std::string> queries = {
-        //"(?k:2)-[?y]->(?z) WHERE (?k.5 = 1964)" OK
-        //"(?k:2)-[?y]->(1) WHERE (?k.5 >= 1964)" OK
+        //"(?k:2)-[?y]->(?z) WHERE (?k.5 = 1964) AND (?y.1 = 2031963965)" OK
+        //"(?k:2)-[?y]->(?z) WHERE (?k.5 >= 1964) AND (?y.1 = 2031963965)" OK
         //"(?k:2)-[?y]->(1) WHERE (?k.5 >= 1964) AND (?k.5 <= 1967)" OK
         //"(?k:2)-[?y]->(1) WHERE (?k.5 >= 1964) AND (?k.5 != 1967)" OK
         //"(?k:2)-[?y]->(1), (?j:2)-[?w]->(30) WHERE (?j.5 > ?k.5)" OK
         //"(?mx:2)-[?y]->(1), (?tg:2)-[?w]->(30) WHERE (?tg.5 > ?mx.5) AND (?tg.5 != 1962)" OK
         "(?tg:2)-[?w]->(30), (?mx:2)-[?y]->(1) WHERE (?tg.5 > ?mx.5) AND (?tg.5 != 1962)"
     };*/
-    std::vector<std::string> queries = {"(5)-[?b]->(11)"};
+    std::vector<std::string> queries = {"(?k:2)-[?y:1]->(?z) WHERE (?y.1 = 2031963965)"};
     run_queries_test(queries);
 }

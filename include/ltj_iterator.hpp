@@ -64,6 +64,11 @@ namespace ring {
             m_triple_j = o.m_triple_j;
         }
 
+        bool down_to_E(value_type e, size_type l) {
+            m_intervals[l]= bwt_interval{e, e};
+            return true;
+        }
+
     public:
         //const bool &is_empty = m_is_empty;
         const size_type &level = m_level;
@@ -202,6 +207,9 @@ namespace ring {
                 if (is_variable_subject(var)) {
                     m_intervals[1] = m_ptr_ring->down_S(c);
                     m_state[m_level] = s;
+                } else if (is_variable_predicate(var)) {
+                    down_to_E(c, m_level);
+                    m_state[m_level] = p;
                 } else {
                     m_intervals[1] = m_ptr_ring->down_O(c);
                     m_state[m_level] = o;
@@ -210,6 +218,9 @@ namespace ring {
                 if (is_variable_subject(var)) {
                     m_intervals[2] = m_ptr_ring->down_O_S(m_intervals[1], m_consts[0], c);
                     m_state[m_level] = s;
+                } else if (is_variable_predicate(var)) {
+                    down_to_E(c, m_level);
+                    m_state[m_level] = p;
                 } else {
                     m_intervals[2] = m_ptr_ring->down_S_O(m_intervals[1], c);
                     m_state[m_level] = o;

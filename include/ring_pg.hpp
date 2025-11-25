@@ -1027,6 +1027,10 @@ namespace ring {
         value_type get_node_property_value(const value_type prop_id, const value_type node_id) {
             return m_node_properties[prop_id-1][node_id];
         };
+
+        value_type get_edge_property_value(const value_type prop_id, const value_type edge_id) {
+            return m_edge_properties[prop_id-1][edge_id];
+        };
     };
 
     typedef ring_pg<bwt_rrr, bwt_rrr> c_ring_pg;
