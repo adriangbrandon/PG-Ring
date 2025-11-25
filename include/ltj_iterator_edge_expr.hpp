@@ -440,7 +440,11 @@ namespace ring {
                     return m_ptr_ring->edge_expr_get_O(m_consts[i]);
                 }
                 if (is_variable_predicate(var)) {
-                    return m_ptr_ring->edge_expr_min_E_in_OS(m_ranges_level[2]);
+                    if (m_state[1] == s) {
+                        return m_ptr_ring->edge_expr_min_E_in_SP(m_ranges_level[1], m_consts[1]);
+                    }else {
+                        return m_ptr_ring->edge_expr_min_E_in_OS(m_ranges_level[2]);
+                    }
                 }
             }
             throw std::out_of_range("ltj_iterator_edge_expr::leap");
@@ -485,19 +489,23 @@ namespace ring {
                 }
             }else if (m_level == 2) {
                 if (is_variable_subject(var)) {
-                    auto i = (m_state[0] == p) ? 0 : 1;
+                    auto i = (m_state[1] == p);
                     auto v = m_ptr_ring->edge_expr_get_S(m_consts[i]);
                     if (v >= c) return v;
                     return 0;
                 }
                 if (is_variable_object(var)) {
-                    auto i = (m_state[0] == p) ? 0 : 1;
+                    auto i = (m_state[1] == p);
                     auto v = m_ptr_ring->edge_expr_get_O(m_consts[i]);
                     if (v >= c) return v;
                     return 0;
                 }
                 if (is_variable_predicate(var)) {
-                    return m_ptr_ring->edge_expr_next_E_in_OS(m_ranges_level[2], c);
+                    if (m_state[1] == s) {
+                        return m_ptr_ring->edge_expr_next_E_in_SP(m_ranges_level[1], m_consts[1], c);
+                    }else {
+                        return m_ptr_ring->edge_expr_next_E_in_OS(m_ranges_level[2], c);
+                    }
                 }
             }
             throw std::out_of_range("ltj_iterator_edge_expr::leap");
@@ -513,11 +521,11 @@ namespace ring {
 
         value_type seek_last(var_type var){ //var should be in an edge
             if (is_variable_subject(var)) {
-                auto i = (m_state[0] == p) ? 0 : 1;
+                auto i = (m_state[1] == p);
                 return m_ptr_ring->edge_expr_get_S(m_consts[i]);
             }
             if (is_variable_object(var)) {
-                auto i = (m_state[0] == p) ? 0 : 1;
+                auto i = (m_state[1] == p);
                 return m_ptr_ring->edge_expr_get_O(m_consts[i]);
             }
             if (is_variable_predicate(var)) {
@@ -529,6 +537,7 @@ namespace ring {
                     return m_ptr_ring->map_SPO_to_POS(m_triple_j, m_consts[0]);
                 }
             }
+            return 0;
 
         }
 

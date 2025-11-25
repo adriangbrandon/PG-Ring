@@ -877,6 +877,11 @@ namespace ring {
             return m_bwt_s.select_next_ranges(ranges, current_s);
         }
 
+        value_type min_E_in_SP(const bwt_interval &interval, value_type current_s) {
+            std::vector<range_type> aux = {{interval.left(), interval.right()}};
+            return m_bwt_s.select_next_ranges(aux, current_s);
+        }
+
         value_type edge_expr_min_S_in_PO(std::vector<range_type> &ranges) {
             return m_bwt_s.range_min_value(ranges).first;
         }
@@ -895,13 +900,24 @@ namespace ring {
             return m_bwt_o.range_next_value(val, ranges).first;
         }
 
+        value_type next_E_in_SP(const bwt_interval &interval, value_type current_s, value_type current_e) {
+            std::vector<range_type> aux;
+            if (interval.right() < current_e) return 0;
+            if (interval.left() < current_e) {
+                aux.push_back({current_e, interval.right()});
+            }else {
+                aux.push_back({interval.left(), interval.right()});
+            }
+            return m_bwt_s.select_next_ranges(aux, current_s);
+        }
+
         value_type edge_expr_next_E_in_SP(const std::vector<range_type> &ranges, value_type current_s, value_type current_e) {
 
             std::vector<range_type> aux;
             for (const auto &r : ranges) {
                 if (r[1] < current_e) continue;
                 if (r[0] < current_e) {
-                    aux.push_back({{current_e, r[1]}});
+                    aux.push_back({current_e, r[1]});
                 }else {
                     aux.push_back({r[0], r[1]});
                 }
@@ -909,12 +925,32 @@ namespace ring {
             return m_bwt_s.select_next_ranges(aux, current_s);
         }
 
+        value_type next_E_in_PO(const bwt_interval &interval, uint64_t val) {
+            std::vector<range_type> aux = {{interval.left(), interval.right()}};
+            auto p_c = m_bwt_s.bsearch_C(val) - 1;
+            return m_bwt_s.range_next_value(val, aux).second;
+        }
+
         value_type edge_expr_next_S_in_PO(std::vector<range_type> &ranges, uint64_t val) {
             return m_bwt_s.range_next_value(val, ranges).first;
         }
 
+
+        value_type min_E_in_OS(const bwt_interval &interval) {
+            auto ranges = std::vector<range_type>{{interval.left(), interval.right()}};
+            auto s_r = m_bwt_p.range_min_value(ranges);
+            return m_bwt_s.get_C(s_r.first) + s_r.second;
+        }
+
         value_type edge_expr_min_E_in_OS(std::vector<range_type> &ranges) {
             auto s_r = m_bwt_p.range_min_value(ranges);
+            return m_bwt_s.get_C(s_r.first) + s_r.second;
+        }
+
+        value_type next_E_in_OS(const bwt_interval &interval, uint64_t val) {
+            auto ranges = std::vector<range_type>{{interval.left(), interval.right()}};
+            auto p_c = m_bwt_s.bsearch_C(val) - 1;
+            auto s_r = m_bwt_p.range_next_value(p_c, ranges);
             return m_bwt_s.get_C(s_r.first) + s_r.second;
         }
 

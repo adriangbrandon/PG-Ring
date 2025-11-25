@@ -64,6 +64,16 @@ namespace ring {
             m_triple_j = o.m_triple_j;
         }
 
+        value_type min_in_ranges(size_type level) {
+            return m_intervals[level].left();
+        }
+
+        value_type next_in_ranges(size_type level, value_type current) {
+            if (current < m_intervals[level].left()) return m_intervals[level].left();
+            if (current > m_intervals[level].right()) return 0;
+            return current;
+        }
+
     public:
         //const bool &is_empty = m_is_empty;
         const size_type &level = m_level;
@@ -264,14 +274,49 @@ namespace ring {
             if (m_level == 0) {
                 if (is_variable_subject(var)) {
                     return  m_ptr_ring->min_S_in_P(m_intervals[0]);
+                } else if (is_variable_predicate(var)) {
+                    return min_in_ranges(m_level);
                 } else {
                     return m_ptr_ring->min_O_in_P(m_intervals[0], m_pattern->edge.get_label());
                 }
             } else if (m_level == 1) {
+                if (m_state[0] == s) {
+                    if (is_variable_predicate(var)) {
+                        return m_ptr_ring->min_E_in_SP(m_intervals[0], m_consts[0]);
+                    }
+                    if (is_variable_object(var)) {
+                        return m_ptr_ring->min_O_in_SP(m_intervals[1]);
+                    }
+                } else if (m_state[0] == p) {
+                    if (is_variable_subject(var)) {
+                        return m_ptr_ring->edge_expr_get_S(m_consts[0]);
+                    }
+                    if (is_variable_object(var)) {
+                        return m_ptr_ring->edge_expr_get_O(m_consts[0]);
+                    }
+                } else if (m_state[0] == o) {
+                    if (is_variable_subject(var)) {
+                        return m_ptr_ring->min_S_in_PO(m_intervals[1]);
+                    }
+                    if (is_variable_predicate(var)) {
+                        return min_in_ranges(m_level);
+                    }
+                }
+            } else if (m_level == 2) {
                 if (is_variable_subject(var)) {
-                    return m_ptr_ring->min_S_in_PO(m_intervals[1]);
-                } else {
-                    return m_ptr_ring->min_O_in_PS(m_intervals[1]);
+                    auto i = (m_state[0] == p) ? 0 : 1;
+                    return m_ptr_ring->edge_expr_get_S(m_consts[i]);
+                }
+                if (is_variable_object(var)) {
+                    auto i = (m_state[0] == p) ? 0 : 1;
+                    return m_ptr_ring->edge_expr_get_O(m_consts[i]);
+                }
+                if (is_variable_predicate(var)) {
+                    if (m_state[1] == s) {
+                        return m_ptr_ring->map_SPO_to_POS( m_intervals[2].left(), m_consts[0]);
+                    }else {
+                        return m_ptr_ring->map_OSP_to_POS( m_intervals[2].left());
+                    }
                 }
             }
             throw std::out_of_range("ltj_iterator_edge_label::leap");
@@ -281,19 +326,62 @@ namespace ring {
             //Return the minimum in the range
             //0. Which term of our triple pattern is var
             if (m_level == 0) {
+
                 if (is_variable_subject(var)) {
-                    return m_ptr_ring->next_S_in_P(m_intervals[0], c);
+                    return  m_ptr_ring->next_S_in_P(m_intervals[0], c);
+                } else if (is_variable_predicate(var)) {
+                    return min_in_ranges(m_level);
                 } else {
                     return m_ptr_ring->next_O_in_P(m_intervals[0], m_pattern->edge.get_label(), c);
                 }
             } else if (m_level == 1) {
+                if (m_state[0] == s) {
+                    if (is_variable_predicate(var)) {
+                        return m_ptr_ring->next_E_in_SP(m_intervals[0], m_consts[0], c);
+                    }
+                    if (is_variable_object(var)) {
+                        return m_ptr_ring->next_O_in_SP(m_intervals[1], c);
+                    }
+                } else if (m_state[0] == p) {
+                    if (is_variable_subject(var)) {
+                        auto v = m_ptr_ring->edge_expr_get_S(m_consts[0]);
+                        if (v >= c) return v;
+                        return 0;
+                    }
+                    if (is_variable_object(var)) {
+                        auto v = m_ptr_ring->edge_expr_get_O(m_consts[0]);
+                        if (v >= c) return v;
+                        return 0;
+                    }
+                } else if (m_state[0] == o) {
+                    if (is_variable_subject(var)) {
+                        return m_ptr_ring->next_S_in_PO(m_intervals[1], c);
+                    }
+                    if (is_variable_predicate(var)) {
+                        return next_in_ranges(m_level, c);
+                    }
+                }
+            } else if (m_level == 2) {
                 if (is_variable_subject(var)) {
-                    return m_ptr_ring->next_S_in_PO(m_intervals[1], c);
-                } else {
-                    return m_ptr_ring->next_O_in_PS(m_intervals[1], c);
+                    auto i = (m_state[1] == p);
+                    auto v = m_ptr_ring->edge_expr_get_S(m_consts[i]);
+                    if (v >= c) return v;
+                    return 0;
+                }
+                if (is_variable_object(var)) {
+                    auto i = (m_state[1] == p);
+                    auto v = m_ptr_ring->edge_expr_get_S(m_consts[i]);
+                    if (v >= c) return v;
+                    return 0;
+                }
+                if (is_variable_predicate(var)) {
+                    if (m_state[1] == s) {
+                        return m_ptr_ring->map_SPO_to_POS( m_intervals[2].left(), m_consts[0]);
+                    }else {
+                        return m_ptr_ring->map_OSP_to_POS( m_intervals[2].left());
+                    }
                 }
             }
-            throw std::out_of_range("ltj_iterator_edge_label::leap");
         };
 
         inline bool in_last_level() {
@@ -309,6 +397,14 @@ namespace ring {
         }
 
         value_type seek_last(var_type var) {
+            if (is_variable_subject(var)) {
+                auto i = (m_state[1] == p);
+                return m_ptr_ring->edge_expr_get_S(m_consts[i]);
+            }
+            if (is_variable_object(var)) {
+                auto i = (m_state[1] == p);
+                return m_ptr_ring->edge_expr_get_O(m_consts[i]);
+            }
             //var should be in an edge
             m_triple_j = m_intervals[2].left();
             if (m_state[1] == o) {
@@ -319,6 +415,7 @@ namespace ring {
         }
 
         value_type seek_last_next(var_type var) {
+            if (!is_variable_predicate(var)) return 0;
             ++m_triple_j;
             if (m_triple_j > m_intervals[2].right()) {
                 return 0;

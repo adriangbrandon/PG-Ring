@@ -236,14 +236,45 @@ namespace ring {
             if (m_level == 0) {
                 if (is_variable_subject(var)) {
                     return m_ptr_ring->min_S(m_intervals[0]);
+                }else if (is_variable_predicate(var)) {
+                    return 1;
                 } else {
                     return m_ptr_ring->min_O(m_intervals[0]);
                 }
             } else if (m_level == 1) {
+                if (m_state[0] == s) {
+                    if (is_variable_predicate(var)) {
+                        return m_ptr_ring->min_E_in_SP(m_intervals[0], m_consts[0]);
+                    }
+                    if (is_variable_object(var)) {
+                        return m_ptr_ring->min_O_in_S(m_intervals[1]);
+                    }
+                } else if (m_state[0] == p) {
+                    if (is_variable_subject(var)) {
+                        return m_ptr_ring->edge_expr_get_S(m_consts[0]);
+                    }
+                    if (is_variable_object(var)) {
+                        return m_ptr_ring->edge_expr_get_O(m_consts[0]);
+                    }
+                } else if (m_state[0] == o) {
+                    if (is_variable_subject(var)) {
+                        return m_ptr_ring->min_S_in_O(m_intervals[1], m_consts[0]);
+                    }
+                    if (is_variable_predicate(var)) {
+                        return m_ptr_ring->min_E_in_OS(m_intervals[1]);
+                    }
+                }
+            } else if (m_level == 2) {
                 if (is_variable_subject(var)) {
-                    return m_ptr_ring->min_S_in_O(m_intervals[1], m_consts[0]);
-                } else {
-                    return m_ptr_ring->min_O_in_S(m_intervals[1]);
+                    auto i = (m_state[0] == p) ? 0 : 1;
+                    return m_ptr_ring->edge_expr_get_S(m_consts[i]);
+                }
+                if (is_variable_object(var)) {
+                    auto i = (m_state[0] == p) ? 0 : 1;
+                    return m_ptr_ring->edge_expr_get_O(m_consts[i]);
+                }
+                if (is_variable_predicate(var)) {
+                    return m_ptr_ring->map_OSP_to_POS( m_intervals[2].left());
                 }
             }
             throw std::out_of_range("ltj_iterator::leap");
@@ -255,16 +286,57 @@ namespace ring {
             if (m_level == 0) {
                 if (is_variable_subject(var)) {
                     return m_ptr_ring->next_S(m_intervals[0], c);
+                }else if (is_variable_predicate(var)) {
+                    if (m_ptr_ring->n_triples >= c) return 0;
+                    return c;
                 } else {
                     return m_ptr_ring->next_O(m_intervals[0], c);
                 }
             } else if (m_level == 1) {
+                if (m_state[0] == s) {
+                    if (is_variable_predicate(var)) {
+                        return m_ptr_ring->next_E_in_SP(m_intervals[0], m_consts[0], c);
+                    }
+                    if (is_variable_object(var)) {
+                        return m_ptr_ring->next_O_in_S(m_intervals[1], c);
+                    }
+                } else if (m_state[0] == p) {
+                    if (is_variable_subject(var)) {
+                        auto v = m_ptr_ring->edge_expr_get_S(m_consts[0]);
+                        if (v >= c) return v;
+                        return 0;
+                    }
+                    if (is_variable_object(var)) {
+                        auto v = m_ptr_ring->edge_expr_get_O(m_consts[0]);
+                        if (v >= c) return v;
+                        return 0;
+                    }
+                } else if (m_state[0] == o) {
+                    if (is_variable_subject(var)) {
+                        return m_ptr_ring->next_S_in_O(m_intervals[1], m_consts[0], c);
+                    }
+                    if (is_variable_predicate(var)) {
+                        return m_ptr_ring->next_E_in_OS(m_intervals[1], c);
+                    }
+                }
+            } else if (m_level == 2) {
                 if (is_variable_subject(var)) {
-                    return  m_ptr_ring->next_S_in_O(m_intervals[1], m_consts[0], c);
-                } else {
-                    return  m_ptr_ring->next_O_in_S(m_intervals[1], c);
+                    auto i = (m_state[1] == p);
+                    auto v = m_ptr_ring->edge_expr_get_S(m_consts[i]);
+                    if (v >= c) return v;
+                    return 0;
+                }
+                if (is_variable_object(var)) {
+                    auto i = (m_state[1] == p);
+                    auto v = m_ptr_ring->edge_expr_get_O(m_consts[i]);
+                    if (v >= c) return v;
+                    return 0;
+                }
+                if (is_variable_predicate(var)) {
+                    return m_ptr_ring->next_E_in_OS(m_intervals[2], c);
                 }
             }
+
             throw std::out_of_range("ltj_iterator::leap");
         };
 
@@ -281,13 +353,24 @@ namespace ring {
         }
 
         value_type seek_last(var_type var) {
-            //var should be in an edge
-            m_triple_j = m_intervals[2].left();
-            //both cases are in OSP
-            return m_ptr_ring->map_OSP_to_POS(m_triple_j);
+            if (is_variable_subject(var)) {
+                auto i = (m_state[1] == p);
+                return m_ptr_ring->edge_expr_get_S(m_consts[i]);
+            }
+            if (is_variable_object(var)) {
+                auto i = (m_state[1] == p);
+                return m_ptr_ring->edge_expr_get_O(m_consts[i]);
+            }
+            if (is_variable_predicate(var)) {
+                m_triple_j = m_intervals[2].left();
+                //both cases are in OSP
+                return m_ptr_ring->map_OSP_to_POS(m_triple_j);
+            }
+            return 0;
         }
 
         value_type seek_last_next(var_type var) {
+            if (!is_variable_predicate(var)) return 0; //no more triples
             ++m_triple_j;
             if (m_triple_j > m_intervals[2].right()) {
                 return 0;
