@@ -68,6 +68,7 @@ namespace ring {
             m_ptr_ring = ring;
             m_expr = expr;
             m_is_empty = false;
+            m_prop_values = {0, 0};
             if (!m_expr->is_var[0] && m_expr->is_var[1]) {
                 m_nfixed = 1;
                 m_prop_values[0] = m_expr->values[0];
@@ -187,10 +188,12 @@ namespace ring {
         void up(var_type var) {
             //Go up in the trie
             if (m_expr->is_var[0] && var == m_expr->values[0]) {
-                m_prop_values[0] = false;
+                m_prop_values[0] = 0;
+                m_state[0] = false;
             }
             if (m_expr->is_var[1] && var == m_expr->values[1]) {
-                m_prop_values[1] = false;
+                m_prop_values[1] = 0;
+                m_state[1] = false;
             }
             --m_nfixed;
         };

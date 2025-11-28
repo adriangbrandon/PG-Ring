@@ -246,7 +246,7 @@ namespace ring {
                     m_intervals[1] =  m_ptr_ring->down_P_S(m_intervals[0], c);
                     m_state[m_level] = s;
                 } else if (is_variable_predicate(var)) {
-                    down_to_E(c, m_level);
+                    down_to_E(c, m_level+1);
                     m_state[m_level] = p;
                 } else {
                     m_intervals[1] = m_ptr_ring->down_P_O(m_intervals[0], m_pattern->edge.get_label(), c);
@@ -257,7 +257,7 @@ namespace ring {
                     m_intervals[2] = m_ptr_ring->down_P_S(m_intervals[1], c);
                     m_state[m_level] = s;
                 } else if (is_variable_predicate(var)) {
-                    down_to_E(c, m_level);
+                    down_to_E(c, m_level+1);
                     m_state[m_level] = p;
                 } else {
                     m_intervals[2] = m_ptr_ring->down_S_O(m_intervals[1], c);
@@ -387,9 +387,13 @@ namespace ring {
                 }
                 if (is_variable_predicate(var)) {
                     if (m_state[1] == s) {
-                        return m_ptr_ring->map_SPO_to_POS( m_intervals[2].left(), m_consts[0]);
+                        auto v = m_ptr_ring->map_SPO_to_POS( m_intervals[2].left(), m_consts[0]);
+                        if (v >= c) return v;
+                        return 0;
                     }else {
-                        return m_ptr_ring->map_OSP_to_POS( m_intervals[2].left());
+                        auto v = m_ptr_ring->map_OSP_to_POS( m_intervals[2].left());
+                        if (v >= c) return v;
+                        return 0;
                     }
                 }
             }

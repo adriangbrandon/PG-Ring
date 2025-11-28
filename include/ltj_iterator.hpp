@@ -208,7 +208,7 @@ namespace ring {
                     m_intervals[1] = m_ptr_ring->down_S(c);
                     m_state[m_level] = s;
                 } else if (is_variable_predicate(var)) {
-                    down_to_E(c, m_level);
+                    down_to_E(c, m_level+1);
                     m_state[m_level] = p;
                 } else {
                     m_intervals[1] = m_ptr_ring->down_O(c);
@@ -219,7 +219,7 @@ namespace ring {
                     m_intervals[2] = m_ptr_ring->down_O_S(m_intervals[1], m_consts[0], c);
                     m_state[m_level] = s;
                 } else if (is_variable_predicate(var)) {
-                    down_to_E(c, m_level);
+                    down_to_E(c, m_level+1);
                     m_state[m_level] = p;
                 } else {
                     m_intervals[2] = m_ptr_ring->down_S_O(m_intervals[1], c);
@@ -327,7 +327,7 @@ namespace ring {
                         return m_ptr_ring->next_S_in_O(m_intervals[1], m_consts[0], c);
                     }
                     if (is_variable_predicate(var)) {
-                        return m_ptr_ring->next_E_in_OS(m_intervals[1], c);
+                        return m_ptr_ring->next_E_in_O(m_intervals[1], c);
                     }
                 }
             } else if (m_level == 2) {

@@ -925,12 +925,6 @@ namespace ring {
             return m_bwt_s.select_next_ranges(aux, current_s);
         }
 
-        value_type next_E_in_PO(const bwt_interval &interval, uint64_t val) {
-            std::vector<range_type> aux = {{interval.left(), interval.right()}};
-            auto p_c = m_bwt_s.bsearch_C(val) - 1;
-            return m_bwt_s.range_next_value(val, aux).second;
-        }
-
         value_type edge_expr_next_S_in_PO(std::vector<range_type> &ranges, uint64_t val) {
             return m_bwt_s.range_next_value(val, ranges).first;
         }
@@ -947,17 +941,48 @@ namespace ring {
             return m_bwt_s.get_C(s_r.first) + s_r.second;
         }
 
-        value_type next_E_in_OS(const bwt_interval &interval, uint64_t val) {
+        value_type next_E_in_O(const bwt_interval &interval, uint64_t c) {
+            auto val_c = m_bwt_s.bsearch_C(c) - 1;
+            auto rnk_c = c - m_bwt_s.get_C(val_c) + 1;
+            auto j = m_bwt_p.select(rnk_c, val_c);
             auto ranges = std::vector<range_type>{{interval.left(), interval.right()}};
-            auto p_c = m_bwt_s.bsearch_C(val) - 1;
-            auto s_r = m_bwt_p.range_next_value(p_c, ranges);
+            if (interval.left() <= j && j <= interval.right()) {
+                return c;
+            }
+            if (j > interval.right()) ++val_c; //must go to next predicate
+            auto s_r = m_bwt_p.range_next_value(val_c, ranges);
             return m_bwt_s.get_C(s_r.first) + s_r.second;
         }
-
-        value_type edge_expr_next_E_in_OS(std::vector<range_type> &ranges, uint64_t val) {
-            auto p_c = m_bwt_s.bsearch_C(val) - 1;
+        //TODO: checking this
+        value_type next_E_in_OS(const bwt_interval &interval, uint64_t val) {
+            /*auto ranges = std::vector<range_type>{{interval.left(), interval.right()}};
+            auto p_c = m_bwt_s.bsearch_C(val) -1;
             auto s_r = m_bwt_p.range_next_value(p_c, ranges);
-            return m_bwt_s.get_C(s_r.first) + s_r.second;
+            return m_bwt_s.get_C(s_r.first) + s_r.second;*/
+            return next_E_in_O(interval, val);
+        }
+
+        value_type edge_expr_next_E_in_OS(std::vector<range_type> &ranges, uint64_t c) {
+            auto val_c = m_bwt_s.bsearch_C(c) - 1;
+            auto rnk_c = c - m_bwt_s.get_C(val_c) + 1;
+            auto j = m_bwt_p.select(rnk_c, val_c);
+
+            size_type r_i = 0;
+            while (r_i < ranges.size() && j > ranges[r_i][1]) ++r_i; //first range that can cover j
+            if (r_i < ranges.size()) {
+                if (j >= ranges[r_i][0]) return c; //j is inside the range
+
+                std::vector<range_type> aux;
+                for (++r_i; r_i < ranges.size(); ++r_i) {
+                    aux.emplace_back(ranges[r_i]); //all the rest of ranges
+                }
+                auto s_r = m_bwt_p.range_next_value(val_c, aux);
+                return m_bwt_s.get_C(s_r.first) + s_r.second;
+            }else {
+                ++val_c;
+                auto s_r = m_bwt_p.range_next_value(val_c, ranges);
+                return m_bwt_s.get_C(s_r.first) + s_r.second;
+            }
         }
 
         //SPO->OSP->POS
@@ -1010,12 +1035,12 @@ namespace ring {
             if (op == query::EQ) {
                 return m_edge_properties[prop_id-1].next_eq(node_id, value);
             } else if (op == query::ST) {
-                if (value == 1) return {0,0};
+                //if (value == 1) return {0,0};
                 return m_edge_properties[prop_id-1].next_se(node_id, value-1);
             } else if (op == query::SE) {
                 return m_edge_properties[prop_id-1].next_se(node_id, value);
             } else if (op == query::GT) {
-                if (value+1 > m_max_p) return {0,0};
+                //if (value+1 > m_max_p) return {0,0};
                 return m_edge_properties[prop_id-1].next_ge(node_id, value+1);
             } else if (op == query::GE) {
                 return m_edge_properties[prop_id-1].next_ge(node_id, value);

@@ -512,7 +512,21 @@ namespace ring {
         }
 
 
-        value_type seek(std::vector<ltj_iter_type *> &itrs, const var_type x_j, value_type c = -1) {
+        value_type seek(std::vector<ltj_iter_type*>& itrs, const var_type x_j, value_type c=-1) {
+            value_type c_i = 0, i = 0;
+            while (i < itrs.size()){
+                //Compute leap for each triple that contains x_j
+                //std::cout << "Leap of " << (::uint64_t) x_j << " in iterator: " << i << std::endl;
+                c_i = (c == -1) ? itrs[i]->leap(x_j) : itrs[i]->leap(x_j, c);
+                //std::cout << "Gets " << (::uint64_t) c_i << std::endl;
+                if(c_i == 0) return 0;
+                i = (i == 0 || c_i == c) ? i + 1 : 0;
+                c = c_i;
+            }
+            return c_i;
+        }
+
+       /* value_type seek(std::vector<ltj_iter_type *> &itrs, const var_type x_j, value_type c = -1) {
             value_type c_i = (c == -1) ? itrs[0]->leap(x_j) : itrs[0]->leap(x_j, c);
             if (itrs.size() == 1 || c_i == 0) return c_i;
             c = c_i;
@@ -528,11 +542,11 @@ namespace ring {
                 } else {
                     //seed = i;
                     i = 0;
-                    n_ok = 0;
+                    n_ok = 1;
                     c = c_i;
                 }
             }
-        }
+        }*/
 
         void print_veo(std::unordered_map<uint8_t, std::string> &ht) {
             std::cout << "veo: ";

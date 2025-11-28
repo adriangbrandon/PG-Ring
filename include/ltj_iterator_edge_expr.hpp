@@ -58,7 +58,9 @@ namespace ring {
         std::array<size_type, 3> m_length_level;
 
         //Mechanism to simulate leap on the edges
-        size_type m_range_i = 0; //current range in last level
+        size_type m_range_i = 0; //current range in level
+
+        size_type m_range_i_last = 0; //current range in last level of a lonely variable
         size_type m_triple_j = 0; //current triple in current range
 
         void copy(const ltj_iterator_edge_expr &o) {
@@ -68,6 +70,12 @@ namespace ring {
             m_state = o.m_state;
             m_level = o.m_level;
             m_consts = o.m_consts;
+            m_ranges_expr = o.m_ranges_expr;
+            m_ranges_level = o.m_ranges_level;
+            m_length_level = o.m_length_level;
+            m_range_i = o.m_range_i;
+            m_range_i_last = o.m_range_i_last;
+            m_triple_j = o.m_triple_j;
         }
 
 
@@ -321,6 +329,12 @@ namespace ring {
                 m_state = std::move(o.m_state);
                 m_level = o.m_level;
                 m_is_empty = o.m_is_empty;
+                m_ranges_expr = std::move(o.m_ranges_expr);
+                m_ranges_level = std::move(o.m_ranges_level);
+                m_length_level = std::move(o.m_length_level);
+                m_range_i = o.m_range_i;
+                m_range_i_last = o.m_range_i_last;
+                m_triple_j = o.m_triple_j;
             }
             return *this;
         }
@@ -332,6 +346,7 @@ namespace ring {
             std::swap(m_consts, o.m_consts);
             std::swap(m_state, o.m_state);
             std::swap(m_level, o.m_level);
+            std::swap(m_is_empty, o.m_is_empty);
             std::swap(m_is_empty, o.m_is_empty);
         }
 
@@ -392,6 +407,7 @@ namespace ring {
             if(m_level == 0) return;
             m_ranges_level[m_level].clear();
             --m_level;
+            m_range_i = 0;
         };
 
         value_type
@@ -529,8 +545,8 @@ namespace ring {
                 return m_ptr_ring->edge_expr_get_O(m_consts[i]);
             }
             if (is_variable_predicate(var)) {
-                m_range_i = 0;
-                m_triple_j = m_ranges_level[2][m_range_i][0];
+                m_range_i_last = 0;
+                m_triple_j = m_ranges_level[2][m_range_i_last][0];
                 if (m_state[1] == o) {
                     return m_ptr_ring->map_OSP_to_POS(m_triple_j);
                 }else {
@@ -544,11 +560,11 @@ namespace ring {
         value_type seek_last_next(var_type var){
             if (!is_variable_predicate(var)) return 0; //no more triples
             ++m_triple_j;
-            if (m_triple_j >m_ranges_level[2][m_range_i][1]) {
-                if (m_range_i + 1 == m_ranges_level[2].size()) {
+            if (m_triple_j >m_ranges_level[2][m_range_i_last][1]) {
+                if (m_range_i_last + 1 == m_ranges_level[2].size()) {
                     return 0; //No more triples
                 }
-                 m_triple_j = m_ranges_level[2][++m_range_i][0];
+                 m_triple_j = m_ranges_level[2][++m_range_i_last][0];
             }
             if (m_state[1] == o) {
                 return m_ptr_ring->map_OSP_to_POS(m_triple_j);
