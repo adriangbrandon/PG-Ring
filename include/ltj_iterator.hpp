@@ -393,7 +393,7 @@ namespace ring {
             throw std::out_of_range("ltj_iterator::set_value_property");
         }
 
-        value_type get_prop_value(var_type var) {
+        value_type get_prop_value(var_type var, value_type c) {
             throw std::out_of_range("ltj_iterator::get_prop_value");
         }
 

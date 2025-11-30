@@ -113,7 +113,7 @@ namespace ring {
                 //Find value of the property
                 value_type prop_value = 0;
                 for (ltj_iter_type *ptr_iterator: prop_map.second) {
-                    prop_value = ptr_iterator->get_prop_value(x_j);
+                    prop_value = ptr_iterator->get_prop_value(x_j, c);
                     if (prop_value) break;
                 }
 

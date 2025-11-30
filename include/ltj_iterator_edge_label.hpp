@@ -69,7 +69,7 @@ namespace ring {
         }
 
         value_type next_in_ranges(size_type level, value_type current) {
-            if (current < m_intervals[level].left()) return m_intervals[level].left();
+            if (current <= m_intervals[level].left()) return m_intervals[level].left();
             if (current > m_intervals[level].right()) return 0;
             return current;
         }
@@ -315,11 +315,11 @@ namespace ring {
                 }
             } else if (m_level == 2) {
                 if (is_variable_subject(var)) {
-                    auto i = (m_state[0] == p) ? 0 : 1;
+                    auto i = (m_state[1] == p);
                     return m_ptr_ring->edge_expr_get_S(m_consts[i]);
                 }
                 if (is_variable_object(var)) {
-                    auto i = (m_state[0] == p) ? 0 : 1;
+                    auto i = (m_state[1] == p);
                     return m_ptr_ring->edge_expr_get_O(m_consts[i]);
                 }
                 if (is_variable_predicate(var)) {
@@ -446,7 +446,7 @@ namespace ring {
             throw std::out_of_range("ltj_iterator_edge_label::set_value_property");
         }
 
-        value_type get_prop_value(var_type var) {
+        value_type get_prop_value(var_type var, value_type c) {
             throw std::out_of_range("ltj_iterator_edge_label::get_prop_value");
         }
 

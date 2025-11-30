@@ -66,7 +66,7 @@ namespace ring {
 
         virtual void set_prop_value(var_type var, value_type value) = 0;
 
-        virtual value_type get_prop_value(var_type var) = 0;
+        virtual value_type get_prop_value(var_type var, value_type c) = 0;
 
         virtual value_type compute_prop_value(var_type var, value_type c) = 0;
 
