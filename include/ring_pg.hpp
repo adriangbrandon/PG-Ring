@@ -1010,6 +1010,14 @@ namespace ring {
             return n;
         }
 
+        std::pair<value_type, value_type> next_node_in_property(const value_type prop_id, const value_type node_id) {
+            return m_node_properties[prop_id-1].next_exists(node_id);
+        }
+
+        std::pair<value_type, value_type> next_edge_in_property(const value_type prop_id, const value_type node_id) {
+            return m_edge_properties[prop_id-1].next_exists(node_id);
+        }
+
         std::pair<value_type, value_type> next_node_property(const value_type prop_id, const value_type node_id, const value_type value,
                                      const query::enum_expr_property_type op) {
             std::cout << "Next node property called: prop_id=" << prop_id << " node_id=" << node_id << " value=" << value << " op=" << op << std::endl;

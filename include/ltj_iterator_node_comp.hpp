@@ -225,13 +225,22 @@ namespace ring {
         };
 
         value_type leap(var_type var, size_type c) {
-            if (!m_nfixed) return c; // no filter is applied
-            if (m_expr->is_var[0] && var == m_expr->values[0]) {
-                m_id_values[0] = m_ptr_ring->next_node_property(m_expr->property_values[0], c, m_fixed_values[1], m_expr->type);
-                return m_id_values[0].first;
-            }else if (m_expr->is_var[1] && var == m_expr->values[1]) {
-                m_id_values[1] = m_ptr_ring->next_node_property(m_expr->property_values[1], c, m_fixed_values[0], query::opposite_expr_property[m_expr->type]);
-                return m_id_values[1].first;
+            if (!m_nfixed) {
+                if (m_expr->is_var[0] && var == m_expr->values[0]) {
+                    m_id_values[0] = m_ptr_ring->next_node_in_property(m_expr->property_values[0], c);
+                    return m_id_values[0].first;
+                }else if (m_expr->is_var[1] && var == m_expr->values[1]) {
+                    m_id_values[1] = m_ptr_ring->next_node_in_property(m_expr->property_values[1], c);
+                    return m_id_values[1].first;
+                }
+            }else {
+                if (m_expr->is_var[0] && var == m_expr->values[0]) {
+                    m_id_values[0] = m_ptr_ring->next_node_property(m_expr->property_values[0], c, m_fixed_values[1], m_expr->type);
+                    return m_id_values[0].first;
+                }else if (m_expr->is_var[1] && var == m_expr->values[1]) {
+                    m_id_values[1] = m_ptr_ring->next_node_property(m_expr->property_values[1], c, m_fixed_values[0], query::opposite_expr_property[m_expr->type]);
+                    return m_id_values[1].first;
+                }
             }
             return 0;
         };
