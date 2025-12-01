@@ -313,13 +313,39 @@ TEST(QueryTest, EdgeProperties) {
         "(?a1)-[?w]->(?m), (?a2)-[?y:1]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 >= 2031963965)",
         "(?a1)-[?w]->(?m), (?a2)-[?y:1]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 < 2031963965)",
         "(?a1)-[?w]->(?m), (?a2)-[?y:1]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 != 2031963965)",
-        "(?a1)-[?w]->(?m), (?a2)-[?y:1]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 != ?w.1)",
+
+
+    };
+    run_queries_test(queries);
+}
+
+
+TEST(QueryTest, EdgeProperties2) {
+    std::vector<std::string> queries = {
         "(?a1)-[?w:1]->(?m), (?a2)-[?y:1]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 = ?w.1)",
         "(?a1)-[?w:1]->(?m), (?a2)-[?y:1]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 >= ?w.1)",
         "(?a1)-[?w:1]->(?m), (?a2)-[?y:1]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 <= ?w.1)",
-        "(?a1)-[?w:1]->(?m), (?a2)-[?y:1]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 != ?w.1)"
-
-
+        "(?a1)-[?w:1]->(?m), (?a2)-[?y:1]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 != ?w.1)",
+        "(?a1)-[?w:1]->(?m), (?a2)-[?y:(1 OR NOT 1)]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 = ?w.1)",
+        "(?a1)-[?w:1]->(?m), (?a2)-[?y:(1 OR NOT 1)]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 >= ?w.1)",
+        "(?a1)-[?w:1]->(?m), (?a2)-[?y:(1 OR NOT 1)]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 <= ?w.1)",
+        "(?a1)-[?w:1]->(?m), (?a2)-[?y:(1 OR NOT 1)]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 != ?w.1)",
+        "(?a1)-[?w:1]->(?m), (?a2)-[?y:(1 OR NOT 2)]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 = ?w.1)",
+        "(?a1)-[?w:1]->(?m), (?a2)-[?y:(1 OR NOT 2)]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 >= ?w.1)",
+        "(?a1)-[?w:1]->(?m), (?a2)-[?y:(1 OR NOT 2)]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 <= ?w.1)",
+        "(?a1)-[?w:1]->(?m), (?a2)-[?y:(1 OR NOT 2)]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 != ?w.1)",
+        "(?a1)-[?w:1]->(?m), (?a2)-[?y:(NOT 2)]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 = ?w.1)",
+        "(?a1)-[?w:1]->(?m), (?a2)-[?y:(NOT 2)]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 >= ?w.1)",
+        "(?a1)-[?w:1]->(?m), (?a2)-[?y:(NOT 2)]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 <= ?w.1)",
+        "(?a1)-[?w:1]->(?m), (?a2)-[?y:(NOT 2)]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 != ?w.1)",
+        "(?a1)-[?w:1]->(?m), (?a2)-[?y:(NOT 1)]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 = ?w.1)",
+        "(?a1)-[?w:1]->(?m), (?a2)-[?y:(NOT 1)]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 >= ?w.1)",
+        "(?a1)-[?w:1]->(?m), (?a2)-[?y:(NOT 1)]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 <= ?w.1)",
+        "(?a1)-[?w:1]->(?m), (?a2)-[?y:(NOT 1)]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 != ?w.1)",
+        "(?a1)-[?w]->(?m), (?a2)-[?y]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 = ?w.1)",
+        "(?a1)-[?w]->(?m), (?a2)-[?y]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 >= ?w.1)",
+        "(?a1)-[?w]->(?m), (?a2)-[?y]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 <= ?w.1)",
+        "(?a1)-[?w]->(?m), (?a2)-[?y]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 != ?w.1)"
     };
     run_queries_test(queries);
 }
@@ -327,7 +353,7 @@ TEST(QueryTest, EdgeProperties) {
 TEST(QueryTest, Error)
 {
     std::vector<std::string> queries = {
-        "(?a1)-[?w:1]->(?m), (?a2)-[?y:1]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 = ?w.1)"
+        "(?k)-[?y:(2 OR 3)]->(?z), (?v)-[?w:1]->(?z), (?v)-[?u:1]->(?m)"
     };
     run_queries_test(queries);
 }
