@@ -149,8 +149,10 @@ namespace ring {
             //Go down in the trie
             if (m_expr->is_var[0] && var == m_expr->values[0]) {
                 m_state[0] = true;
+                m_fixed_values[0] = m_id_values[0].second;
             }else if (m_expr->is_var[1] && var == m_expr->values[1]) {
                 m_state[1] = true;
+                m_fixed_values[1] = m_id_values[1].second;
             }
             ++m_nfixed;
         };
@@ -159,7 +161,7 @@ namespace ring {
             down(var, c);
         };
 
-        void set_prop_value(var_type var, value_type value) {
+        /*void set_prop_value(var_type var, value_type value) {
             std::cout << "{" << m_fixed_values[0] << ", " << m_fixed_values[1] << "} -> ";
             if (!m_nfixed) return;
             if (m_expr->is_var[0] && var == m_expr->values[0] && m_state[0]) {
@@ -196,7 +198,7 @@ namespace ring {
                 return v;
             }
             return 0;
-        }
+        }*/
 
 
         void up(var_type var) {

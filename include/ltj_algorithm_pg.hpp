@@ -107,7 +107,7 @@ namespace ring {
             }
         }
 
-        void setting_properties(const var_type x_j, const value_type c) {
+        /*void setting_properties(const var_type x_j, const value_type c) {
             //2.a Setting the value of each property
             for (const auto &prop_map: m_var_to_prop_iterators[x_j]) {
                 //Find value of the property
@@ -127,7 +127,7 @@ namespace ring {
                     ptr_iterator->set_prop_value(x_j, prop_value);
                 }
             }
-        }
+        }*/
 
         void process_where_expression(const query::where_expr_parser::expr &expr,
                                       const std::vector<bool> &vars_in_nodes) {
@@ -464,7 +464,7 @@ namespace ring {
                             iter->down(x_j, c);
                         }
                         //2.a Setting the value of each property
-                        setting_properties(x_j, c);
+                        //setting_properties(x_j, c);
                         m_veo.down();
                         //3. Search with the next variable x_{j+1}
                         ok = search_v3(j + 1, tuple, res, start, limit_results, timeout_seconds);
