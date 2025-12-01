@@ -381,7 +381,7 @@ namespace ring {
                 }
                 if (is_variable_object(var)) {
                     auto i = (m_state[1] == p);
-                    auto v = m_ptr_ring->edge_expr_get_S(m_consts[i]);
+                    auto v = m_ptr_ring->edge_expr_get_O(m_consts[i]);
                     if (v >= c) return v;
                     return 0;
                 }
