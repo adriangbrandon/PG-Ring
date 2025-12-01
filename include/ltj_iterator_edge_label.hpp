@@ -341,7 +341,7 @@ namespace ring {
                 if (is_variable_subject(var)) {
                     return  m_ptr_ring->next_S_in_P(m_intervals[0], c);
                 } else if (is_variable_predicate(var)) {
-                    return min_in_ranges(m_level);
+                    return next_in_ranges(m_level, c);
                 } else {
                     return m_ptr_ring->next_O_in_P(m_intervals[0], m_pattern->edge.get_label(), c);
                 }
