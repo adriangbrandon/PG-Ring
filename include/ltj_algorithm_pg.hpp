@@ -31,8 +31,7 @@
 #include <results_collector.hpp>
 #include <query/query_parser.hpp>
 
-#include "ltj_iterator_node_comp.hpp"
-#include "ltj_iterator_edge_comp.hpp"
+#include "ltj_iterator_comp.hpp"
 
 
 namespace ring {
@@ -129,7 +128,7 @@ namespace ring {
             }
         }*/
 
-        void process_where_expression(const query::where_expr_parser::expr &expr,
+       /* void process_where_expression(const query::where_expr_parser::expr &expr,
                                       const std::vector<bool> &vars_in_nodes) {
             if (expr.is_var[0] && vars_in_nodes[expr.values[0]] || expr.is_var[1] && vars_in_nodes[expr.values[1]]) {
                 m_iterators.push_back(
@@ -168,6 +167,19 @@ namespace ring {
                                                  m_iterators.back());
                     }
                 }
+            }
+        }*/
+
+        void process_where_expression(const query::where_expr_parser::expr &expr) {
+
+            auto var0_edge = (expr.is_var[0] && !m_ptr_query->vnodes[expr.values[0]]);
+            auto var1_edge = (expr.is_var[1] && !m_ptr_query->vnodes[expr.values[1]]);
+            m_iterators.push_back(new ltj_iterator_comp<ring_type, var_type, const_type>(&expr, var0_edge, var1_edge, m_ptr_ring));
+            if (expr.is_var[0]) {
+                add_var_to_iterator(expr.values[0], m_iterators.back());
+            }
+            if (expr.is_var[1]) {
+                add_var_to_iterator(expr.values[1], m_iterators.back());
             }
         }
 
@@ -234,10 +246,10 @@ namespace ring {
 
             //iterators of the where expressions
             if (m_ptr_query->where.type != query::WAND) {
-                process_where_expression(m_ptr_query->where, m_ptr_query->vnodes);
+                process_where_expression(m_ptr_query->where);
             }else {
                 for (const auto &expr: m_ptr_query->where.args) {
-                    process_where_expression(expr, m_ptr_query->vnodes);
+                    process_where_expression(expr);
                 }
             }
 

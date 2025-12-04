@@ -945,21 +945,17 @@ namespace ring {
             auto val_c = m_bwt_s.bsearch_C(c) - 1;
             auto rnk_c = c - m_bwt_s.get_C(val_c) + 1;
             auto j = m_bwt_p.select(rnk_c, val_c);
-            auto ranges = std::vector<range_type>{{interval.left(), interval.right()}};
             if (interval.left() <= j && j <= interval.right()) {
                 return c;
             }
             if (j > interval.right()) ++val_c; //must go to next predicate
+            auto ranges = std::vector<range_type>{{interval.left(), interval.right()}};
             auto s_r = m_bwt_p.range_next_value(val_c, ranges);
             return m_bwt_s.get_C(s_r.first) + s_r.second;
         }
         //TODO: checking this
-        value_type next_E_in_OS(const bwt_interval &interval, uint64_t val) {
-            /*auto ranges = std::vector<range_type>{{interval.left(), interval.right()}};
-            auto p_c = m_bwt_s.bsearch_C(val) -1;
-            auto s_r = m_bwt_p.range_next_value(p_c, ranges);
-            return m_bwt_s.get_C(s_r.first) + s_r.second;*/
-            return next_E_in_O(interval, val);
+        value_type next_E_in_OS(const bwt_interval &interval, uint64_t c) {
+            return next_E_in_O(interval, c);
         }
 
         value_type edge_expr_next_E_in_OS(std::vector<range_type> &ranges, uint64_t c) {

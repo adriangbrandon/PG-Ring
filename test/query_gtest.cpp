@@ -113,7 +113,7 @@ private:
 public:
     void SetUp() override {
         // Cambia estos paths según lo necesites
-        std::string dataset = "/mnt/movies/short/movies";
+        std::string dataset = "/mnt/movies/real/movies";
         std::string triples_path = dataset + ".triples";
         std::string label2nodes_path = dataset + ".label2nodes";
         std::string index_path = dataset + ".ring.pg";
@@ -353,7 +353,7 @@ TEST(QueryTest, EdgeProperties2) {
 TEST(QueryTest, Error)
 {
     std::vector<std::string> queries = {
-        "(?k)-[?y:(2 OR 3)]->(?z), (?v)-[?w:1]->(?z), (?v)-[?u:1]->(?m)"
+        "(?a1)-[?w]->(?m), (?a2)-[?y]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 != ?w.1)"
     };
     run_queries_test(queries);
 }

@@ -242,6 +242,7 @@ namespace ring {
         };
 
         value_type leap(var_type var) {
+            std::cout << "leap: var=" << (uint) var << ", level=" << m_level << std::endl;
             //Return the minimum in the range
             //0. Which term of our triple pattern is var
             if (m_level == 0) {
@@ -285,13 +286,15 @@ namespace ring {
                     return m_ptr_ring->edge_expr_get_O(m_consts[i]);
                 }
                 if (is_variable_predicate(var)) {
-                    return m_ptr_ring->map_OSP_to_POS( m_intervals[2].left());
+                    auto v =  m_ptr_ring->map_OSP_to_POS( m_intervals[2].left());
+                    return v;
                 }
             }
             throw std::out_of_range("ltj_iterator::leap");
         };
 
         value_type leap(var_type var, size_type c) {
+            std::cout << "leap: var=" << (uint) var << " c=" << c << ", level=" << m_level << std::endl;
             //Return the minimum in the range
             //0. Which term of our triple pattern is var
             if (m_level == 0) {
@@ -344,7 +347,10 @@ namespace ring {
                     return 0;
                 }
                 if (is_variable_predicate(var)) {
-                    return m_ptr_ring->next_E_in_OS(m_intervals[2], c);
+                    auto v = m_ptr_ring->next_E_in_OS(m_intervals[2], c);
+                    std::cout << "value: " << v << std::endl;
+                    return v;
+                    //return m_ptr_ring->next_E_in_OS(m_intervals[2], c);
                 }
             }
 

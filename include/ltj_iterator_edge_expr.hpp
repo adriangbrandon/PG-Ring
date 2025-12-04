@@ -57,9 +57,6 @@ namespace ring {
         std::array<std::vector<range_type>, 3> m_ranges_level;
         std::array<size_type, 3> m_length_level;
 
-        //Mechanism to simulate leap on the edges
-        size_type m_range_i = 0; //current range in level
-
         size_type m_range_i_last = 0; //current range in last level of a lonely variable
         size_type m_triple_j = 0; //current triple in current range
 
@@ -73,7 +70,6 @@ namespace ring {
             m_ranges_expr = o.m_ranges_expr;
             m_ranges_level = o.m_ranges_level;
             m_length_level = o.m_length_level;
-            m_range_i = o.m_range_i;
             m_range_i_last = o.m_range_i_last;
             m_triple_j = o.m_triple_j;
         }
@@ -208,20 +204,20 @@ namespace ring {
         }
 
         value_type min_in_ranges(size_type level) {
-            m_range_i = 0;
             return m_ranges_level[level][0][0];
         }
 
         value_type next_in_ranges(size_type level, value_type current) {
-            while (m_ranges_level[level][m_range_i][1] < current) {
+            auto r_i = 0;
+            while (m_ranges_level[level][r_i][1] < current) {
                 //Move to next range
-                m_range_i++;
-                if (m_range_i == m_ranges_level[level].size()) {
+                ++r_i;
+                if (r_i == m_ranges_level[level].size()) {
                     return 0; //No more triples
                 }
             }
-            if (m_ranges_level[level][m_range_i][0] > current) {
-                return m_ranges_level[level][m_range_i][0];
+            if (m_ranges_level[level][r_i][0] >= current) {
+                return m_ranges_level[level][r_i][0];
             }
             return current;
         }
@@ -332,7 +328,6 @@ namespace ring {
                 m_ranges_expr = std::move(o.m_ranges_expr);
                 m_ranges_level = std::move(o.m_ranges_level);
                 m_length_level = std::move(o.m_length_level);
-                m_range_i = o.m_range_i;
                 m_range_i_last = o.m_range_i_last;
                 m_triple_j = o.m_triple_j;
             }
@@ -375,7 +370,7 @@ namespace ring {
                     down_P_to_S(c);
                     m_state[m_level] = s;
                 } else if (is_variable_predicate(var)) {
-                    down_to_E(c, m_level);
+                    down_to_E(c, m_level+1);
                     m_state[m_level] = p;
                 } else {
                     down_P_to_O(c);
@@ -386,7 +381,7 @@ namespace ring {
                     down_PO_to_S(c);
                     m_state[m_level] = s;
                 } else if (is_variable_predicate(var)) {
-                    down_to_E(c, m_level);
+                    down_to_E(c, m_level+1);
                     m_state[m_level] = p;
                 } else {
                     down_PS_to_O(c);
@@ -405,9 +400,9 @@ namespace ring {
 
         void up(var_type var) { //Go up in the trie
             if(m_level == 0) return;
+            std::cout << "Up edge_expr" << std::endl;
             m_ranges_level[m_level].clear();
             --m_level;
-            m_range_i = 0;
         };
 
         value_type

@@ -247,10 +247,11 @@ public:
                 std::ofstream file(file_name);
                 const auto& prop_map = m_properties_node_values[p_id];
                 for (const auto& pair : prop_map) {
-                    file << pair.first << " " << pair.second.size();
+                    /*file << pair.first << " " << pair.second.size();
                     for (const auto& value : pair.second) {
                         file << " " << value;
-                    }
+                    }*/
+                    file << pair.first << " " << 1 << " " << pair.second[0];
                     file << "\n";
                 }
             }
@@ -263,10 +264,11 @@ public:
                 std::ofstream file(file_name);
                 const auto& prop_map = m_properties_edge_values[p_id];
                 for (const auto& pair : prop_map) {
-                    file << pair.first << " " << pair.second.size();
+                    /*file << pair.first << " " << pair.second.size();
                     for (const auto& value : pair.second) {
                         file << " " << value;
-                    }
+                    }*/
+                    file << pair.first << " " << 1 << " " << pair.second[0];
                     file << "\n";
                 }
             }
