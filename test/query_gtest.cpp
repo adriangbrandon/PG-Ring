@@ -350,10 +350,26 @@ TEST(QueryTest, EdgeProperties2) {
     run_queries_test(queries);
 }
 
+TEST(QueryTest, CompIds)
+{
+    std::vector<std::string> queries = {
+        "(?a1)-[?w]->(?m), (?a2)-[?y]->(?m) WHERE (?y != ?w)",
+        "(?a1)-[?w]->(?m), (?a2)-[?y]->(?m) WHERE (?a1 != ?a2)",
+        "(?a1)-[?w]->(?m), (?a2)-[?y]->(?m) WHERE (?a1 != ?a2) AND (?y != ?w)",
+        "(?a1)-[?w]->(?m), (?a2)-[?y]->(?m) WHERE (?a1 < ?a2) AND (?y != ?w)",
+        "(?a1)-[?w]->(?m), (?a2)-[?y]->(?m), (?m)-[?z]->(?k) WHERE (?a1 = ?a2) AND (?y != ?w)",
+        "(?a1)-[?w]->(?m), (?a2)-[?y]->(?m), (?m)-[?z]->(?k) WHERE (?a1 != ?a2) AND (?y != ?w)",
+        "(?a1)-[?w]->(?m), (?a2)-[?y]->(?m), (?m)-[?z]->(?k) WHERE (?a1 > ?a2) AND (?y != ?w)",
+        "(?a1)-[?w]->(?m), (?a2)-[?y]->(?m), (?m)-[?z]->(?k) WHERE (?a1 < ?a2) AND (?y != ?w)",
+        "(?a1)-[?w]->(?m), (?a2)-[?y]->(?m), (?m)-[?z]->(?k) WHERE (?a1 <= ?a2) AND (?y != ?w)"
+    };
+    run_queries_test(queries);
+}
+
 TEST(QueryTest, Error)
 {
     std::vector<std::string> queries = {
-        "(?a1)-[?w]->(?m), (?a2)-[?y]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 != ?w.1)"
+        "(?a1)-[?w]->(?m), (?a2)-[?y]->(?m), (?m)-[?z]->(?k) WHERE (?a1 > ?a2) AND (?y != ?w) AND (?k < 100)",
     };
     run_queries_test(queries);
 }

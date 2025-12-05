@@ -240,7 +240,7 @@ namespace ring {
                     m_id_values[0] = m_ptr_ring->next_node_property(m_expr->property_values[0], c, m_fixed_values[1], m_expr->type);
                     return m_id_values[0].first;
                 }else if (m_expr->is_var[1] && var == m_expr->values[1]) {
-                    m_id_values[1] = m_ptr_ring->next_node_property(m_expr->property_values[1], c, m_fixed_values[0], query::opposite_expr_property[m_expr->type]);
+                    m_id_values[1] = m_ptr_ring->next_node_property(m_expr->property_values[1], c, m_fixed_values[0], query::opposite_comp_where[m_expr->type]);
                     return m_id_values[1].first;
                 }
             }

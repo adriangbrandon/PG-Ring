@@ -228,44 +228,6 @@ namespace ring {
                 return false;
             }
 
-            bool check_expr_eq(query::where_expr_parser::expr expr, std::vector<uint32_t> &tuple) {
-                uint32_t e0, e1;
-                if (expr.is_var[0] && expr.is_var[0]) {
-                    if (m_query.vnodes[expr.values[0]]) {
-                        auto ok0 = get_node_property_value(expr.property_values[0], tuple[expr.values[0]-1], e0);
-                        auto ok1 = get_node_property_value(expr.property_values[1], tuple[expr.values[1]-1], e1);
-                        if (!(ok0 && ok1)) return false;
-                        return e0 == e1;
-                    }else {
-                        auto ok0 = get_edge_property_value(expr.property_values[0], tuple[expr.values[0]-1], e0);
-                        auto ok1 = get_edge_property_value(expr.property_values[1], tuple[expr.values[1]-1], e1);
-                        if (!(ok0 && ok1)) return false;
-                        return e0 == e1;
-                    }
-                }else if (!expr.is_var[0] && expr.is_var[1]) {
-                    if (m_query.vnodes[expr.values[1]]) {
-                        auto ok1 = get_node_property_value(expr.property_values[1], tuple[expr.values[1]-1], e1);
-                        if (!ok1) return false;
-                        return expr.values[0] == e1;
-                    }else {
-                        auto ok1 = get_edge_property_value(expr.property_values[1], tuple[expr.values[1]-1], e1);
-                        if (!(ok1)) return false;
-                        return expr.values[0] == e1;
-                    }
-
-                }else if (expr.is_var[0] && !expr.is_var[1]) {
-                    if (m_query.vnodes[expr.values[0]]) {
-                        auto ok1 = get_node_property_value(expr.property_values[0], tuple[expr.values[0]-1], e1);
-                        if (!ok1) return false;
-                        return expr.values[1] == e1;
-                    }else {
-                        auto ok1 = get_edge_property_value(expr.property_values[0], tuple[expr.values[0]-1], e1);
-                        if (!(ok1)) return false;
-                        return expr.values[1] == e1;
-                    }
-                }
-            }
-
 
             bool check_expr_cmp(query::where_expr_parser::expr expr, const std::vector<uint32_t> &tuple) {
                 uint32_t e0, e1;
@@ -277,40 +239,51 @@ namespace ring {
                         case query::GT: return a > b;
                         case query::SE: return a <= b;
                         case query::GE: return a >= b;
+                        default: return false;
                     }
-                    return false;
                 };
-                if (expr.is_var[0] && expr.is_var[1]) {
-                    if (m_query.vnodes[expr.values[0]]) {
-                        auto ok0 = get_node_property_value(expr.property_values[0], tuple[expr.values[0]-1], e0);
-                        auto ok1 = get_node_property_value(expr.property_values[1], tuple[expr.values[1]-1], e1);
-                        if (!(ok0 && ok1)) return false;
-                        return cmp(e0, e1);
-                    } else {
-                        auto ok0 = get_edge_property_value(expr.property_values[0], tuple[expr.values[0]-1], e0);
-                        auto ok1 = get_edge_property_value(expr.property_values[1], tuple[expr.values[1]-1], e1);
-                        if (!(ok0 && ok1)) return false;
-                        return cmp(e0, e1);
+
+                if (expr.has_property()) {
+                    if (expr.is_var[0] && expr.is_var[1]) {
+                        if (m_query.vnodes[expr.values[0]]) {
+                            auto ok0 = get_node_property_value(expr.property_values[0], tuple[expr.values[0]-1], e0);
+                            auto ok1 = get_node_property_value(expr.property_values[1], tuple[expr.values[1]-1], e1);
+                            if (!(ok0 && ok1)) return false;
+                            return cmp(e0, e1);
+                        } else {
+                            auto ok0 = get_edge_property_value(expr.property_values[0], tuple[expr.values[0]-1], e0);
+                            auto ok1 = get_edge_property_value(expr.property_values[1], tuple[expr.values[1]-1], e1);
+                            if (!(ok0 && ok1)) return false;
+                            return cmp(e0, e1);
+                        }
+                    } else if (!expr.is_var[0] && expr.is_var[1]) {
+                        if (m_query.vnodes[expr.values[1]]) {
+                            auto ok1 = get_node_property_value(expr.property_values[1], tuple[expr.values[1]-1], e1);
+                            if (!ok1) return false;
+                            return cmp(expr.values[0], e1);
+                        } else {
+                            auto ok1 = get_edge_property_value(expr.property_values[1], tuple[expr.values[1]-1], e1);
+                            if (!ok1) return false;
+                            return cmp(expr.values[0], e1);
+                        }
+                    } else if (expr.is_var[0] && !expr.is_var[1]) {
+                        if (m_query.vnodes[expr.values[0]]) {
+                            auto ok1 = get_node_property_value(expr.property_values[0], tuple[expr.values[0]-1], e1);
+                            if (!ok1) return false;
+                            return cmp(e1, expr.values[1]);
+                        } else {
+                            auto ok1 = get_edge_property_value(expr.property_values[0], tuple[expr.values[0]-1], e1);
+                            if (!ok1) return false;
+                            return cmp(e1, expr.values[1]);
+                        }
                     }
-                } else if (!expr.is_var[0] && expr.is_var[1]) {
-                    if (m_query.vnodes[expr.values[1]]) {
-                        auto ok1 = get_node_property_value(expr.property_values[1], tuple[expr.values[1]-1], e1);
-                        if (!ok1) return false;
-                        return cmp(expr.values[0], e1);
-                    } else {
-                        auto ok1 = get_edge_property_value(expr.property_values[1], tuple[expr.values[1]-1], e1);
-                        if (!ok1) return false;
-                        return cmp(expr.values[0], e1);
-                    }
-                } else if (expr.is_var[0] && !expr.is_var[1]) {
-                    if (m_query.vnodes[expr.values[0]]) {
-                        auto ok1 = get_node_property_value(expr.property_values[0], tuple[expr.values[0]-1], e1);
-                        if (!ok1) return false;
-                        return cmp(e1, expr.values[1]);
-                    } else {
-                        auto ok1 = get_edge_property_value(expr.property_values[0], tuple[expr.values[0]-1], e1);
-                        if (!ok1) return false;
-                        return cmp(e1, expr.values[1]);
+                }else {
+                    if (expr.is_var[0] && expr.is_var[1]) {
+                        return cmp(tuple[expr.values[0]-1], tuple[expr.values[1]-1]);
+                    } else if (!expr.is_var[0] && expr.is_var[1]) {
+                        return cmp(expr.values[0], tuple[expr.values[1]-1]);
+                    } else if (expr.is_var[0] && !expr.is_var[1]) {
+                        return cmp(tuple[expr.values[0]-1], expr.values[1]);
                     }
                 }
                 return false;

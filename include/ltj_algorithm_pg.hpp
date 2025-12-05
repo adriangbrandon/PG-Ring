@@ -32,6 +32,7 @@
 #include <query/query_parser.hpp>
 
 #include "ltj_iterator_comp.hpp"
+#include "ltj_iterator_comp_id.hpp"
 
 
 namespace ring {
@@ -174,7 +175,12 @@ namespace ring {
 
             auto var0_edge = (expr.is_var[0] && !m_ptr_query->vnodes[expr.values[0]]);
             auto var1_edge = (expr.is_var[1] && !m_ptr_query->vnodes[expr.values[1]]);
-            m_iterators.push_back(new ltj_iterator_comp<ring_type, var_type, const_type>(&expr, var0_edge, var1_edge, m_ptr_ring));
+            if (expr.has_property()) {
+                m_iterators.push_back(new ltj_iterator_comp<ring_type, var_type, const_type>(&expr, var0_edge, var1_edge, m_ptr_ring));
+            }else {
+                m_iterators.push_back(new ltj_iterator_comp_id<ring_type, var_type, const_type>(&expr, m_ptr_ring));
+            }
+
             if (expr.is_var[0]) {
                 add_var_to_iterator(expr.values[0], m_iterators.back());
             }

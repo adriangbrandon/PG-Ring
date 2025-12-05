@@ -11,8 +11,8 @@
 
 namespace ring {
     namespace query {
-        enum enum_expr_property_type { EQ, NEQ, GT, GE, ST, SE, WAND, WOR };
-        std::array<enum_expr_property_type, 6> opposite_expr_property {EQ, NEQ, ST, SE, GT, GE};
+        enum enum_comp_where_type { EQ, NEQ, GT, GE, ST, SE, WAND, WOR };
+        std::array<enum_comp_where_type, 6> opposite_comp_where {EQ, NEQ, ST, SE, GT, GE};
 
         class where_expr_parser {
         public:
@@ -20,7 +20,7 @@ namespace ring {
             typedef uint32_t value_type;
 
             typedef struct expr {
-                enum_expr_property_type type = WAND;
+                enum_comp_where_type type = WAND;
                 //used in AND and OR
                 std::vector<expr> args;
                 //used in comparisons
@@ -28,6 +28,9 @@ namespace ring {
                 std::array<value_type, 2> values;
                 std::array<property_type, 2> property_values = {0, 0};
 
+                bool has_property() const {
+                    return (is_var[0] && property_values[0]) || (is_var[1] && property_values[1]) ;
+                }
 
                 void print() const {
                     switch (type) {
@@ -194,7 +197,7 @@ namespace ring {
                     is_var = true;
                     ++pos;
                     size_t start = pos;
-                    while (pos < s.size() && s[pos] != '.' && !isspace(s[pos])) ++pos;
+                    while (pos < s.size() && s[pos] != '.' && s[pos] != ')' && !isspace(s[pos])) ++pos;
                     //value = std::stoul(s.substr(start, pos - start));
                     value = ht[s.substr(start, pos - start)];
                     if (pos < s.size() && s[pos] == '.') {

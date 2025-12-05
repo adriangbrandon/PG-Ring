@@ -901,6 +901,7 @@ namespace ring {
         }
 
         value_type next_E_in_SP(const bwt_interval &interval, value_type current_s, value_type current_e) {
+            if (current_e > m_n_triples) return 0;
             std::vector<range_type> aux;
             if (interval.right() < current_e) return 0;
             if (interval.left() < current_e) {
@@ -912,7 +913,7 @@ namespace ring {
         }
 
         value_type edge_expr_next_E_in_SP(const std::vector<range_type> &ranges, value_type current_s, value_type current_e) {
-
+            if (current_e > m_n_triples) return 0;
             std::vector<range_type> aux;
             for (const auto &r : ranges) {
                 if (r[1] < current_e) continue;
@@ -942,6 +943,7 @@ namespace ring {
         }
 
         value_type next_E_in_O(const bwt_interval &interval, uint64_t c) {
+            if (c > m_n_triples) return 0;
             auto val_c = m_bwt_s.bsearch_C(c) - 1;
             auto rnk_c = c - m_bwt_s.get_C(val_c) + 1;
             auto j = m_bwt_p.select(rnk_c, val_c);
@@ -959,6 +961,7 @@ namespace ring {
         }
 
         value_type edge_expr_next_E_in_OS(std::vector<range_type> &ranges, uint64_t c) {
+            if (c > m_n_triples) return 0;
             auto val_c = m_bwt_s.bsearch_C(c) - 1;
             auto rnk_c = c - m_bwt_s.get_C(val_c) + 1;
             auto j = m_bwt_p.select(rnk_c, val_c);
@@ -1015,7 +1018,7 @@ namespace ring {
         }
 
         std::pair<value_type, value_type> next_node_property(const value_type prop_id, const value_type node_id, const value_type value,
-                                     const query::enum_expr_property_type op) {
+                                     const query::enum_comp_where_type op) {
             std::cout << "Next node property called: prop_id=" << prop_id << " node_id=" << node_id << " value=" << value << " op=" << op << std::endl;
             if (op == query::EQ) {
                 return m_node_properties[prop_id-1].next_eq(node_id, value);
@@ -1035,7 +1038,7 @@ namespace ring {
         }
 
         std::pair<value_type, value_type> next_edge_property(const value_type prop_id, const value_type node_id, const value_type value,
-                                     const query::enum_expr_property_type op) {
+                                     const query::enum_comp_where_type op) {
             if (op == query::EQ) {
                 return m_edge_properties[prop_id-1].next_eq(node_id, value);
             } else if (op == query::ST) {

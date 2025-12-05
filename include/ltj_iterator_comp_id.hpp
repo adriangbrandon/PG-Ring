@@ -17,8 +17,8 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef RING_LTJ_ITERATOR_COMP_HPP
-#define RING_LTJ_ITERATOR_COMP_HPP
+#ifndef RING_LTJ_ITERATOR_COMP_ID_HPP
+#define RING_LTJ_ITERATOR_COMP_ID_HPP
 
 #define VERBOSE 0
 
@@ -28,7 +28,7 @@
 
 namespace ring {
     template<class ring_t, class var_t, class cons_t>
-    class ltj_iterator_comp : public ltj_iterator_base<var_t, cons_t> {
+    class ltj_iterator_comp_id : public ltj_iterator_base<var_t, cons_t> {
     public:
         typedef cons_t value_type;
         typedef var_t var_type;
@@ -45,37 +45,55 @@ namespace ring {
         ring_type *m_ptr_ring; //TODO: should be const
 
         std::array<value_type, 2> m_fixed_values;
-        std::array<std::pair<value_type, value_type>, 2> m_id_values; //<id, value>
         std::array<bool, 2> m_state = {false, false};
-        std::array<bool, 2> m_is_edge = {false, false};
         size_type m_nfixed = 0;
         bool m_is_empty = false;
 
 
-        void copy(const ltj_iterator_comp &o) {
+        void copy(const ltj_iterator_comp_id &o) {
             m_is_empty = o.m_is_empty;
             m_fixed_values = o.m_fixed_values;
-            m_id_values = o.m_id_values;
             m_state = o.m_state;
-            m_is_edge = o.m_is_edge;
             m_nfixed = o.m_nfixed;
             m_expr = o.m_expr;
             m_ptr_ring = o.m_ptr_ring;
         }
 
+        value_type next(value_type c, value_type fv, query::enum_comp_where_type t) {
+            switch (t) {
+                case query::EQ:
+                    if (c <= fv) return fv;
+                    return 0;
+                case query::NEQ:
+                    if (c == fv) return fv+1;
+                    return c;
+                case query::ST:
+                    if (c < fv) return c;
+                    return 0;
+                case query::GT:
+                    if (c > fv) return c;
+                    return fv+1;
+                case query::SE:
+                    if (c <= fv) return c;
+                    return 0;
+                case query::GE:
+                    if (c >= fv) return c;
+                    return fv;
+                default:
+                    return 0;
+            }
+        }
+
     public:
         //const bool &is_empty = m_is_empty;
 
-        ltj_iterator_comp() = default;
+        ltj_iterator_comp_id() = default;
 
-        ltj_iterator_comp(const expr_type *expr, bool var0_edge, bool var1_edge, ring_type *ring) {
+        ltj_iterator_comp_id(const expr_type *expr, ring_type *ring) {
             m_ptr_ring = ring;
             m_expr = expr;
             m_is_empty = false;
             m_fixed_values = {0, 0};
-            m_id_values[0] = {0,0};
-            m_id_values[1] = {0,0};
-            m_is_edge = {var0_edge, var1_edge};
             if (!m_expr->is_var[0] && m_expr->is_var[1]) {
                 m_nfixed = 1;
                 m_fixed_values[0] = m_expr->values[0];
@@ -88,17 +106,17 @@ namespace ring {
         }
 
         //! Copy constructor
-        ltj_iterator_comp(const ltj_iterator_comp &o) {
+        ltj_iterator_comp_id(const ltj_iterator_comp_id &o) {
             copy(o);
         }
 
         //! Move constructor
-        ltj_iterator_comp(ltj_iterator_comp &&o) noexcept {
+        ltj_iterator_comp_id(ltj_iterator_comp_id &&o) noexcept {
             *this = std::move(o);
         }
 
         //! Copy Operator=
-        ltj_iterator_comp &operator=(const ltj_iterator_comp &o) {
+        ltj_iterator_comp_id &operator=(const ltj_iterator_comp_id &o) {
             if (this != &o) {
                 copy(o);
             }
@@ -106,28 +124,24 @@ namespace ring {
         }
 
         //! Move Operator=
-        ltj_iterator_comp &operator=(ltj_iterator_comp &&o) noexcept {
+        ltj_iterator_comp_id &operator=(ltj_iterator_comp_id &&o) noexcept {
             if (this != &o) {
                 m_expr = std::move(o.m_expr);
                 m_ptr_ring = std::move(o.m_ptr_ring);
                 m_fixed_values = std::move(o.m_fixed_values);
-                m_id_values = std::move(o.m_id_values);
                 m_state = std::move(o.m_state);
-                m_is_edge = std::move(o.m_is_edge);
                 m_nfixed = std::move(o.m_nfixed);
                 m_is_empty = std::move(o.m_is_empty);
             }
             return *this;
         }
 
-        void swap(ltj_iterator_comp &o) noexcept {
+        void swap(ltj_iterator_comp_id &o) noexcept {
             // m_bp.swap(bp_support.m_bp); use set_vector to set the supported bit_vector
             std::swap(m_expr, o.m_expr);
             std::swap(m_ptr_ring, o.m_ptr_ring);
             std::swap(m_fixed_values, o.m_fixed_values);
-            std::swap(m_id_values, o.m_id_values);
             std::swap(m_state, o.m_state);
-            std::swap(m_is_edge, o.m_is_edge);
             std::swap(m_nfixed, o.m_nfixed);
             std::swap(m_is_empty, o.m_is_empty);
         }
@@ -154,10 +168,10 @@ namespace ring {
             //Go down in the trie
             if (m_expr->is_var[0] && var == m_expr->values[0]) {
                 m_state[0] = true;
-                m_fixed_values[0] = m_id_values[0].second;
+                m_fixed_values[0] = c;
             }else if (m_expr->is_var[1] && var == m_expr->values[1]) {
                 m_state[1] = true;
-                m_fixed_values[1] = m_id_values[1].second;
+                m_fixed_values[1] = c;
             }
             ++m_nfixed;
         };
@@ -166,65 +180,19 @@ namespace ring {
             down(var, c);
         };
 
-        /*void set_prop_value(var_type var, value_type value) {
-            std::cout << "{" << m_fixed_values[0] << ", " << m_fixed_values[1] << "} -> ";
-            if (!m_nfixed) return;
-            if (m_expr->is_var[0] && var == m_expr->values[0] && m_state[0]) {
-                m_fixed_values[0] = value;
-            }
-            if (m_expr->is_var[1] && var == m_expr->values[1] && m_state[1]) {
-                m_fixed_values[1] = value;
-            }
-            std::cout << "{" << m_fixed_values[0] << ", " << m_fixed_values[1] << "}" << std::endl;
-        }
-
-        value_type get_prop_value(var_type var, value_type c) {
-            std::cout << "Get prop_value of var " << var << std::endl;
-            if (!m_nfixed) return 0;
-            if (m_expr->is_var[0] && var == m_expr->values[0] && m_id_values[0].first == c) {
-                return m_id_values[0].second;
-            }
-            if (m_expr->is_var[1] && var == m_expr->values[1] && m_id_values[1].first == c) {
-                return m_id_values[1].second;
-            }
-            return 0;
-        }
-
-        value_type compute_prop_value(var_type var, value_type c) {
-            std::cout << "Compute prop_value of " << c << std::endl;
-            if (m_expr->is_var[0] && var == m_expr->values[0] && m_state[0]) {
-                auto v = m_ptr_ring->get_node_property_value(m_expr->property_values[0], c);
-                m_id_values[0] = {c, v};
-                return v;
-            }
-            if (m_expr->is_var[1] && var == m_expr->values[1] && m_state[1]) {
-                auto v = m_ptr_ring->get_node_property_value(m_expr->property_values[1], c);
-                m_id_values[1] = {c, v};
-                return v;
-            }
-            return 0;
-        }*/
-
 
         void up(var_type var) {
-            std::cout << "Up" << std::endl;
-            std::cout << "{" << m_fixed_values[0] << ", " << m_fixed_values[1] << "} ";
             //Go up in the trie
             if (m_expr->is_var[0] && var == m_expr->values[0] && m_state[0]) {
                 m_fixed_values[0] = 0;
-                m_id_values[0] = {0, 0};
                 m_state[0] = false;
                 --m_nfixed;
-                std::cout << "1-> ";
             }
             if (m_expr->is_var[1] && var == m_expr->values[1] && m_state[1]) {
                 m_fixed_values[1] = 0;
-                m_id_values[1] = {0, 0};
                 m_state[1] = false;
                 --m_nfixed;
-                std::cout << "2-> ";
             }
-            std::cout << "{" << m_fixed_values[0] << ", " << m_fixed_values[1] << "}" << std::endl;
         };
 
         value_type leap(var_type var) {
@@ -232,38 +200,12 @@ namespace ring {
         };
 
         value_type leap(var_type var, size_type c) {
-            if (!m_nfixed) {
-                if (m_expr->is_var[0] && var == m_expr->values[0]) {
-                    if (m_is_edge[0]) {
-                        m_id_values[0] = m_ptr_ring->next_edge_in_property(m_expr->property_values[0], c);
-                    }else {
-                        m_id_values[0] = m_ptr_ring->next_node_in_property(m_expr->property_values[0], c);
-                    }
-                    return m_id_values[0].first;
-                }else if (m_expr->is_var[1] && var == m_expr->values[1]) {
-                    if (m_is_edge[1]) {
-                        m_id_values[1] = m_ptr_ring->next_edge_in_property(m_expr->property_values[1], c);
-                    }else {
-                        m_id_values[1] = m_ptr_ring->next_node_in_property(m_expr->property_values[1], c);
-                    }
-                    return m_id_values[1].first;
-                }
-            }else {
-                if (m_expr->is_var[0] && var == m_expr->values[0]) {
-                    if (m_is_edge[0]) {
-                        m_id_values[0] = m_ptr_ring->next_edge_property(m_expr->property_values[0], c, m_fixed_values[1], m_expr->type);
-                    }else {
-                        m_id_values[0] = m_ptr_ring->next_node_property(m_expr->property_values[0], c, m_fixed_values[1], m_expr->type);
-                    }
-                    return m_id_values[0].first;
-                }else if (m_expr->is_var[1] && var == m_expr->values[1]) {
-                    if (m_is_edge[1]) {
-                        m_id_values[1] = m_ptr_ring->next_edge_property(m_expr->property_values[1], c, m_fixed_values[0], query::opposite_comp_where[m_expr->type]);
-                    }else {
-                        m_id_values[1] = m_ptr_ring->next_node_property(m_expr->property_values[1], c, m_fixed_values[0], query::opposite_comp_where[m_expr->type]);
-                    }
-                    return m_id_values[1].first;
-                }
+            if (!m_nfixed) return c;
+            if (m_expr->is_var[0] && var == m_expr->values[0]) {
+                return next(c, m_fixed_values[1], m_expr->type);
+            }
+            if (m_expr->is_var[1] && var == m_expr->values[1]) {
+                return next(c, m_fixed_values[0], query::opposite_comp_where[m_expr->type]);
             }
             return 0;
         };
@@ -286,4 +228,4 @@ namespace ring {
     };
 }
 
-#endif //RING_LTJ_ITERATOR_COMP_HPP
+#endif //RING_LTJ_ITERATOR_COMP_ID_HPP

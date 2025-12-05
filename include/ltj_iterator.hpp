@@ -301,7 +301,7 @@ namespace ring {
                 if (is_variable_subject(var)) {
                     return m_ptr_ring->next_S(m_intervals[0], c);
                 }else if (is_variable_predicate(var)) {
-                    if (m_ptr_ring->n_triples >= c) return 0;
+                    if (c > m_ptr_ring->n_triples) return 0;
                     return c;
                 } else {
                     return m_ptr_ring->next_O(m_intervals[0], c);
