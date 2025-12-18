@@ -215,6 +215,7 @@ namespace ring {
         }
 
         inline size_type interval_length() const {
+            //TODO: deberia ser o numero de triples con ese intervalo de valores
             return 1; //TODO: fix this depending on the priority
         }
 

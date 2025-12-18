@@ -26,10 +26,15 @@ namespace ring {
                 //used in comparisons
                 std::array<bool, 2> is_var;
                 std::array<value_type, 2> values;
+                std::array<std::string, 2> strs = {"", ""}; //strings to compare if any
                 std::array<property_type, 2> property_values = {0, 0};
 
                 bool has_property() const {
                     return (is_var[0] && property_values[0]) || (is_var[1] && property_values[1]) ;
+                }
+
+                bool is_string_comp(uint p) const {
+                    return (!is_var[p] && strs[p].empty());
                 }
 
                 void print() const {
@@ -188,7 +193,7 @@ namespace ring {
                 }
             }
 
-            static void parse_operand(size_t &pos, const std::string &s, bool &is_var, uint32_t &value, uint32_t &prop,
+            static void parse_operand(size_t &pos, const std::string &s, bool &is_var, uint32_t &value, std::string &str, uint32_t &prop,
                                       std::unordered_map<std::string, std::uint8_t> &ht) {
                 is_var = false;
                 value = 0;
@@ -208,9 +213,16 @@ namespace ring {
                     }
                 } else {
                     is_var = false;
-                    size_t start = pos;
-                    while (pos < s.size() && isdigit(s[pos])) ++pos;
-                    value = std::stoul(s.substr(start, pos - start));
+                    if (s[pos] == '"') {
+                        ++pos;
+                        size_t start = pos;
+                        while (pos < s.size() && s[pos] != '.' && s[pos] != ')') ++pos;
+                        str = s.substr(start, pos - start - 1); //removing the last "
+                    }else {
+                        size_t start = pos;
+                        while (pos < s.size() && isdigit(s[pos])) ++pos;
+                        value = std::stoul(s.substr(start, pos - start));
+                    }
                 }
             }
 
@@ -218,7 +230,7 @@ namespace ring {
                                                  std::unordered_map<std::string, std::uint8_t> &ht) {
                 skip_ws(pos, s);
                 expr_property_type e;
-                parse_operand(pos, s, e.is_var[0], e.values[0], e.property_values[0], ht);
+                parse_operand(pos, s, e.is_var[0], e.values[0], e.strs[0], e.property_values[0], ht);
                 skip_ws(pos, s);
                 //parse operator
                 if (match(">=", pos, s)) e.type = GE;
@@ -229,7 +241,7 @@ namespace ring {
                 else if (match("<", pos, s)) e.type = ST;
                 else throw std::runtime_error("Expected comparison operator");
                 skip_ws(pos, s);
-                parse_operand(pos, s, e.is_var[1], e.values[1], e.property_values[1], ht);
+                parse_operand(pos, s, e.is_var[1], e.values[1], e.strs[1], e.property_values[1], ht);
                 return e;
             }
 

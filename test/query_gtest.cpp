@@ -7,7 +7,10 @@
 // Variables globales para el dataset y el ring
 std::vector<spo_triple> dataset_vec;
 std::vector<std::vector<uint32_t>> node_labels;
-std::vector<std::vector<std::pair<uint32_t, uint32_t>>> node_properties, edge_properties;
+std::vector<std::vector<std::pair<uint32_t, uint32_t>>> numeric_properties;
+std::vector<std::vector<std::pair<uint32_t, std::string>>> string_properties;
+std::unordered_map<uint32_t, std::pair<bool, uint32_t>> node_properties;
+std::unordered_map<uint32_t, std::pair<bool, uint32_t>> edge_properties;
 //typedef ring::ring_pg<> ring_type;
 ring::ring_pg<> graph;
 
@@ -38,6 +41,7 @@ private:
                                 });
         }
 
+
         {
             std::ifstream ifs(label2nodes_path);
             uint64_t label, size, node, max_node = 0;
@@ -65,46 +69,66 @@ private:
 
         {
             uint32_t prop_id = 1;
-            uint32_t node_id, size, value;
+            uint32_t node_id;
+            std::string value;
             do {
                 std::string file = base_nprop + std::to_string(prop_id);
                 std::ifstream ifs(file);
+                std::vector<std::pair<uint32_t, std::string>> values;
                 if (!ifs.good()) break;
                 do {
                     ifs >> node_id;
                     if(ifs.eof()) break;
-                    if (prop_id > node_properties.size()) {
-                        node_properties.emplace_back();
-                    }
-                    ifs >> size;
-                    for (uint32_t i = 0; i < size; i++) {
-                        ifs >> value;
-                        node_properties[prop_id-1].emplace_back(node_id, value);
-                    }
+                    std::getline(ifs, value);
+                    value = value.substr(1); // remove leading space
+                    if (!value.empty() && value.back() == '\r') value.pop_back();
+                    values.emplace_back(node_id, value);
                 } while (true);
                 ifs.close();
+                if (::ring::util::is_number(value)) {
+                    std::vector<std::pair<uint32_t, uint32_t>> int_values;
+                    for (const auto &n : values) {
+                        int_values.emplace_back(n.first, std::stoi(n.second));
+                    }
+                    numeric_properties.emplace_back(int_values);
+                    node_properties.insert({prop_id, {true, numeric_properties.size()-1}});
+                }else {
+                    string_properties.emplace_back(values);
+                    node_properties.insert({prop_id, {false, string_properties.size()-1}});
+                }
                 ++prop_id;
             } while (true);
         }
 
         {
             uint32_t prop_id = 1;
-            uint32_t edge_id, size, value;
+            uint32_t edge_id;
+            std::string value;
             do {
                 std::string file = base_eprop + std::to_string(prop_id);
                 std::ifstream ifs(file);
+                std::vector<std::pair<uint32_t, std::string>> values;
                 if (!ifs.good()) break;
                 do {
-                    ifs >> edge_id >> size;
+                    ifs >> edge_id;
                     if(ifs.eof()) break;
-                    if (prop_id > edge_properties.size()) {
-                        edge_properties.emplace_back();
-                    }
-                    for (uint32_t i = 0; i < size; i++) {
-                        ifs >> value;
-                        edge_properties[prop_id-1].emplace_back(edge_id, value);
-                    }
+                    std::getline(ifs, value);
+                    value = value.substr(1); // remove leading space
+                    if (!value.empty() && value.back() == '\r') value.pop_back();
+                    values.emplace_back(edge_id, value);
                 } while (true);
+                ifs.close();
+                if (::ring::util::is_number(value)) {
+                    std::vector<std::pair<uint32_t, uint32_t>> int_values;
+                    for (const auto &n : values) {
+                        int_values.emplace_back(n.first, std::stoi(n.second));
+                    }
+                    numeric_properties.emplace_back(int_values);
+                    edge_properties.insert({prop_id, {true, numeric_properties.size()-1}});
+                }else {
+                    string_properties.emplace_back(values);
+                    edge_properties.insert({prop_id, {false, string_properties.size()-1}});
+                }
                 ++prop_id;
             } while (true);
         }
@@ -135,7 +159,7 @@ void run_query_test(const std::string& s) {
     ::util::results_collector_test<tuple_type> res;
     ltj.join_v3(res, 0, 0);
 
-    ring::test::query_checker q_c(&dataset_vec, &node_labels, &node_properties, &edge_properties, s);
+    ring::test::query_checker q_c(&dataset_vec, &node_labels, &numeric_properties, &string_properties, &node_properties, &edge_properties, s);
     q_c.run();
     res.sort(); q_c.sort();
 
@@ -157,7 +181,7 @@ void run_queries_test(const std::vector<std::string>& queries) {
         ::util::results_collector_test<tuple_type> res;
         ltj.join_v3(res, 0, 0);
 
-        ring::test::query_checker q_c(&dataset_vec, &node_labels, &node_properties, &edge_properties, s);
+        ring::test::query_checker q_c(&dataset_vec, &node_labels, &numeric_properties, &string_properties, &node_properties, &edge_properties, s);
         q_c.run();
         res.sort(); q_c.sort();
 
@@ -278,7 +302,7 @@ TEST(QueryTest, NodeProperties)
 }
 
 
-TEST(QueryTest, EdgeProperties) {
+/*TEST(QueryTest, EdgeProperties) {
     std::vector<std::string> queries = {
         "(?k:2)-[?y]->(?z) WHERE (?k.5 = 1964) AND (?y.1 = 2031963965)",
         "(?k:2)-[?y]->(?z) WHERE (?k.5 >= 1964) AND (?y.1 = 2031963965)",
@@ -317,8 +341,46 @@ TEST(QueryTest, EdgeProperties) {
 
     };
     run_queries_test(queries);
-}
+}*/
 
+TEST(QueryTest, EdgeProperties) {
+    std::vector<std::string> queries = {
+        "(?k:2)-[?y]->(?z) WHERE (?k.5 = 1964) AND (?y.1 = \"Neo\")",
+        "(?k:2)-[?y]->(?z) WHERE (?k.5 >= 1964) AND (?y.1 = \"Neo\")",
+        "(?k:2)-[?y:1]->(?z) WHERE (?y.1 = \"Neo\")",
+        "(?k:2)-[?y:1]->(1) WHERE (?y.1 = \"Neo\")",
+        "(?k:2)-[?y:(1 OR NOT 1)]->(1) WHERE (?y.1 = \"Neo\")",
+         "(2)-[?y:(1 OR NOT 1)]->(?z) WHERE (?y.1 = \"Neo\")",
+        "(?k:2)-[?y]->(1) WHERE (?y.1 = \"Neo\")",
+         "(2)-[?y:1]->(?z) WHERE (?y.1 = \"Neo\")",
+         "(2)-[?y]->(?z) WHERE (?y.1 = \"Neo\")",
+         "(2)-[?y]->(1) WHERE (?y.1 = \"Neo\")",
+         "(2)-[?y:1]->(1) WHERE (?y.1 = \"Neo\")",
+         "(?k)-[?y]->(1) WHERE (?y.1 = \"Neo\")",
+         "(?k)-[?y:1]->(1) WHERE (?y.1 = \"Neo\")",
+         "(?k)-[?y:(1 OR NOT 1)]->(1) WHERE (?y.1 = \"Neo\")",
+         "(?k)-[?y:(1 OR NOT 1)]->(1) WHERE (?y.1 >= \"Neo\")",
+         "(?k)-[?y:1]->(1) WHERE (?y.1 >= \"Neo\")",
+        "(?a1:2)-[?w]->(?m), (?a2:2)-[?y:1]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 = \"Neo\")",
+        "(?a1:2)-[?w]->(?m), (?a2:2)-[?y]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 = \"Neo\")",
+        "(?a1:2)-[?w]->(?m), (?a2:2)-[?y]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 >= \"Neo\")",
+        "(?a1:2)-[?w]->(?m), (?a2:2)-[?y]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 < \"Neo\")",
+        "(?a1:2)-[?w]->(?m), (?a2:2)-[?y]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 != \"Neo\")",
+        "(?a1:2)-[?w]->(?m), (?a2:2)-[?y:(1 OR NOT 1)]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 = \"Neo\")",
+        "(?a1:2)-[?w]->(?m), (?a2:2)-[?y:(1 OR NOT 1)]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 >= \"Neo\")",
+        "(?a1:2)-[?w]->(?m), (?a2:2)-[?y:(1 OR NOT 1)]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 < \"Neo\")",
+        "(?a1:2)-[?w]->(?m), (?a2:2)-[?y:(1 OR NOT 1)]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 != \"Neo\")",
+        "(?a1:2)-[?w]->(?m), (?a2:2)-[?y:1]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 = \"Neo\")",
+        "(?a1:2)-[?w]->(?m), (?a2:2)-[?y:1]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 >= \"Neo\")",
+        "(?a1:2)-[?w]->(?m), (?a2:2)-[?y:1]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 < \"Neo\")",
+        "(?a1:2)-[?w]->(?m), (?a2:2)-[?y:1]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 != \"Neo\")",
+        "(?a1)-[?w]->(?m), (?a2)-[?y:1]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 = \"Neo\")",
+        "(?a1)-[?w]->(?m), (?a2)-[?y:1]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 >= \"Neo\")",
+        "(?a1)-[?w]->(?m), (?a2)-[?y:1]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 < \"Neo\")",
+        "(?a1)-[?w]->(?m), (?a2)-[?y:1]->(?m) WHERE (?a1.5 = ?a2.5) AND (?y.1 != \"Neo\")"
+    };
+    run_queries_test(queries);
+}
 
 TEST(QueryTest, EdgeProperties2) {
     std::vector<std::string> queries = {

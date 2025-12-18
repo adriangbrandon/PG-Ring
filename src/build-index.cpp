@@ -22,6 +22,7 @@
 #include <fstream>
 #include <sdsl/construct.hpp>
 #include <ltj_algorithm.hpp>
+#include <utils.hpp>
 
 #include "ring_pg.hpp"
 
@@ -30,12 +31,16 @@ using namespace std;
 using namespace std::chrono;
 using timer = std::chrono::high_resolution_clock;
 
+
+
 template<class ring>
 void build_index(const std::string &dataset, const std::string &output){
     vector<spo_triple> triples;
     vector<vector<uint32_t>> label2nodes;
-    std::vector<std::vector<std::pair<uint32_t, uint32_t>>> nprop2values;
-    std::vector<std::vector<std::pair<uint32_t, uint32_t>>> eprop2values;
+    std::vector<std::vector<std::pair<uint32_t, std::string>>> nprop2values;
+    std::vector<std::vector<std::pair<uint32_t, std::string>>> eprop2values;
+    std::vector<bool> nprop_numeric;
+    std::vector<bool> eprop_numeric;
 
     std::string triples_file = dataset + ".triples";
     std::string labels_map = dataset + ".label2nodes";
@@ -69,7 +74,8 @@ void build_index(const std::string &dataset, const std::string &output){
 
     {
         uint32_t prop_id = 1;
-        uint32_t node_id, size, value;
+        uint32_t node_id;
+        std::string value;
         do {
             std::string file = base_nprop + std::to_string(prop_id);
             std::ifstream ifs(file);
@@ -80,35 +86,37 @@ void build_index(const std::string &dataset, const std::string &output){
                 if (prop_id > nprop2values.size()) {
                     nprop2values.emplace_back();
                 }
-                ifs >> size;
-                for (uint32_t i = 0; i < size; i++) {
-                    ifs >> value;
-                    nprop2values[prop_id-1].emplace_back(node_id, value);
-                }
+                std::getline(ifs, value);
+                value = value.substr(1); // remove leading space
+                if (!value.empty() && value.back() == '\r') value.pop_back();
+                nprop2values[prop_id-1].emplace_back(node_id, value);
             } while (true);
             ifs.close();
+            nprop_numeric.push_back(::ring::util::is_number(value));
             ++prop_id;
         } while (true);
     }
 
     {
         uint32_t prop_id = 1;
-        uint32_t edge_id, size, value;
+        uint32_t edge_id;
+        std::string value;
         do {
             std::string file = base_eprop + std::to_string(prop_id);
             std::ifstream ifs(file);
             if (!ifs.good()) break;
             do {
-                ifs >> edge_id >> size;
+                ifs >> edge_id;
                 if(ifs.eof()) break;
                 if (prop_id > eprop2values.size()) {
                     eprop2values.emplace_back();
                 }
-                for (uint32_t i = 0; i < size; i++) {
-                    ifs >> value;
-                    eprop2values[prop_id-1].emplace_back(edge_id, value);
-                }
+                std::getline(ifs, value);
+                value = value.substr(1); // remove leading space
+                if (!value.empty() && value.back() == '\r') value.pop_back();
+                eprop2values[prop_id-1].emplace_back(edge_id, value);
             } while (true);
+            eprop_numeric.push_back(::ring::util::is_number(value));
             ++prop_id;
         } while (true);
     }
@@ -119,7 +127,7 @@ void build_index(const std::string &dataset, const std::string &output){
     memory_monitor::start();
     auto start = timer::now();
 
-    ring A(triples, label2nodes, nprop2values, eprop2values);
+    ring A(triples, label2nodes, nprop2values, eprop2values, nprop_numeric, eprop_numeric);
     auto stop = timer::now();
     memory_monitor::stop();
     cout << "  Index built  " << sdsl::size_in_bytes(A) << " bytes" << endl;

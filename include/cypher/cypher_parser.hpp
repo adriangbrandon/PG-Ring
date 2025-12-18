@@ -29,7 +29,7 @@ private:
     std::vector<std::tuple<int, int, int>> m_triples;
     typedef std::map<uint32_t, std::vector<uint32_t>> label_nodes_map_type; //para que se mostren ordenados por id de label
     label_nodes_map_type m_label_nodes_map;
-    typedef std::vector<std::map<uint32_t, std::vector<uint32_t>>> properties_values_type; //para que se mostren ordenados por id de label
+    typedef std::vector<std::map<uint32_t, std::vector<std::string>>> properties_values_type; //para que se mostren ordenados por id de label
     properties_values_type m_properties_node_values;
     properties_values_type m_properties_edge_values;
 
@@ -42,7 +42,7 @@ private:
     };
 
     void parse_properties(const std::string &prop, uint32_t id,  std::unordered_map<std::string, uint32_t> &map_properties, properties_values_type &pvs) {
-        std::map<uint32_t, std::vector<uint32_t>> prop_map;
+        std::map<uint32_t, std::vector<std::string>> prop_map;
         std::regex prop_regex(R"((\w+)\s*:\s*(\[[^\]]*\]|'[^']*'|"[^"]*"|[^,}]+))");
         auto begin = std::sregex_iterator(prop.begin(), prop.end(), prop_regex);
         auto end = std::sregex_iterator();
@@ -50,7 +50,7 @@ private:
             std::string key = (*it)[1];
             std::string value = (*it)[2];
             int prop_id = get_or_add(key, map_properties);
-            std::vector<uint32_t> values;
+            std::vector<std::string> values;
             // Eliminar espacios al inicio y fin
             size_t first = value.find_first_not_of(" \t\n");
             size_t last = value.find_last_not_of(" \t\n");
@@ -68,15 +68,14 @@ private:
                     if (f != std::string::npos && l != std::string::npos)
                         v = v.substr(f, l - f + 1);
                     std::hash<std::string> hasher;
-                    values.push_back(static_cast<uint32_t>(hasher(v)));
+                    values.push_back(v);
                 }
             } else {
                 if (!value.empty() && (value[0] == '\'' || value[0] == '"')) {
                     value = value.substr(1, value.size() - 2);
-                    std::hash<std::string> hasher;
-                    values.push_back(static_cast<uint32_t>(hasher(value)));
+                    values.push_back(value);
                 }else {
-                    values.push_back(std::stoi(value));
+                    values.push_back(value);
                 }
 
             }
@@ -251,7 +250,7 @@ public:
                     for (const auto& value : pair.second) {
                         file << " " << value;
                     }*/
-                    file << pair.first << " " << 1 << " " << pair.second[0];
+                    file << pair.first << " " << pair.second[0];
                     file << "\n";
                 }
             }
@@ -268,7 +267,7 @@ public:
                     for (const auto& value : pair.second) {
                         file << " " << value;
                     }*/
-                    file << pair.first << " " << 1 << " " << pair.second[0];
+                    file << pair.first  << " " << pair.second[0];
                     file << "\n";
                 }
             }

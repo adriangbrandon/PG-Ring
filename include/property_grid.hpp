@@ -56,12 +56,12 @@ namespace ring {
         property_grid() = default;
 
         //PRE: sorted by id (first) and value (second)
-        property_grid(const std::vector<std::pair<value_type, value_type>> &values, const value_type max_id) {
+        property_grid(const std::vector<std::pair<value_type, std::string>> &values, const value_type max_id) {
             sdsl::bit_vector bv_aux(max_id+1, 0);
             sdsl::int_vector<> grid_y(values.size()+1);
             for (size_type i = 0; i < values.size(); i++) {
                 bv_aux[values[i].first] = 1;
-                grid_y[i+1] = values[i].second;
+                grid_y[i+1] = std::stoi(values[i].second); //the value as integer
             }
             grid_y[0] = 0; //dummy
             sdsl::util::bit_compress(grid_y);
@@ -129,6 +129,10 @@ namespace ring {
         }
 
         std::pair<value_type, value_type> next_not_eq(const value_type c_id, const value_type c_value) {
+            if (c_value == 0) {
+                std::vector<sdsl::range_type> ranges = {{1, (1ULL << m_grid.max_level) -1}};
+                return next(c_id, ranges);
+            }
             std::vector<sdsl::range_type> ranges = {{1, c_value-1}, {c_value+1, (1ULL << m_grid.max_level) -1}};
             return next(c_id, ranges);
         }

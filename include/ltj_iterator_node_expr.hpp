@@ -188,6 +188,7 @@ namespace ring {
         }
 
         inline size_type interval_length() const {
+            //TODO: complicado saber o numero de triples xa que a expresión pode ser complexa
             return 1; //TODO: fix this depending on the priority
         }
 

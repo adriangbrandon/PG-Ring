@@ -32,6 +32,7 @@
 
 #include <property_grid.hpp>
 
+#include "string_mgr.hpp"
 #include "query/where_expr_parser.hpp"
 
 namespace ring {
@@ -68,6 +69,9 @@ namespace ring {
         std::vector<property_grid<>> m_node_properties;
         std::vector<property_grid<>> m_edge_properties;
 
+        //manager of strings
+        string_mgr m_string_mgr;
+
         void copy(const ring_pg &o) {
             m_bwt_s = o.m_bwt_s;
             m_bwt_p = o.m_bwt_p;
@@ -87,6 +91,8 @@ namespace ring {
 
             m_node_properties = o.m_node_properties;
             m_edge_properties = o.m_edge_properties;
+
+            m_string_mgr = o.m_string_mgr;
         }
 
     public:
@@ -104,8 +110,9 @@ namespace ring {
 
         // Assumes the triples have been stored in a vector<spo_triple>
         ring_pg(vector<spo_triple_type> &D, std::vector<std::vector<uint32_t>>& label2nodes,
-                std::vector<std::vector<std::pair<value_type, value_type>>>& node_properties,
-                std::vector<std::vector<std::pair<value_type, value_type>>>& edge_properties) {
+                std::vector<std::vector<std::pair<value_type, std::string>>>& node_properties,
+                std::vector<std::vector<std::pair<value_type, std::string>>>& edge_properties,
+                std::vector<bool> &nprop_numeric, std::vector<bool> &eprop_numeric) {
 
             uint64_t i, pos_c;
             vector<spo_triple>::iterator it, triple_begin = D.begin(), triple_end = D.end();
@@ -255,6 +262,46 @@ namespace ring {
             }
 
             {
+                std::set<std::string> strings_in_prop;
+                for (i = 0; i < node_properties.size(); i++) {
+                    if (!nprop_numeric[i]) {
+                        for (auto &p : node_properties[i]) {
+                            strings_in_prop.insert(p.second);
+                        }
+                    }
+                }
+
+                for (i = 0; i < edge_properties.size(); i++) {
+                    if (!eprop_numeric[i]) {
+                        for (auto &p : edge_properties[i]) {
+                            strings_in_prop.insert(p.second);
+                        }
+                    }
+                }
+
+                m_string_mgr = string_mgr(strings_in_prop);
+
+                for (i = 0; i < node_properties.size(); i++) {
+                    if (!nprop_numeric[i]) {
+                        for (auto &p : node_properties[i]) {
+                            p.second = std::to_string(m_string_mgr.find(p.second));
+                        }
+                    }
+                }
+
+                for (i = 0; i < edge_properties.size(); i++) {
+                    if (!eprop_numeric[i]) {
+                        for (auto &p : edge_properties[i]) {
+                            p.second = std::to_string(m_string_mgr.find(p.second));
+                        }
+                    }
+                }
+            }
+
+
+            {
+
+
                 m_node_properties.resize(node_properties.size());
                 for (i = 0; i < node_properties.size(); i++) {
                     m_node_properties[i] = property_grid<>(node_properties[i], m_max_s);
@@ -310,6 +357,7 @@ namespace ring {
                 }
                 m_node_properties = std::move(o.m_node_properties);
                 m_edge_properties = std::move(o.m_edge_properties);
+                m_string_mgr = std::move(o.m_string_mgr);
 
             }
             return *this;
@@ -331,6 +379,7 @@ namespace ring {
             }
             m_node_properties.swap(o.m_node_properties);
             m_edge_properties.swap(o.m_edge_properties);
+            m_string_mgr.swap(o.m_string_mgr);
         }
 
         //! Serializes the data structure into the given ostream
@@ -352,6 +401,7 @@ namespace ring {
             written_bytes += sdsl::serialize_vector(m_node_properties, out, child, "node_properties");
             sdsl::write_member(m_edge_properties.size(), out,  child, "edge_prop_size");
             written_bytes += sdsl::serialize_vector(m_edge_properties, out, child, "edge_properties");
+            written_bytes += sdsl::serialize(m_string_mgr, out, child, "string_mgr");
             sdsl::structure_tree::add_size(child, written_bytes);
             return written_bytes;
         }
@@ -384,6 +434,7 @@ namespace ring {
             sdsl::read_member(edge_prop_size, in);
             m_edge_properties.resize(edge_prop_size);
             sdsl::load_vector(m_edge_properties, in);
+            sdsl::load(m_string_mgr, in);
 
 
             std::cout << "--- SPO ---" << std::endl;
@@ -1020,41 +1071,47 @@ namespace ring {
         std::pair<value_type, value_type> next_node_property(const value_type prop_id, const value_type node_id, const value_type value,
                                      const query::enum_comp_where_type op) {
             std::cout << "Next node property called: prop_id=" << prop_id << " node_id=" << node_id << " value=" << value << " op=" << op << std::endl;
-            if (op == query::EQ) {
-                return m_node_properties[prop_id-1].next_eq(node_id, value);
-            } else if (op == query::ST) {
-                //if (value == 1) return {0,0};
-                return m_node_properties[prop_id-1].next_se(node_id, value-1);
-            } else if (op == query::SE) {
-                return m_node_properties[prop_id-1].next_se(node_id, value);
-            } else if (op == query::GT) {
-                //if (value+1 > m_max_s) return {0,0};
-                return m_node_properties[prop_id-1].next_ge(node_id, value+1);
-            } else if (op == query::GE) {
-                return m_node_properties[prop_id-1].next_ge(node_id, value);
-            }else if (op == query::NEQ) {
-                return m_node_properties[prop_id-1].next_not_eq(node_id, value);
-            }else throw std::runtime_error("Unsupported operator in property graph queries");
-        }
-
-        std::pair<value_type, value_type> next_edge_property(const value_type prop_id, const value_type node_id, const value_type value,
-                                     const query::enum_comp_where_type op) {
-            if (op == query::EQ) {
-                return m_edge_properties[prop_id-1].next_eq(node_id, value);
-            } else if (op == query::ST) {
-                //if (value == 1) return {0,0};
-                return m_edge_properties[prop_id-1].next_se(node_id, value-1);
-            } else if (op == query::SE) {
-                return m_edge_properties[prop_id-1].next_se(node_id, value);
-            } else if (op == query::GT) {
-                //if (value+1 > m_max_p) return {0,0};
-                return m_edge_properties[prop_id-1].next_ge(node_id, value+1);
-            } else if (op == query::GE) {
-                return m_edge_properties[prop_id-1].next_ge(node_id, value);
-            }else if (op == query::NEQ) {
-                return m_edge_properties[prop_id-1].next_not_eq(node_id, value);
-            }else throw std::runtime_error("Unsupported operator in property graph queries");
-        }
+            switch (op) {
+                case query::EQ:
+                    return m_node_properties[prop_id-1].next_eq(node_id, value);
+                case query::ST:
+                    //if (value == 1) return {0,0};
+                    return m_node_properties[prop_id-1].next_se(node_id, value-1);
+                case query::SE:
+                    return m_node_properties[prop_id-1].next_se(node_id, value);
+                case query::GT:
+                    //if (value+1 > m_max_s) return {0,0};
+                    return m_node_properties[prop_id-1].next_ge(node_id, value+1);
+                case query::GE:
+                    return m_node_properties[prop_id-1].next_ge(node_id, value);
+                case query::NEQ:
+                    return m_node_properties[prop_id-1].next_not_eq(node_id, value);
+                default:
+                    throw std::runtime_error("Unsupported operator in property graph queries");
+            }
+         }
+ 
+         std::pair<value_type, value_type> next_edge_property(const value_type prop_id, const value_type node_id, const value_type value,
+                                      const query::enum_comp_where_type op) {
+            switch (op) {
+                case query::EQ:
+                    return m_edge_properties[prop_id-1].next_eq(node_id, value);
+                case query::ST:
+                    //if (value == 1) return {0,0};
+                    return m_edge_properties[prop_id-1].next_se(node_id, value-1);
+                case query::SE:
+                    return m_edge_properties[prop_id-1].next_se(node_id, value);
+                case query::GT:
+                    //if (value+1 > m_max_p) return {0,0};
+                    return m_edge_properties[prop_id-1].next_ge(node_id, value+1);
+                case query::GE:
+                    return m_edge_properties[prop_id-1].next_ge(node_id, value);
+                case query::NEQ:
+                    return m_edge_properties[prop_id-1].next_not_eq(node_id, value);
+                default:
+                    throw std::runtime_error("Unsupported operator in property graph queries");
+            }
+         }
 
         value_type get_node_property_value(const value_type prop_id, const value_type node_id) {
             return m_node_properties[prop_id-1][node_id];
@@ -1063,6 +1120,10 @@ namespace ring {
         value_type get_edge_property_value(const value_type prop_id, const value_type edge_id) {
             return m_edge_properties[prop_id-1][edge_id];
         };
+
+        value_type get_string_id(const std::string &s, query::enum_comp_where_type op) {
+            return m_string_mgr.get_id(s, op);
+        }
     };
 
     typedef ring_pg<bwt_rrr, bwt_rrr> c_ring_pg;

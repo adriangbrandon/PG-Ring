@@ -78,11 +78,19 @@ namespace ring {
             m_is_edge = {var0_edge, var1_edge};
             if (!m_expr->is_var[0] && m_expr->is_var[1]) {
                 m_nfixed = 1;
-                m_fixed_values[0] = m_expr->values[0];
+                if (m_expr->strs[0].empty()) {
+                    m_fixed_values[0] = m_expr->values[0];
+                }else {
+                    m_fixed_values[0] = m_ptr_ring->get_string_id(m_expr->strs[0], m_expr->type);
+                }
                 m_state[0] = true; //fixed the first element
             }else if (m_expr->is_var[0] && !m_expr->is_var[1]) {
                 m_nfixed = 1;
-                m_fixed_values[1] = m_expr->values[1];
+                if (m_expr->strs[1].empty()) {
+                    m_fixed_values[1] = m_expr->values[1];
+                }else {
+                    m_fixed_values[1] = m_ptr_ring->get_string_id(m_expr->strs[1], query::opposite_comp_where[m_expr->type]);
+                }
                 m_state[1] = true; //fixed the second element
             }
         }
@@ -273,6 +281,9 @@ namespace ring {
         }
 
         inline size_type interval_length() const {
+            if (!m_nfixed) return m_ptr_ring->n_triples;
+            //TODO: Deberia calcular o numero de elementos no intervalo para esa propiedade.
+            //En caso de que se permita facer ORs esto pode ser mais complicado...
             return 1; //TODO: fix this depending on the priority
         }
 
