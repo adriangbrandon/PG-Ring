@@ -9,6 +9,8 @@
 #include <iostream>
 #include <vector>
 
+#include "constant_utils.hpp"
+
 namespace ring {
     namespace query {
         enum enum_comp_where_type { EQ, NEQ, GT, GE, ST, SE, WAND, WOR };
@@ -193,17 +195,75 @@ namespace ring {
                 }
             }
 
-            static void parse_operand(size_t &pos, const std::string &s, bool &is_var, uint32_t &value, std::string &str, uint32_t &prop,
+            // Detects if the current position is a comparison operator or closing parenthesis
+            static bool is_comp_op(const std::string& s, size_t pos, std::string& op) {
+                static const std::vector<std::string> ops = {">=", "<=", "!=", "=", ">", "<"};
+                for (const auto& candidate : ops) {
+                    if (s.compare(pos, candidate.size(), candidate) == 0) {
+                        op = candidate;
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            static expr_property_type parse_comp(size_t &pos, const std::string &s,
+                                                 std::unordered_map<std::string, std::uint8_t> &ht) {
+                skip_ws(pos, s);
+                static const std::vector<std::string> ops = {">=", "<=", "!=", "=", ">", "<"};
+                size_t op_pos = std::string::npos;
+                std::string found_op;
+                // Find the first comparison operator using find
+                for (const auto& op : ops) {
+                    size_t p = s.find(op, pos);
+                    if (p != std::string::npos && (op_pos == std::string::npos || p < op_pos)) {
+                        op_pos = p;
+                        found_op = op;
+                    }
+                }
+                if (op_pos == std::string::npos)
+                    throw std::runtime_error("No comparison operator found in expression: " + s.substr(pos));
+                // Extract the first operand (trim trailing spaces)
+                std::string op1_str = s.substr(pos, op_pos - pos);
+                op1_str.erase(op1_str.find_last_not_of(" \t\n\r") + 1);
+                // Extract the second operand (trim leading and trailing spaces)
+                size_t op2_start = op_pos + found_op.size();
+                size_t op2_end = s.find(')', op2_start);
+                if (op2_end == std::string::npos) op2_end = s.size();
+                std::string op2_str = s.substr(op2_start, op2_end - op2_start);
+                op2_str.erase(0, op2_str.find_first_not_of(" \t\n\r"));
+                op2_str.erase(op2_str.find_last_not_of(" \t\n\r") + 1);
+                // Parse operands
+                expr_property_type e;
+                parse_operand(op1_str, e.is_var[0], e.values[0], e.strs[0], e.property_values[0], ht);
+                parse_operand(op2_str, e.is_var[1], e.values[1], e.strs[1], e.property_values[1], ht);
+                // Assign comparison type
+                if (found_op == ">=") e.type = GE;
+                else if (found_op == "<=") e.type = SE;
+                else if (found_op == "!=") e.type = NEQ;
+                else if (found_op == "=") e.type = EQ;
+                else if (found_op == ">") e.type = GT;
+                else if (found_op == "<") e.type = ST;
+                else throw std::runtime_error("Unrecognized comparison operator: " + found_op);
+                // Advance pos to the end of the second operand
+                pos = op2_end;
+                return e;
+            }
+
+            // parse_operand on exact string
+            static void parse_operand(const std::string &s, bool &is_var, uint32_t &value, std::string &str, uint32_t &prop,
                                       std::unordered_map<std::string, std::uint8_t> &ht) {
                 is_var = false;
                 value = 0;
                 prop = 0;
-                if (s[pos] == '?') {
+                str.clear();
+                size_t pos = 0;
+                while (pos < s.size() && isspace(s[pos])) ++pos;
+                if (pos < s.size() && s[pos] == '?') {
                     is_var = true;
                     ++pos;
                     size_t start = pos;
-                    while (pos < s.size() && s[pos] != '.' && s[pos] != ')' && !isspace(s[pos])) ++pos;
-                    //value = std::stoul(s.substr(start, pos - start));
+                    while (pos < s.size() && s[pos] != '.') ++pos;
                     value = ht[s.substr(start, pos - start)];
                     if (pos < s.size() && s[pos] == '.') {
                         ++pos;
@@ -211,38 +271,26 @@ namespace ring {
                         while (pos < s.size() && isdigit(s[pos])) ++pos;
                         prop = std::stoul(s.substr(pstart, pos - pstart));
                     }
-                } else {
-                    is_var = false;
-                    if (s[pos] == '"') {
-                        ++pos;
-                        size_t start = pos;
-                        while (pos < s.size() && s[pos] != '.' && s[pos] != ')') ++pos;
-                        str = s.substr(start, pos - start - 1); //removing the last "
-                    }else {
-                        size_t start = pos;
-                        while (pos < s.size() && isdigit(s[pos])) ++pos;
-                        value = std::stoul(s.substr(start, pos - start));
+                } else if (pos < s.size() && s[pos] == '"') {
+                    ++pos;
+                    size_t start = pos;
+                    size_t last = s.rfind('"');
+                    str = s.substr(start, last - start);
+                } else if (pos < s.size()) {
+                    size_t start = pos;
+                    while (pos < s.size() && !isspace(s[pos])) ++pos;
+                    std::string token = s.substr(start, pos - start);
+                    std::uint32_t integer_val;
+                    std::uint64_t date_val;
+                    double double_val;
+                    if (constant::is_integer(token, integer_val)) {
+                        value = integer_val;
+                    } else if (constant::is_double(token, double_val)) {
+                        value = static_cast<uint32_t>(double_val);
+                    }else if (constant::is_date(token, date_val)) {
+                        value = static_cast<uint32_t>(date_val);
                     }
                 }
-            }
-
-            static expr_property_type parse_comp(size_t &pos, const std::string &s,
-                                                 std::unordered_map<std::string, std::uint8_t> &ht) {
-                skip_ws(pos, s);
-                expr_property_type e;
-                parse_operand(pos, s, e.is_var[0], e.values[0], e.strs[0], e.property_values[0], ht);
-                skip_ws(pos, s);
-                //parse operator
-                if (match(">=", pos, s)) e.type = GE;
-                else if (match("<=", pos, s)) e.type = SE;
-                else if (match("!=", pos, s)) e.type = NEQ;
-                else if (match("=", pos, s)) e.type = EQ;
-                else if (match(">", pos, s)) e.type = GT;
-                else if (match("<", pos, s)) e.type = ST;
-                else throw std::runtime_error("Expected comparison operator");
-                skip_ws(pos, s);
-                parse_operand(pos, s, e.is_var[1], e.values[1], e.strs[1], e.property_values[1], ht);
-                return e;
             }
 
         public:

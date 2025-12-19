@@ -440,8 +440,8 @@ TEST(QueryTest, CompIds)
 
 TEST(QueryTest, Error)
 {
-    std::vector<std::string> queries = {
-        "(?a1)-[?w]->(?m), (?a2)-[?y]->(?m), (?m)-[?z]->(?k) WHERE (?a1 > ?a2) AND (?y != ?w) AND (?k < 100)",
+     std::vector<std::string> queries = {
+         "(?k)-[?y:(1 OR NOT 1)]->(1) WHERE (?y.1 >= \"Neo\")",
     };
     run_queries_test(queries);
 }
