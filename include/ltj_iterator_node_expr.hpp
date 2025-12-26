@@ -46,6 +46,7 @@ namespace ring {
         bool m_is_empty = false;
         bool m_is_subject = false;
         value_type m_value = 0;
+        double_t m_selectivity; //it is constant all the time
 
 
         void copy(const ltj_iterator_node_expr &o) {
@@ -92,6 +93,30 @@ namespace ring {
             return next_node_rec(c, m_expr);
         }
 
+        size_type node_cnt_rec(const expr_type* expr) {
+            if (expr->type == query::LAB) {
+                return m_ptr_ring->node_label_cnt(expr->label);
+            }else if (expr->type == query::NEG) {
+                return m_ptr_ring->node_neg_label_cnt(expr->label);
+            }else if (expr->type == query::OR) {
+                size_type ans = 0, aux;
+                for (size_type i = 0; i < expr->args.size(); ++i) {
+                    aux = node_cnt_rec(&expr->args[i]);
+                    ans = std::max(ans, aux);
+                }
+                return ans;
+            }else if (expr->type == query::AND) {
+                size_type ans = UINT64_MAX, aux;
+                for (size_type i = 0; i < expr->args.size(); ++i) {
+                    aux = node_cnt_rec(&expr->args[i]);
+                    ans = std::min(ans, aux);
+                }
+                return ans;
+            }
+            return UINT64_MAX;
+        }
+
+
     public:
         //const bool &is_empty = m_is_empty;
 
@@ -101,6 +126,7 @@ namespace ring {
             m_is_subject = is_subject;
             m_expr = expr;
             m_ptr_ring = ring;
+            m_selectivity = node_cnt_rec(m_expr) / static_cast<double_t>(m_ptr_ring->max_s);
         }
 
         //! Copy constructor
@@ -188,8 +214,11 @@ namespace ring {
         }
 
         inline size_type interval_length() const {
-            //TODO: complicado saber o numero de triples xa que a expresión pode ser complexa
-            return 1; //TODO: fix this depending on the priority
+            return UINT64_MAX; //infinite
+        }
+
+        inline double_t selectivity() const {
+            return m_selectivity;
         }
 
         value_type seek_last(var_type var) {

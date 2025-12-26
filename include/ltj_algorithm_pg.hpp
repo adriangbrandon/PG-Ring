@@ -27,7 +27,7 @@
 #include <ltj_iterator_edge_expr.hpp>
 #include <ltj_iterator_edge_label.hpp>
 #include <ltj_iterator_node_expr.hpp>
-#include <veo_adaptive_pg.hpp>
+#include <veo_adaptive_pg2.hpp>
 #include <results_collector.hpp>
 #include <query/query_parser.hpp>
 
@@ -36,7 +36,7 @@
 
 
 namespace ring {
-    template<class results_t = ::util::results_collector<std::vector<uint64_t> >, class veo_t = veo::veo_adaptive_pg<> >
+    template<class results_t = ::util::results_collector<std::vector<uint64_t> >, class veo_t = veo::veo_adaptive_pg_v2<> >
     class ltj_algorithm_pg {
     public:
         typedef uint64_t value_type;
@@ -260,7 +260,8 @@ namespace ring {
             }
 
 
-            m_veo = veo_type(&(m_ptr_query->patterns), &m_iterators, &m_var_to_iterators, m_ptr_ring);
+           // m_veo = veo_type(&(m_ptr_query->patterns), &m_iterators, &m_var_to_iterators, m_ptr_ring);
+            m_veo = veo_type(m_ptr_query, &m_iterators, &m_var_to_iterators, m_ptr_ring);
         }
 
         //! Copy constructor

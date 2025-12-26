@@ -252,15 +252,23 @@ namespace ring {
                     m_intervals[1] = m_ptr_ring->down_P_O(m_intervals[0], m_pattern->edge.get_label(), c);
                     m_state[m_level] = o;
                 }
-            } else if (m_level == 1) {
+            } else if (m_level == 1) { //if the predicate was fixed, nothing to do
                 if (is_variable_subject(var)) {
-                    m_intervals[2] = m_ptr_ring->down_P_S(m_intervals[1], c);
+                    if (m_state[0] == p) {
+                        m_intervals[2] = m_intervals[1];
+                    } else {
+                        m_intervals[2] = m_ptr_ring->down_P_S(m_intervals[1], c);
+                    }
                     m_state[m_level] = s;
                 } else if (is_variable_predicate(var)) {
                     down_to_E(c, m_level+1);
                     m_state[m_level] = p;
                 } else {
-                    m_intervals[2] = m_ptr_ring->down_S_O(m_intervals[1], c);
+                    if (m_state[0] == p) {
+                        m_intervals[2] = m_intervals[1];
+                    } else {
+                        m_intervals[2] = m_ptr_ring->down_S_O(m_intervals[1], c);
+                    }
                     m_state[m_level] = o;
                 }
             }
@@ -405,6 +413,10 @@ namespace ring {
 
         inline size_type interval_length() const {
             return m_intervals[m_level].size();
+        }
+
+        inline double_t selectivity() const {
+            return 1.0;
         }
 
         inline const bwt_interval &interval() const {

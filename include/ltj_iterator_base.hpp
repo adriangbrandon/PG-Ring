@@ -63,6 +63,7 @@ namespace ring {
         virtual value_type seek_last_next(var_type var) = 0;
 
         virtual size_type interval_length() const = 0;
+        virtual double_t selectivity() const = 0;
 
         /*virtual void set_prop_value(var_type var, value_type value) = 0;
 

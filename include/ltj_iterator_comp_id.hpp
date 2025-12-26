@@ -49,6 +49,8 @@ namespace ring {
         size_type m_nfixed = 0;
         bool m_is_empty = false;
 
+        double_t m_selectivity_no_fixed;
+
 
         void copy(const ltj_iterator_comp_id &o) {
             m_is_empty = o.m_is_empty;
@@ -215,8 +217,21 @@ namespace ring {
         }
 
         inline size_type interval_length() const {
-            //TODO: deberia ser o numero de triples con ese intervalo de valores
-            return 1; //TODO: fix this depending on the priority
+            return UINT64_MAX; //infinite
+        }
+
+        inline double_t selectivity() const {
+            switch (m_expr->type) {
+                case query::EQ:
+                    return 0.1;
+                case query::NEQ:
+                    return 0.9;
+                default:
+                    return 0.5;
+            }
+            return 1.0;
+            //if (!m_nfixed) return CONSTANTE;
+            //return m_ptr_ring->contar_in_range()/m_ptr_ring->n_nodes();
         }
 
         value_type seek_last(var_type var) {

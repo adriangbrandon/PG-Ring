@@ -30,7 +30,8 @@ namespace ring {
     template<class ring_t, class var_t, class cons_t>
     class ltj_iterator_comp : public ltj_iterator_base<var_t, cons_t> {
     public:
-        typedef cons_t value_type;
+        typedef cons_t id_type;
+        typedef int32_t value_type;
         typedef var_t var_type;
         typedef ring_t ring_type;
         typedef uint64_t size_type;
@@ -45,11 +46,13 @@ namespace ring {
         ring_type *m_ptr_ring; //TODO: should be const
 
         std::array<value_type, 2> m_fixed_values;
-        std::array<std::pair<value_type, value_type>, 2> m_id_values; //<id, value>
+        std::array<std::pair<id_type, value_type>, 2> m_id_values; //<id, value>
         std::array<bool, 2> m_state = {false, false};
         std::array<bool, 2> m_is_edge = {false, false};
         size_type m_nfixed = 0;
         bool m_is_empty = false;
+
+        double_t m_selectivity_no_fixed;
 
 
         void copy(const ltj_iterator_comp &o) {
@@ -61,6 +64,108 @@ namespace ring {
             m_nfixed = o.m_nfixed;
             m_expr = o.m_expr;
             m_ptr_ring = o.m_ptr_ring;
+            m_selectivity_no_fixed = o.m_selectivity_no_fixed;
+        }
+
+
+        //a > b
+        double_t selectivity_gt(int min_a, int max_a, int min_b, int max_b) {
+            if (max_a <= min_b) return 0.0;
+            if (min_a > max_b) return 1.0;
+            //triangle and rectangle areas in a 2D plane
+
+            auto overlap = std::max(0, std::min(max_a, max_b) - std::max(min_a, min_b) + 1);
+            //0 + 1 ... + overlap-1
+            auto triangle = (overlap - 1) * overlap / 2.0;
+
+            //rectangle area
+            auto width = std::max(0, max_a - max_b);
+            auto rectangle = width * (max_b - min_b + 1);
+            auto total = (max_a - min_a + 1) * (max_b - min_b + 1);
+            return (triangle + rectangle) / (double_t) total;
+        }
+
+        //a >= b
+        double_t selectivity_ge(int min_a, int max_a, int min_b, int max_b) {
+            if (max_a < min_b) return 0.0;
+            if (min_a >= max_b) return 1.0;
+            //triangle and rectangle areas in a 2D plane
+
+            auto overlap = std::max(0, std::min(max_a, max_b) - std::max(min_a, min_b) + 1);
+            //0 + 1 ... + overlap-1 + overlap
+            auto triangle = overlap * (overlap+1) / 2.0;
+
+            //rectangle area
+            auto width = std::max(0, max_a - max_b);
+            auto rectangle = width * (max_b - min_b + 1);
+            auto total = (max_a - min_a + 1) * (max_b - min_b + 1);
+            return (triangle + rectangle) / (double_t) total;
+        }
+
+        //a == b
+        double_t selectivity_eq(int min_a, int max_a, int min_b, int max_b) {
+            if (max_a < min_b || max_b < min_b) return 0.0;
+            //triangle and rectangle areas in a 2D plane
+            auto overlap = std::max(0, std::min(max_a, max_b) - std::max(min_a, min_b) + 1);
+            auto total = (max_a - min_a + 1) * (max_b - min_b + 1);
+            return overlap / (double_t) total;
+        }
+
+        double_t compute_selectivity_no_fixed() {
+            int min_a, max_a, min_b, max_b;
+            if (m_is_edge[0]) {
+                std::tie(min_a, max_a) = m_ptr_ring->get_edge_property_range(m_expr->property_values[0]);
+            } else {
+                std::tie(min_a, max_a) = m_ptr_ring->get_node_property_range(m_expr->property_values[0]);
+            }
+            if (m_is_edge[1]) {
+                std::tie(min_b, max_b) = m_ptr_ring->get_edge_property_range(m_expr->property_values[1]);
+            } else {
+                std::tie(min_b, max_b) = m_ptr_ring->get_node_property_range(m_expr->property_values[1]);
+            }
+
+            switch (m_expr->type) {
+                case query::EQ:
+                    return selectivity_eq(min_a, max_a, min_b, max_b);
+                case query::NEQ:
+                    return 1.0 - selectivity_eq(min_a, max_a, min_b, max_b);
+                case query::ST:
+                    return 1.0 - selectivity_ge(min_a, max_a, min_b, max_b);
+                case query::GT:
+                    return selectivity_gt(min_a, max_a, min_b, max_b);
+                case query::SE:
+                    return 1.0 - selectivity_gt(min_a, max_a, min_b, max_b);
+                case query::GE:
+                    return selectivity_ge(min_a, max_a, min_b, max_b);
+                default:
+                    return 0.0;
+            }
+        }
+
+        double_t compute_selectivity(value_type c, size_type p) {
+            value_type min_a, max_a;
+            if (m_is_edge[p]) {
+                std::tie(min_a, max_a) = m_ptr_ring->get_edge_property_range(m_expr->property_values[p]);
+            } else {
+                std::tie(min_a, max_a) = m_ptr_ring->get_node_property_range(m_expr->property_values[p]);
+            }
+            auto type = (p == 0) ? m_expr->type : query::opposite_comp_where[m_expr->type];
+            switch (type) {
+                case query::EQ:
+                    return 1 / static_cast<double_t>(max_a - min_a + 1);
+                case query::NEQ:
+                    return 1.0 - 1 / static_cast<double_t>(max_a - min_a + 1);
+                case query::ST:
+                    return 1.0 - std::max(0, (max_a - min_a +1) - c + 1) / static_cast<double_t>(max_a - min_a + 1);
+                case query::GT:
+                    return std::max(0, (max_a - min_a +1) - c) / static_cast<double_t>(max_a - min_a + 1);
+                case query::SE:
+                    return 1.0 - std::max(0, (max_a - min_a +1) - c + 1) / static_cast<double_t>(max_a - min_a + 1);
+                case query::GE:
+                    return std::max(0, (max_a - min_a +1) - c + 1) / static_cast<double_t>(max_a - min_a + 1);
+                default:
+                    return 0.0;
+            }
         }
 
     public:
@@ -92,6 +197,8 @@ namespace ring {
                     m_fixed_values[1] = m_ptr_ring->get_string_id(m_expr->strs[1], query::opposite_comp_where[m_expr->type]);
                 }
                 m_state[1] = true; //fixed the second element
+            }else {
+                m_selectivity_no_fixed = compute_selectivity_no_fixed();
             }
         }
 
@@ -124,6 +231,7 @@ namespace ring {
                 m_is_edge = std::move(o.m_is_edge);
                 m_nfixed = std::move(o.m_nfixed);
                 m_is_empty = std::move(o.m_is_empty);
+                m_selectivity_no_fixed = std::move(o.m_selectivity_no_fixed);
             }
             return *this;
         }
@@ -138,6 +246,7 @@ namespace ring {
             std::swap(m_is_edge, o.m_is_edge);
             std::swap(m_nfixed, o.m_nfixed);
             std::swap(m_is_empty, o.m_is_empty);
+            std::swap(m_selectivity_no_fixed, o.m_selectivity_no_fixed);
         }
 
 
@@ -235,11 +344,11 @@ namespace ring {
             std::cout << "{" << m_fixed_values[0] << ", " << m_fixed_values[1] << "}" << std::endl;
         };
 
-        value_type leap(var_type var) {
+        id_type leap(var_type var) {
             return leap(var, 1);
         };
 
-        value_type leap(var_type var, size_type c) {
+        id_type leap(var_type var, size_type c) {
             if (!m_nfixed) {
                 if (m_expr->is_var[0] && var == m_expr->values[0]) {
                     if (m_is_edge[0]) {
@@ -281,17 +390,25 @@ namespace ring {
         }
 
         inline size_type interval_length() const {
-            if (!m_nfixed) return m_ptr_ring->n_triples;
-            //TODO: Deberia calcular o numero de elementos no intervalo para esa propiedade.
-            //En caso de que se permita facer ORs esto pode ser mais complicado...
-            return 1; //TODO: fix this depending on the priority
+            return UINT64_MAX; //infinite
         }
 
-        value_type seek_last(var_type var) {
+        inline double_t selectivity() const {
+            if (!m_nfixed) return m_selectivity_no_fixed;
+            if (m_fixed_values[0]) {
+                return compute_selectivity(m_fixed_values[0], 1);
+            }else {
+                return compute_selectivity(m_fixed_values[1], 0);
+            }
+
+            //return m_ptr_ring->contar_in_range()/m_ptr_ring->n_nodes_en_propiedad();
+        }
+
+        id_type seek_last(var_type var) {
             return 0;
         }
 
-        value_type seek_last_next(var_type var) {
+        id_type seek_last_next(var_type var) {
             return 0;
         }
     };

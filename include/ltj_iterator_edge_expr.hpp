@@ -376,15 +376,23 @@ namespace ring {
                     down_P_to_O(c);
                     m_state[m_level] = o;
                 }
-            } else if(m_level == 1) {//m_level = 1
+            } else if(m_level == 1) {
                 if (is_variable_subject(var)) {
-                    down_PO_to_S(c);
+                    if (m_state[0] == p) {
+                        m_ranges_level[2] = m_ranges_level[1];
+                    }else {
+                        down_PO_to_S(c);
+                    }
                     m_state[m_level] = s;
                 } else if (is_variable_predicate(var)) {
                     down_to_E(c, m_level+1);
                     m_state[m_level] = p;
                 } else {
-                    down_PS_to_O(c);
+                    if (m_state[0] == p) {
+                        m_ranges_level[2] = m_ranges_level[1];
+                    }else {
+                        down_PS_to_O(c);
+                    }
                     m_state[m_level] = o;
                 }
             }
@@ -528,6 +536,10 @@ namespace ring {
 
         inline size_type interval_length() const{
             return m_length_level[m_level];
+        }
+
+        inline double_t selectivity() const {
+            return 1.0;
         }
 
         value_type seek_last(var_type var){ //var should be in an edge

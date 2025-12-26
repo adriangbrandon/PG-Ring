@@ -30,7 +30,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <property_grid.hpp>
+#include <property_grid_v2.hpp>
 
 #include "string_mgr.hpp"
 #include "query/where_expr_parser.hpp"
@@ -62,12 +62,13 @@ namespace ring {
 
         //labels of nodes
         std::vector<bit_vector_type> m_bvts;
+        std::vector<size_type> m_cnt_labels;
         std::vector<succ_0_type> m_succs0;
         std::vector<succ_1_type> m_succs1;
 
         //properties
-        std::vector<property_grid<>> m_node_properties;
-        std::vector<property_grid<>> m_edge_properties;
+        std::vector<property_grid_v2<>> m_node_properties;
+        std::vector<property_grid_v2<>> m_edge_properties;
 
         //manager of strings
         string_mgr m_string_mgr;
@@ -82,6 +83,7 @@ namespace ring {
             m_n_triples = o.m_n_triples;
 
             m_bvts = o.m_bvts;
+            m_cnt_labels = o.m_cnt_labels;
             m_succs0 = o.m_succs0;
             m_succs1 = o.m_succs1;
             for (size_t i = 0; i < m_bvts.size(); i++) {
@@ -247,10 +249,12 @@ namespace ring {
 
             {
                 m_bvts.resize(label2nodes.size());
+                m_cnt_labels.resize(label2nodes.size());
                 m_succs0.resize(label2nodes.size());
                 m_succs1.resize(label2nodes.size());
                 for (i = 0; i < label2nodes.size(); i++) {
                     sdsl::bit_vector bvt(alphabet_SO + 2, 0);
+                    m_cnt_labels[i] = label2nodes[i].size();
                     for (uint32_t j = 0; j < label2nodes[i].size(); j++) {
                         bvt[label2nodes[i][j]] = 1;
                     }
@@ -304,12 +308,12 @@ namespace ring {
 
                 m_node_properties.resize(node_properties.size());
                 for (i = 0; i < node_properties.size(); i++) {
-                    m_node_properties[i] = property_grid<>(node_properties[i], m_max_s);
+                    m_node_properties[i] = property_grid_v2<>(node_properties[i], m_max_s);
                 }
 
                 m_edge_properties.resize(edge_properties.size());
                 for (i = 0; i < edge_properties.size(); i++) {
-                    m_edge_properties[i] = property_grid<>(edge_properties[i], m_n_triples);
+                    m_edge_properties[i] = property_grid_v2<>(edge_properties[i], m_n_triples);
                 }
 
             }
@@ -349,6 +353,7 @@ namespace ring {
                 m_max_o = o.m_max_o;
                 m_n_triples = o.m_n_triples;
                 m_bvts = std::move(o.m_bvts);
+                m_cnt_labels = std::move(o.m_cnt_labels);
                 m_succs0 = std::move(o.m_succs0);
                 m_succs1 = std::move(o.m_succs1);
                 for (size_t i = 0; i < m_bvts.size(); i++) {
@@ -373,6 +378,7 @@ namespace ring {
             std::swap(m_max_o, o.m_max_o);
             std::swap(m_n_triples, o.m_n_triples);
             std::swap(m_bvts, o.m_bvts);
+            std::swap(m_cnt_labels, o.m_cnt_labels);
             for (size_t i = 0; i < m_bvts.size(); i++) {
                 sdsl::util::swap_support(m_succs0[i], o.m_succs0[i], &m_bvts[i], &o.m_bvts[i]);
                 sdsl::util::swap_support(m_succs1[i], o.m_succs1[i], &m_bvts[i], &o.m_bvts[i]);
@@ -395,6 +401,7 @@ namespace ring {
             written_bytes += sdsl::write_member(m_n_triples, out, child, "n_triples");
             sdsl::write_member(m_bvts.size(), out,  child, "labels");
             written_bytes += sdsl::serialize_vector(m_bvts, out, child, "bvts");
+            written_bytes += sdsl::serialize_vector(m_cnt_labels, out, child, "cnt_labels");
             written_bytes += sdsl::serialize_vector(m_succs0, out, child, "succs0");
             written_bytes += sdsl::serialize_vector(m_succs1, out, child, "succs1");
             sdsl::write_member(m_node_properties.size(), out,  child, "node_prop_size");
@@ -417,9 +424,11 @@ namespace ring {
             size_t labels_size;
             sdsl::read_member(labels_size, in);
             m_bvts.resize(labels_size);
+            m_cnt_labels.resize(labels_size);
             m_succs0.resize(labels_size);
             m_succs1.resize(labels_size);
             sdsl::load_vector(m_bvts, in);
+            sdsl::load_vector(m_cnt_labels, in);
             sdsl::load_vector(m_succs0, in);
             sdsl::load_vector(m_succs1, in);
             for (size_t i = 0; i < m_bvts.size(); i++) {
@@ -1060,12 +1069,28 @@ namespace ring {
             return n;
         }
 
+        size_type node_label_cnt(uint32_t label) {
+            return m_cnt_labels[label-1];
+        }
+
+        size_type node_neg_label_cnt(uint32_t label) {
+            return m_max_s - m_cnt_labels[label-1];
+        }
+
         std::pair<value_type, value_type> next_node_in_property(const value_type prop_id, const value_type node_id) {
             return m_node_properties[prop_id-1].next_exists(node_id);
         }
 
         std::pair<value_type, value_type> next_edge_in_property(const value_type prop_id, const value_type node_id) {
             return m_edge_properties[prop_id-1].next_exists(node_id);
+        }
+
+        std::pair<int32_t, int32_t> get_node_property_range(const value_type prop_id) {
+            return {m_node_properties[prop_id-1].min_val, m_node_properties[prop_id-1].max_val};
+        }
+
+        std::pair<int32_t, int32_t> get_edge_property_range(const value_type prop_id) {
+            return {m_edge_properties[prop_id-1].min_val, m_edge_properties[prop_id-1].max_val};
         }
 
         std::pair<value_type, value_type> next_node_property(const value_type prop_id, const value_type node_id, const value_type value,
