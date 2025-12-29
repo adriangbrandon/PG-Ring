@@ -378,9 +378,7 @@ namespace ring {
                 }
             } else if(m_level == 1) {
                 if (is_variable_subject(var)) {
-                    if (m_state[0] == p) {
-                        m_ranges_level[2] = m_ranges_level[1];
-                    }else {
+                    if (m_state[0] != p) {
                         down_PO_to_S(c);
                     }
                     m_state[m_level] = s;
@@ -388,9 +386,7 @@ namespace ring {
                     down_to_E(c, m_level+1);
                     m_state[m_level] = p;
                 } else {
-                    if (m_state[0] == p) {
-                        m_ranges_level[2] = m_ranges_level[1];
-                    }else {
+                    if (m_state[0] != p) {
                         down_PS_to_O(c);
                     }
                     m_state[m_level] = o;
@@ -539,6 +535,10 @@ namespace ring {
         }
 
         inline double_t selectivity() const {
+            return 1.0;
+        }
+
+        inline double_t opt_selectivity() const {
             return 1.0;
         }
 

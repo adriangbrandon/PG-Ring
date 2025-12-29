@@ -254,9 +254,7 @@ namespace ring {
                 }
             } else if (m_level == 1) { //if the predicate was fixed, nothing to do
                 if (is_variable_subject(var)) {
-                    if (m_state[0] == p) {
-                        m_intervals[2] = m_intervals[1];
-                    } else {
+                    if (m_state[0] != p) {
                         m_intervals[2] = m_ptr_ring->down_P_S(m_intervals[1], c);
                     }
                     m_state[m_level] = s;
@@ -264,9 +262,7 @@ namespace ring {
                     down_to_E(c, m_level+1);
                     m_state[m_level] = p;
                 } else {
-                    if (m_state[0] == p) {
-                        m_intervals[2] = m_intervals[1];
-                    } else {
+                    if (m_state[0] != p) {
                         m_intervals[2] = m_ptr_ring->down_S_O(m_intervals[1], c);
                     }
                     m_state[m_level] = o;
@@ -416,6 +412,10 @@ namespace ring {
         }
 
         inline double_t selectivity() const {
+            return 1.0;
+        }
+
+        inline double_t opt_selectivity() const {
             return 1.0;
         }
 

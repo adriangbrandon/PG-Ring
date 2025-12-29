@@ -142,6 +142,47 @@ namespace ring {
             }
         }
 
+        double_t compute_opt_selectivity(value_type c, size_type p) {
+            auto prop_id = m_expr->property_values[p];
+            auto type = (p == 0) ? m_expr->type : query::opposite_comp_where[m_expr->type];
+            auto fixed_value = (p == 0) ? m_fixed_values[1] : m_fixed_values[0];
+            switch (type) {
+                case query::EQ:
+                    if (m_is_edge[p])
+                        return m_ptr_ring->cnt_edge_property_value(prop_id, fixed_value, fixed_value) / (double_t) m_ptr_ring->cnt_edge_property_value(prop_id);
+                    else
+                        return m_ptr_ring->cnt_node_property_value(prop_id, fixed_value, fixed_value) / (double_t) m_ptr_ring->cnt_node_property_value(prop_id);
+                case query::NEQ:
+                    if (m_is_edge[p])
+                        return 1.0 - m_ptr_ring->cnt_edge_property_value(prop_id, fixed_value, fixed_value) / (double_t) m_ptr_ring->cnt_edge_property_value(prop_id);
+                    else
+                        return 1.0 - m_ptr_ring->cnt_node_property_value(prop_id, fixed_value, fixed_value) / (double_t) m_ptr_ring->cnt_node_property_value(prop_id);
+                case query::ST:
+                    if (m_is_edge[p])
+                        return m_ptr_ring->cnt_edge_property_value(prop_id, 1, fixed_value-1) / (double_t) m_ptr_ring->cnt_edge_property_value(prop_id);
+                    else
+                        return m_ptr_ring->cnt_node_property_value(prop_id, 1, fixed_value-1) / (double_t) m_ptr_ring->cnt_node_property_value(prop_id);
+                case query::GT:
+                    if (m_is_edge[p])
+                        return 1 - m_ptr_ring->cnt_edge_property_value(prop_id, 1, fixed_value) / (double_t) m_ptr_ring->cnt_edge_property_value(prop_id);
+                    else
+                        return 1 - m_ptr_ring->cnt_node_property_value(prop_id, 1, fixed_value) / (double_t) m_ptr_ring->cnt_node_property_value(prop_id);
+                case query::SE:
+                    if (m_is_edge[p])
+                        return m_ptr_ring->cnt_edge_property_value(prop_id, 1, fixed_value) / (double_t) m_ptr_ring->cnt_edge_property_value(prop_id);
+                    else
+                        return m_ptr_ring->cnt_node_property_value(prop_id, 1, fixed_value) / (double_t) m_ptr_ring->cnt_node_property_value(prop_id);
+                case query::GE:
+                    if (m_is_edge[p])
+                        return 1 - m_ptr_ring->cnt_edge_property_value(prop_id, 1, fixed_value-1) / (double_t) m_ptr_ring->cnt_edge_property_value(prop_id);
+                    else
+                        return 1 - m_ptr_ring->cnt_node_property_value(prop_id, 1, fixed_value-1) / (double_t) m_ptr_ring->cnt_node_property_value(prop_id);
+                default:
+                    return 0.0;
+            }
+
+        }
+
         double_t compute_selectivity(value_type c, size_type p) {
             value_type min_a, max_a;
             if (m_is_edge[p]) {
@@ -402,6 +443,15 @@ namespace ring {
             }
 
             //return m_ptr_ring->contar_in_range()/m_ptr_ring->n_nodes_en_propiedad();
+        }
+
+        inline double_t opt_selectivity() const {
+            if (!m_nfixed) return m_selectivity_no_fixed;
+            if (m_fixed_values[0]) {
+                return compute_opt_selectivity(m_fixed_values[0], 1);
+            }else {
+                return compute_opt_selectivity(m_fixed_values[1], 0);
+            }
         }
 
         id_type seek_last(var_type var) {

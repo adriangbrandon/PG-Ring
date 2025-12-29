@@ -64,6 +64,7 @@ namespace ring {
 
         virtual size_type interval_length() const = 0;
         virtual double_t selectivity() const = 0;
+        virtual double_t opt_selectivity() const = 0;
 
         /*virtual void set_prop_value(var_type var, value_type value) = 0;
 

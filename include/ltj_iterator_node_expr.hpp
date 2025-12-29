@@ -221,6 +221,10 @@ namespace ring {
             return m_selectivity;
         }
 
+        inline double_t opt_selectivity() const {
+            return m_selectivity;
+        }
+
         value_type seek_last(var_type var) {
             return 0;
         }

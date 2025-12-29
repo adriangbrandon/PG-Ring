@@ -41,7 +41,8 @@ namespace ring {
     class ring_pg {
     public:
         typedef uint64_t size_type;
-        typedef uint32_t value_type;
+        typedef uint32_t id_type;
+        typedef int32_t value_type;
         typedef bwt_so_t bwt_type;
         typedef bwt_p_t bwt_p_type;
         typedef std::tuple<uint32_t, uint32_t, uint32_t> spo_triple_type;
@@ -112,8 +113,8 @@ namespace ring {
 
         // Assumes the triples have been stored in a vector<spo_triple>
         ring_pg(vector<spo_triple_type> &D, std::vector<std::vector<uint32_t>>& label2nodes,
-                std::vector<std::vector<std::pair<value_type, std::string>>>& node_properties,
-                std::vector<std::vector<std::pair<value_type, std::string>>>& edge_properties,
+                std::vector<std::vector<std::pair<id_type, std::string>>>& node_properties,
+                std::vector<std::vector<std::pair<id_type, std::string>>>& edge_properties,
                 std::vector<bool> &nprop_numeric, std::vector<bool> &eprop_numeric) {
 
             uint64_t i, pos_c;
@@ -886,13 +887,13 @@ namespace ring {
        /************** Functions needed for Property Graphs ********************/
 
 
-        value_type edge_expr_get_O(size_type pos_i) {
+        id_type edge_expr_get_O(size_type pos_i) {
             auto r_s = m_bwt_s.inverse_select(pos_i);
             auto spo_i = m_bwt_o.get_C(r_s.second) + r_s.first;
             return m_bwt_o.get_value(spo_i);
         }
 
-        value_type edge_expr_get_S(size_type pos_i) {
+        id_type edge_expr_get_S(size_type pos_i) {
             return m_bwt_s.get_value(pos_i);
         }
 
@@ -919,48 +920,48 @@ namespace ring {
             return m_bwt_p.values_in_range(r[0], r[1], sigma_ranges);
         }
 
-        value_type edge_expr_min_S_in_P(std::vector<range_type> &ranges) {
+        id_type edge_expr_min_S_in_P(std::vector<range_type> &ranges) {
             return m_bwt_s.range_min_value(ranges).first;
         }
 
-        value_type edge_expr_min_O_in_P(std::vector<range_type> &ranges) {
+        id_type edge_expr_min_O_in_P(std::vector<range_type> &ranges) {
             uint64_t pos = m_bwt_p.select_next(1, ranges);
             uint64_t b = m_bwt_p.bsearch_C(pos) - 1;
             return b;
         }
 
-        value_type edge_expr_min_O_in_SP(std::vector<range_type> &ranges) {
+        id_type edge_expr_min_O_in_SP(std::vector<range_type> &ranges) {
             return m_bwt_o.range_min_value(ranges).first;
         }
 
-        value_type edge_expr_min_E_in_SP(std::vector<range_type> &ranges, value_type current_s) {
+        id_type edge_expr_min_E_in_SP(std::vector<range_type> &ranges, value_type current_s) {
             return m_bwt_s.select_next_ranges(ranges, current_s);
         }
 
-        value_type min_E_in_SP(const bwt_interval &interval, value_type current_s) {
+        id_type min_E_in_SP(const bwt_interval &interval, value_type current_s) {
             std::vector<range_type> aux = {{interval.left(), interval.right()}};
             return m_bwt_s.select_next_ranges(aux, current_s);
         }
 
-        value_type edge_expr_min_S_in_PO(std::vector<range_type> &ranges) {
+        id_type edge_expr_min_S_in_PO(std::vector<range_type> &ranges) {
             return m_bwt_s.range_min_value(ranges).first;
         }
 
-        value_type edge_expr_next_S_in_P(std::vector<range_type> &ranges, uint64_t val) {
+        id_type edge_expr_next_S_in_P(std::vector<range_type> &ranges, uint64_t val) {
             return m_bwt_s.range_next_value(val, ranges).first;
         }
 
-        value_type edge_expr_next_O_in_P(std::vector<range_type> &ranges, uint64_t val) {
+        id_type edge_expr_next_O_in_P(std::vector<range_type> &ranges, uint64_t val) {
             uint64_t pos = m_bwt_p.select_next(val, ranges);
             uint64_t b = m_bwt_p.bsearch_C(pos) - 1;
             return b;
         }
 
-        value_type edge_expr_next_O_in_SP(std::vector<range_type> &ranges, uint64_t val) {
+        id_type edge_expr_next_O_in_SP(std::vector<range_type> &ranges, uint64_t val) {
             return m_bwt_o.range_next_value(val, ranges).first;
         }
 
-        value_type next_E_in_SP(const bwt_interval &interval, value_type current_s, value_type current_e) {
+        id_type next_E_in_SP(const bwt_interval &interval, id_type current_s, id_type current_e) {
             if (current_e > m_n_triples) return 0;
             std::vector<range_type> aux;
             if (interval.right() < current_e) return 0;
@@ -972,7 +973,7 @@ namespace ring {
             return m_bwt_s.select_next_ranges(aux, current_s);
         }
 
-        value_type edge_expr_next_E_in_SP(const std::vector<range_type> &ranges, value_type current_s, value_type current_e) {
+        id_type edge_expr_next_E_in_SP(const std::vector<range_type> &ranges, id_type current_s, id_type current_e) {
             if (current_e > m_n_triples) return 0;
             std::vector<range_type> aux;
             for (const auto &r : ranges) {
@@ -986,23 +987,23 @@ namespace ring {
             return m_bwt_s.select_next_ranges(aux, current_s);
         }
 
-        value_type edge_expr_next_S_in_PO(std::vector<range_type> &ranges, uint64_t val) {
+        id_type edge_expr_next_S_in_PO(std::vector<range_type> &ranges, uint64_t val) {
             return m_bwt_s.range_next_value(val, ranges).first;
         }
 
 
-        value_type min_E_in_OS(const bwt_interval &interval) {
+        id_type min_E_in_OS(const bwt_interval &interval) {
             auto ranges = std::vector<range_type>{{interval.left(), interval.right()}};
             auto s_r = m_bwt_p.range_min_value(ranges);
             return m_bwt_s.get_C(s_r.first) + s_r.second;
         }
 
-        value_type edge_expr_min_E_in_OS(std::vector<range_type> &ranges) {
+        id_type edge_expr_min_E_in_OS(std::vector<range_type> &ranges) {
             auto s_r = m_bwt_p.range_min_value(ranges);
             return m_bwt_s.get_C(s_r.first) + s_r.second;
         }
 
-        value_type next_E_in_O(const bwt_interval &interval, uint64_t c) {
+        id_type next_E_in_O(const bwt_interval &interval, uint64_t c) {
             if (c > m_n_triples) return 0;
             auto val_c = m_bwt_s.bsearch_C(c) - 1;
             auto rnk_c = c - m_bwt_s.get_C(val_c) + 1;
@@ -1016,11 +1017,11 @@ namespace ring {
             return m_bwt_s.get_C(s_r.first) + s_r.second;
         }
         //TODO: checking this
-        value_type next_E_in_OS(const bwt_interval &interval, uint64_t c) {
+        id_type next_E_in_OS(const bwt_interval &interval, uint64_t c) {
             return next_E_in_O(interval, c);
         }
 
-        value_type edge_expr_next_E_in_OS(std::vector<range_type> &ranges, uint64_t c) {
+        id_type edge_expr_next_E_in_OS(std::vector<range_type> &ranges, uint64_t c) {
             if (c > m_n_triples) return 0;
             auto val_c = m_bwt_s.bsearch_C(c) - 1;
             auto rnk_c = c - m_bwt_s.get_C(val_c) + 1;
@@ -1057,43 +1058,43 @@ namespace ring {
         }
 
 
-        value_type next_node_label(uint32_t label, value_type node) {
+        id_type next_node_label(uint32_t label, id_type node) {
             auto n = m_succs1[label-1](node);
             if (n > m_max_s) return 0;
             return n;
         }
 
-        value_type next_node_neg_label(uint32_t label, value_type node) {
+        id_type next_node_neg_label(uint32_t label, id_type node) {
             auto n =  m_succs0[label-1](node);
             if (n > m_max_s) return 0;
             return n;
         }
 
-        size_type node_label_cnt(uint32_t label) {
+        size_type node_label_cnt(id_type label) {
             return m_cnt_labels[label-1];
         }
 
-        size_type node_neg_label_cnt(uint32_t label) {
+        size_type node_neg_label_cnt(id_type label) {
             return m_max_s - m_cnt_labels[label-1];
         }
 
-        std::pair<value_type, value_type> next_node_in_property(const value_type prop_id, const value_type node_id) {
+        std::pair<id_type, value_type> next_node_in_property(const value_type prop_id, const value_type node_id) {
             return m_node_properties[prop_id-1].next_exists(node_id);
         }
 
-        std::pair<value_type, value_type> next_edge_in_property(const value_type prop_id, const value_type node_id) {
+        std::pair<id_type, value_type> next_edge_in_property(const value_type prop_id, const value_type node_id) {
             return m_edge_properties[prop_id-1].next_exists(node_id);
         }
 
-        std::pair<int32_t, int32_t> get_node_property_range(const value_type prop_id) {
+        std::pair<value_type, value_type> get_node_property_range(const value_type prop_id) {
             return {m_node_properties[prop_id-1].min_val, m_node_properties[prop_id-1].max_val};
         }
 
-        std::pair<int32_t, int32_t> get_edge_property_range(const value_type prop_id) {
+        std::pair<value_type, value_type> get_edge_property_range(const value_type prop_id) {
             return {m_edge_properties[prop_id-1].min_val, m_edge_properties[prop_id-1].max_val};
         }
 
-        std::pair<value_type, value_type> next_node_property(const value_type prop_id, const value_type node_id, const value_type value,
+        std::pair<id_type, value_type> next_node_property(const value_type prop_id, const value_type node_id, const value_type value,
                                      const query::enum_comp_where_type op) {
             std::cout << "Next node property called: prop_id=" << prop_id << " node_id=" << node_id << " value=" << value << " op=" << op << std::endl;
             switch (op) {
@@ -1116,7 +1117,7 @@ namespace ring {
             }
          }
  
-         std::pair<value_type, value_type> next_edge_property(const value_type prop_id, const value_type node_id, const value_type value,
+         std::pair<id_type, value_type> next_edge_property(const value_type prop_id, const value_type node_id, const value_type value,
                                       const query::enum_comp_where_type op) {
             switch (op) {
                 case query::EQ:
@@ -1138,17 +1139,37 @@ namespace ring {
             }
          }
 
-        value_type get_node_property_value(const value_type prop_id, const value_type node_id) {
+        value_type get_node_property_value(const id_type prop_id, const id_type node_id) {
             return m_node_properties[prop_id-1][node_id];
         };
 
-        value_type get_edge_property_value(const value_type prop_id, const value_type edge_id) {
+        value_type get_edge_property_value(const id_type prop_id, const id_type edge_id) {
             return m_edge_properties[prop_id-1][edge_id];
         };
 
-        value_type get_string_id(const std::string &s, query::enum_comp_where_type op) {
+        id_type get_string_id(const std::string &s, query::enum_comp_where_type op) {
             return m_string_mgr.get_id(s, op);
         }
+
+        size_type cnt_node_property_value(const id_type prop_id, value_type l, value_type r) {
+            if (l > r) return 0;
+            return m_node_properties[prop_id-1].cnt_values_range(l, r);
+        }
+
+        size_type cnt_node_property_value(const id_type prop_id) {
+            return m_node_properties[prop_id-1].n_points;
+        }
+
+        size_type cnt_edge_property_value(const id_type prop_id, value_type l, value_type r) {
+            if (l > r) return 0;
+            return m_edge_properties[prop_id-1].cnt_values_range(l, r);
+        }
+
+        size_type cnt_edge_property_value(const id_type prop_id) {
+            return m_edge_properties[prop_id-1].n_points;
+        }
+
+
     };
 
     typedef ring_pg<bwt_rrr, bwt_rrr> c_ring_pg;

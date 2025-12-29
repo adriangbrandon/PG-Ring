@@ -138,11 +138,6 @@ namespace ring {
                             m_var_info[v].is_lonely = true;
                         }else {
                             for (const auto &iter : iters) {
-                                //no iterador cando faga up o da selectividade ten que reiniciarse
-                                //no caso sen nada fixado, multiplicase por algo constante
-                                //no caso de algo fixad, hai que calcular a selectividade real
-                                //cando fai down, hai que marcar como que a selectividade non está calculada
-                                // pódese calcular no down?? penso que si
                                 m_var_info[v].selectivity *= iter->selectivity();
                                 m_var_info[v].triples = std::min(m_var_info[v].triples, iter->interval_length());
                             }

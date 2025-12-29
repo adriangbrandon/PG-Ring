@@ -220,6 +220,7 @@ namespace ring {
             return UINT64_MAX; //infinite
         }
 
+        //TODO: gestionar se é un id de nodo ou de arista (Falar con Gonzalo)
         inline double_t selectivity() const {
             switch (m_expr->type) {
                 case query::EQ:
@@ -232,6 +233,17 @@ namespace ring {
             return 1.0;
             //if (!m_nfixed) return CONSTANTE;
             //return m_ptr_ring->contar_in_range()/m_ptr_ring->n_nodes();
+        }
+
+        inline double_t opt_selectivity() const {
+            switch (m_expr->type) {
+                case query::EQ:
+                    return 0.1;
+                case query::NEQ:
+                    return 0.9;
+                default:
+                    return 0.5;
+            }
         }
 
         value_type seek_last(var_type var) {

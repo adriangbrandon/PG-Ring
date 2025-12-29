@@ -441,7 +441,7 @@ TEST(QueryTest, CompIds)
 TEST(QueryTest, Error)
 {
      std::vector<std::string> queries = {
-         "(?a1)-[?w]->(?m), (?a2)-[?y]->(?m), (?m)-[?z]->(?k) WHERE (?a1 != ?a2) AND (?y != ?w)",
+         "(?a1)-[?w:1]->(?m), (?a2)-[?y:1]->(?m) WHERE (?a1.5 = ?a2.5) AND (?a1.5 != 1962)"
     };
     run_queries_test(queries);
 }
