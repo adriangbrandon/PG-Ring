@@ -179,7 +179,7 @@ namespace ring {
             if (expr.has_property()) {
                 m_iterators.push_back(new ltj_iterator_comp<ring_type, var_type, const_type>(&expr, var0_edge, var1_edge, m_ptr_ring));
             }else {
-                m_iterators.push_back(new ltj_iterator_comp_id<ring_type, var_type, const_type>(&expr, m_ptr_ring));
+                m_iterators.push_back(new ltj_iterator_comp_id<ring_type, var_type, const_type>(&expr, var0_edge, m_ptr_ring));
             }
 
             if (expr.is_var[0]) {

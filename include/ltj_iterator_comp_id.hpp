@@ -46,6 +46,7 @@ namespace ring {
 
         std::array<value_type, 2> m_fixed_values;
         std::array<bool, 2> m_state = {false, false};
+        bool m_comp_edges = false;
         size_type m_nfixed = 0;
         bool m_is_empty = false;
 
@@ -56,6 +57,7 @@ namespace ring {
             m_is_empty = o.m_is_empty;
             m_fixed_values = o.m_fixed_values;
             m_state = o.m_state;
+            m_comp_edges = o.m_comp_edges;
             m_nfixed = o.m_nfixed;
             m_expr = o.m_expr;
             m_ptr_ring = o.m_ptr_ring;
@@ -91,11 +93,12 @@ namespace ring {
 
         ltj_iterator_comp_id() = default;
 
-        ltj_iterator_comp_id(const expr_type *expr, ring_type *ring) {
+        ltj_iterator_comp_id(const expr_type *expr, bool comp_edges, ring_type *ring) {
             m_ptr_ring = ring;
             m_expr = expr;
             m_is_empty = false;
             m_fixed_values = {0, 0};
+            m_comp_edges = comp_edges;
             if (!m_expr->is_var[0] && m_expr->is_var[1]) {
                 m_nfixed = 1;
                 m_fixed_values[0] = m_expr->values[0];
@@ -132,6 +135,7 @@ namespace ring {
                 m_ptr_ring = std::move(o.m_ptr_ring);
                 m_fixed_values = std::move(o.m_fixed_values);
                 m_state = std::move(o.m_state);
+                m_comp_edges = o.m_comp_edges;
                 m_nfixed = std::move(o.m_nfixed);
                 m_is_empty = std::move(o.m_is_empty);
             }
@@ -144,6 +148,7 @@ namespace ring {
             std::swap(m_ptr_ring, o.m_ptr_ring);
             std::swap(m_fixed_values, o.m_fixed_values);
             std::swap(m_state, o.m_state);
+            std::swap(m_comp_edges, o.m_comp_edges);
             std::swap(m_nfixed, o.m_nfixed);
             std::swap(m_is_empty, o.m_is_empty);
         }
@@ -220,30 +225,59 @@ namespace ring {
             return UINT64_MAX; //infinite
         }
 
-        //TODO: gestionar se é un id de nodo ou de arista (Falar con Gonzalo)
         inline double_t selectivity() const {
-            switch (m_expr->type) {
-                case query::EQ:
-                    return 0.1;
-                case query::NEQ:
-                    return 0.9;
-                default:
-                    return 0.5;
+            double_t elements = m_comp_edges ? m_ptr_ring->n_triples : m_ptr_ring->max_s;
+            if (!m_nfixed) {
+                switch (m_expr->type) {
+                    case query::EQ:
+                        return 1 / elements;
+                    case query::NEQ:
+                        return 1 - 1 / elements;
+                    default:
+                        return 0.5;
+                }
+            }else {
+                switch (m_expr->type) {
+                    case query::EQ:
+                        return 1 / elements;
+                    case query::NEQ:
+                        return 1 - 1 / elements;
+                    case query::GT:
+                        if (m_fixed_values[0]) {
+                            return (elements - m_fixed_values[0]) / elements;
+                        }else {
+                            return (elements - m_fixed_values[1]) / elements;
+                        }
+                    case query::ST:
+                        if (m_fixed_values[0]) {
+                            return (m_fixed_values[0] - 1) / elements;
+                        }else {
+                            return (m_fixed_values[1] - 1) / elements;
+                        }
+                    case query::GE:
+                        if (m_fixed_values[0]) {
+                            return (elements - m_fixed_values[0] + 1) / elements;
+                        } else {
+                            return (elements - m_fixed_values[1] + 1) / elements;
+                        }
+                    case query::SE:
+                        if (m_fixed_values[0]) {
+                            return m_fixed_values[0] / elements;
+                        } else {
+                            return m_fixed_values[1] / elements;
+                        }
+                    default:
+                        return 1;
+                }
             }
+
             return 1.0;
             //if (!m_nfixed) return CONSTANTE;
             //return m_ptr_ring->contar_in_range()/m_ptr_ring->n_nodes();
         }
 
         inline double_t opt_selectivity() const {
-            switch (m_expr->type) {
-                case query::EQ:
-                    return 0.1;
-                case query::NEQ:
-                    return 0.9;
-                default:
-                    return 0.5;
-            }
+            return selectivity();
         }
 
         value_type seek_last(var_type var) {

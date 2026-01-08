@@ -178,7 +178,7 @@ namespace ring {
                     else
                         return 1 - m_ptr_ring->cnt_node_property_value(prop_id, 1, fixed_value-1) / (double_t) m_ptr_ring->cnt_node_property_value(prop_id);
                 default:
-                    return 0.0;
+                    return 1.0;
             }
 
         }
@@ -205,7 +205,7 @@ namespace ring {
                 case query::GE:
                     return std::max(0, (max_a - min_a +1) - c + 1) / static_cast<double_t>(max_a - min_a + 1);
                 default:
-                    return 0.0;
+                    return 1.0;
             }
         }
 
