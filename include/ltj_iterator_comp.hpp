@@ -112,6 +112,21 @@ namespace ring {
         }
 
         double_t compute_selectivity_no_fixed() {
+
+            //if both properties are of the same type and is the same property id
+            if (m_is_edge[0] == m_is_edge[1] && m_expr->property_values[0] == m_expr->property_values[1]) {
+                double_t elements = m_is_edge[0] ? m_ptr_ring->n_triples : m_ptr_ring->max_s;
+                switch (m_expr->type) {
+                    case query::EQ:
+                        return 1 / elements;
+                    case query::NEQ:
+                        return 1 - 1 / elements;
+                    default:
+                        return 0.5;
+                }
+            }
+
+            //different properties
             int min_a, max_a, min_b, max_b;
             if (m_is_edge[0]) {
                 std::tie(min_a, max_a) = m_ptr_ring->get_edge_property_range(m_expr->property_values[0]);
