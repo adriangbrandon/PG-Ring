@@ -5,7 +5,7 @@
 
 #include <iostream>
 #include <string>
-#include <cypher/cypher_parser.hpp>
+#include <cypher/cypher_create_parser_v2.hpp>
 
 int main(int argc, char* argv[]) {
 
@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
 
     std::string input_file = argv[1];
     std::string output_file = argv[2];
-    cypher_parser parser;
+    cypher_create_parser_v2 parser;
     parser.parse_file(input_file);
     parser.write_file(output_file);
 

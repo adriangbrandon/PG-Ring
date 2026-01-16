@@ -19,7 +19,6 @@ namespace ring {
             std::unordered_map<uint32_t, std::pair<bool, uint32_t> > *m_ptr_node_properties;
             std::unordered_map<uint32_t, std::pair<bool, uint32_t> > *m_ptr_edge_properties;
             query::pg_query m_query;
-            std::vector<std::string> m_strings_in_query;
             std::vector<std::vector<uint32_t> > m_res;
 
 

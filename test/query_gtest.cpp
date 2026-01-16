@@ -137,7 +137,7 @@ private:
 public:
     void SetUp() override {
         // Cambia estos paths según lo necesites
-        std::string dataset = "/mnt/movies/real/movies";
+        std::string dataset = "/mnt/movies/realv2/movies";
         std::string triples_path = dataset + ".triples";
         std::string label2nodes_path = dataset + ".label2nodes";
         std::string index_path = dataset + ".ring.pg";
@@ -441,7 +441,8 @@ TEST(QueryTest, CompIds)
 TEST(QueryTest, Error)
 {
      std::vector<std::string> queries = {
-         "(?a1)-[?w:1]->(?m), (?a2)-[?y:1]->(?m) WHERE (?a1.5 = ?a2.5) AND (?a1.5 != 1962)"
+         "(?k:2)-[?y]->(?z) WHERE (?k.5 = 1964) AND (?y.1 = \"Neo\")",
+         "(?k:2)-[?y:(1 OR NOT 1)]->(1) WHERE (?y.1 = \"Neo\")"
     };
     run_queries_test(queries);
 }

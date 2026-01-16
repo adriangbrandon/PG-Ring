@@ -271,11 +271,12 @@ namespace ring {
                         while (pos < s.size() && isdigit(s[pos])) ++pos;
                         prop = std::stoul(s.substr(pstart, pos - pstart));
                     }
-                } else if (pos < s.size() && s[pos] == '"') {
+                } else if (pos < s.size() && (s[pos] == '"' || s[pos] == '\'')) {
+                    char quote_char = s[pos];
                     ++pos;
                     size_t start = pos;
-                    size_t last = s.rfind('"');
-                    str = s.substr(start, last - start);
+                    size_t last = s.rfind(quote_char);
+                    str = '"' + s.substr(start, last - start) + '"';
                 } else if (pos < s.size()) {
                     size_t start = pos;
                     while (pos < s.size() && !isspace(s[pos])) ++pos;
