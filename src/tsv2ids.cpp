@@ -6,7 +6,7 @@
 
 int main(int argc, char* argv[]) {
 
-    if (argc != 3) {
+    if (argc != 2) {
         std::cout << "Usage:" << argv[0] << " <tsv_prefix>" << std::endl;
         std::cout << "Reads <tsv_prefix>-nodes.tsv and <tsv_prefix>-edges.tsv" << std::endl;
         std::cout << "Ouputs <tsv_prefix>.data.<extension> files" << std::endl;
