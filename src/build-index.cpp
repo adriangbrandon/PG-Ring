@@ -21,7 +21,6 @@
 #include <iostream>
 #include <fstream>
 #include <sdsl/construct.hpp>
-#include <ltj_algorithm.hpp>
 #include <utils.hpp>
 
 #include "ring_pg.hpp"

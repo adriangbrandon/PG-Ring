@@ -115,6 +115,9 @@ target_link_libraries(proba sdsl divsufsort divsufsort64)
 add_executable(cypher2ids src/cypher2ids.cpp)
 target_link_libraries(cypher2ids sdsl divsufsort divsufsort64)
 
+add_executable(tsv2ids src/tsv2ids.cpp)
+target_link_libraries(tsv2ids sdsl divsufsort divsufsort64)
+
 add_executable(test_expr_parser test/label_expr_parser.cpp)
 target_link_libraries(test_expr_parser sdsl divsufsort divsufsort64)
 
@@ -126,3 +129,5 @@ target_link_libraries(test_query sdsl divsufsort divsufsort64)
 
 add_executable(query_gtest test/query_gtest.cpp)
 target_link_libraries(query_gtest gtest gtest_main sdsl divsufsort divsufsort64)
+
+add_executable(process src/process.c)
