@@ -47,9 +47,15 @@ private:
     void parse_file_nodes(const std::string& filename) {
         std::ifstream file(filename);
         std::string line;
+        size_t pos = 0;
         while (std::getline(file, line)) {
             auto node = tsv_helper::parse_node(line);
             //print_node(node);
+            if (pos % 10000 == 0) {
+                std::cout << "Parsed nodes: " << pos << "\r";
+                std::cout.flush();
+            }
+
             uint32_t node_id = get_or_add(node.variable, m_set_nodes);
             for (auto & label : node.labels) {
                 uint32_t label_id = get_or_add(label, m_set_label_nodes);
@@ -64,14 +70,21 @@ private:
                 }
                 m_properties_node_values[prop_id][node_id] = value;
             }
+            ++pos;
         }
     }
 
     void parse_file_edges(const std::string& filename) {
         std::ifstream file(filename);
         std::string line;
+        size_t pos = 0;
         while (std::getline(file, line)) {
             auto edge = tsv_helper::parse_edge(line);
+            if (pos % 10000 == 0) {
+                std::cout << "Parsed nodes: " << pos << "\r";
+                std::cout.flush();
+            }
+
             uint32_t subj_id = get_or_add(edge.from, m_set_nodes);
             uint32_t pred_id = get_or_add(edge.type, m_set_label_edges);
             uint32_t obj_id = get_or_add(edge.to, m_set_nodes);
@@ -85,10 +98,13 @@ private:
                 }
                 m_properties_edge_values[prop_id][m_triples.size()] = value;
             }
+            ++pos;
         }
     }
 
     void write_file_nodes(const std::string& filename) {
+        std::cout << "Writing nodes data to " << filename << std::endl;
+
         std::string nodes = filename + ".nodes.dict";
         std::string node_labels = filename + ".nlabels.dict";
         std::string label2nodes = filename + ".label2nodes";
@@ -96,6 +112,7 @@ private:
         std::string nprop2values = filename + ".nprop2values";
 
         // Escribir nodos
+        std::cout << "Writing nodes data to " << filename << std::endl;
         {
             std::ofstream file(nodes);
             for (const auto& pair : m_set_nodes) {
@@ -103,6 +120,7 @@ private:
             }
         }
         // Escribir labels de nodos
+        std::cout << " - Writing node labels" << std::endl;
         {
             std::ofstream file(node_labels);
             for (const auto& pair : m_set_label_nodes) {
@@ -111,6 +129,7 @@ private:
         }
 
         //Escribir node_labels map
+        std::cout << " - Writing label to nodes map" << std::endl;
         {
             std::ofstream file(label2nodes);
             for (const auto& pair : m_label_nodes_map) {
@@ -123,6 +142,7 @@ private:
         }
 
         //Escribir properties de nodos
+        std::cout << " - Writing node properties" << std::endl;
         {
             std::ofstream file(node_props);
             for (const auto& pair : m_properties_node) {
@@ -131,6 +151,7 @@ private:
         }
 
         //Escribir valores de cada property
+        std::cout << " - Writing node property values" << std::endl;
         {
             for (uint32_t p_id = 1; p_id < m_properties_node_values.size(); p_id++) {
                 std::string file_name = nprop2values + "." + std::to_string(p_id);
@@ -149,10 +170,13 @@ private:
     }
 
     void write_file_edges(const std::string& filename) {
+        std::cout << "Writing edges data to " << filename << std::endl;
+
         std::string edge_labels = filename + ".elabels.dict";
         std::string edge_props = filename + ".eprops.dict";
         std::string eprop2values = filename + ".eprop2values";
         std::string triples = filename + ".triples";
+        std::cout << " - Writing edge labels" << std::endl;
         // Escribir labels de aristas
         {
             std::ofstream file(edge_labels);
@@ -162,6 +186,7 @@ private:
         }
 
         //Escribir properties de aristas
+        std::cout << " - Writing edge properties" << std::endl;
         {
             std::ofstream file(edge_props);
             for (const auto& pair : m_properties_edge) {
@@ -172,6 +197,7 @@ private:
 
 
         //Escribir valores de cada property de aristas
+        std::cout << " - Writing edge property values" << std::endl;
         {
             for (uint32_t p_id = 1; p_id < m_properties_edge_values.size(); p_id++) {
                 std::string file_name = eprop2values + "." + std::to_string(p_id);
@@ -188,6 +214,7 @@ private:
             }
         }
 
+        std::cout << " - Writing triples" << std::endl;
         // Escribir triples
         {
             std::ofstream file(triples);
