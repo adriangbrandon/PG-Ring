@@ -72,6 +72,7 @@ private:
             }
             ++pos;
         }
+        std::cout << "Parsed nodes: " << pos << std::endl;
     }
 
     void parse_file_edges(const std::string& filename) {
@@ -100,6 +101,7 @@ private:
             }
             ++pos;
         }
+        std::cout << "Parsed edges: " << pos << std::endl;
     }
 
     void write_file_nodes(const std::string& filename) {
