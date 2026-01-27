@@ -32,7 +32,7 @@ using timer = std::chrono::high_resolution_clock;
 
 
 
-template<class ring>
+/*template<class ring>
 void build_index(const std::string &dataset, const std::string &output){
     vector<spo_triple> triples;
     vector<vector<uint32_t>> label2nodes;
@@ -136,7 +136,7 @@ void build_index(const std::string &dataset, const std::string &output){
     cout << duration_cast<seconds>(stop-start).count() << " seconds." << endl;
     cout << memory_monitor::peak() << " bytes." << endl;
 
-}
+}*/
 
 int main(int argc, char **argv)
 {
@@ -150,7 +150,16 @@ int main(int argc, char **argv)
     std::string type    = argv[2];
     if (type == "pg") {
         std::string index_name = dataset + ".ring.pg";
-        build_index<ring::ring_pg<>>(dataset, index_name);
+        memory_monitor::start();
+        auto start = timer::now();
+        ring::ring_pg<> A(dataset);
+        auto stop = timer::now();
+        memory_monitor::stop();
+        cout << "  Index built  " << sdsl::size_in_bytes(A) << " bytes" << endl;
+        sdsl::store_to_file(A, index_name);
+        cout << "Index saved" << endl;
+        cout << duration_cast<seconds>(stop-start).count() << " seconds." << endl;
+        cout << memory_monitor::peak() << " bytes." << endl;
     }
    /* if(type == "ring"){
         std::string index_name = dataset + ".ring";

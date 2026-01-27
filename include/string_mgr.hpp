@@ -16,8 +16,8 @@ namespace ring {
     class string_mgr {
 
     public:
-        typedef std::string::size_type size_type;
-        typedef std::string value_type;
+        typedef int64_t size_type;
+        typedef int64_t value_type;
         
     private:
 

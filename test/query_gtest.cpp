@@ -7,7 +7,7 @@
 // Variables globales para el dataset y el ring
 std::vector<spo_triple> dataset_vec;
 std::vector<std::vector<uint32_t>> node_labels;
-std::vector<std::vector<std::pair<uint32_t, uint32_t>>> numeric_properties;
+std::vector<std::vector<std::pair<uint32_t, int64_t>>> numeric_properties;
 std::vector<std::vector<std::pair<uint32_t, std::string>>> string_properties;
 std::unordered_map<uint32_t, std::pair<bool, uint32_t>> node_properties;
 std::unordered_map<uint32_t, std::pair<bool, uint32_t>> edge_properties;
@@ -85,10 +85,17 @@ private:
                     values.emplace_back(node_id, value);
                 } while (true);
                 ifs.close();
-                if (::ring::util::is_number(value)) {
-                    std::vector<std::pair<uint32_t, uint32_t>> int_values;
+                if (!::ring::query::constant::is_string(value)) {
+                    std::vector<std::pair<uint32_t, int64_t>> int_values;
                     for (const auto &n : values) {
-                        int_values.emplace_back(n.first, std::stoi(n.second));
+                        int64_t aux;
+                        if (ring::query::constant::is_integer(n.second, aux)) {
+                            int_values.emplace_back(n.first, aux);
+                        } else if (ring::query::constant::is_double(n.second, aux)) {
+                            int_values.emplace_back(n.first, aux);
+                        } else if (ring::query::constant::is_date(n.second, aux)) {
+                            int_values.emplace_back(n.first, aux);
+                        }
                     }
                     numeric_properties.emplace_back(int_values);
                     node_properties.insert({prop_id, {true, numeric_properties.size()-1}});
@@ -118,10 +125,17 @@ private:
                     values.emplace_back(edge_id, value);
                 } while (true);
                 ifs.close();
-                if (::ring::util::is_number(value)) {
-                    std::vector<std::pair<uint32_t, uint32_t>> int_values;
+                if (!::ring::query::constant::is_string(value)) {
+                    std::vector<std::pair<uint32_t, int64_t>> int_values;
                     for (const auto &n : values) {
-                        int_values.emplace_back(n.first, std::stoi(n.second));
+                        int64_t aux;
+                        if (ring::query::constant::is_double(n.second, aux)) {
+                            int_values.emplace_back(n.first, aux);
+                        } else if (ring::query::constant::is_integer(n.second, aux)) {
+                            int_values.emplace_back(n.first, aux);
+                        } else if (ring::query::constant::is_date(n.second, aux)) {
+                            int_values.emplace_back(n.first, aux);
+                        }
                     }
                     numeric_properties.emplace_back(int_values);
                     edge_properties.insert({prop_id, {true, numeric_properties.size()-1}});
@@ -441,8 +455,7 @@ TEST(QueryTest, CompIds)
 TEST(QueryTest, Error)
 {
      std::vector<std::string> queries = {
-         "(?k:2)-[?y]->(?z) WHERE (?k.5 = 1964) AND (?y.1 = \"Neo\")",
-         "(?k:2)-[?y:(1 OR NOT 1)]->(1) WHERE (?y.1 = \"Neo\")"
+         "(?k:2)-[?y]->(1), (?j:2)-[?w]->(30) WHERE (?j.5 > ?k.5)"
     };
     run_queries_test(queries);
 }

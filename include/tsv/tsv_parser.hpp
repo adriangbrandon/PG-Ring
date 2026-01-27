@@ -82,7 +82,7 @@ private:
         while (std::getline(file, line)) {
             auto edge = tsv_helper::parse_edge(line);
             if (pos % 10000 == 0) {
-                std::cout << "Parsed nodes: " << pos << "\r";
+                std::cout << "Parsed edges: " << pos << "\r";
                 std::cout.flush();
             }
 

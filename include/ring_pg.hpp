@@ -33,6 +33,7 @@
 #include <property_grid_v2.hpp>
 
 #include "string_mgr.hpp"
+#include "utils.hpp"
 #include "query/where_expr_parser.hpp"
 
 namespace ring {
@@ -98,6 +99,237 @@ namespace ring {
             m_string_mgr = o.m_string_mgr;
         }
 
+        void build_bwts(const std::string &triples_file) {
+            {
+                std::ifstream ifs(triples_file);
+                vector<spo_triple_type> D;
+                uint64_t s, p, o;
+                do {
+                    ifs >> s >> p >> o;
+                    if (ifs.eof()) break;
+                    D.emplace_back(spo_triple(s, p, o));
+                } while (true);
+
+                std::cout << " - Indexing " << D.size() << " triples" << std::endl;
+
+                vector<spo_triple>::iterator it, triple_begin = D.begin(), triple_end = D.end();
+                uint64_t U, n = m_n_triples = D.size();
+                size_type i; {
+                    m_max_p = std::get<1>(D[0]), U = std::get<0>(D[0]);
+                    if (std::get<2>(D[0]) > U)
+                        U = std::get<2>(D[0]);
+
+                    for (i = 1; i < n; i++) {
+                        if (std::get<1>(D[i]) > m_max_p)
+                            m_max_p = std::get<1>(D[i]);
+
+                        if (std::get<0>(D[i]) > U)
+                            U = std::get<0>(D[i]);
+
+                        if (std::get<2>(D[i]) > U)
+                            U = std::get<2>(D[i]);
+                    }
+                }
+                uint64_t alphabet_SO = U;
+                m_max_s = m_max_o = alphabet_SO;
+
+                std::vector<uint32_t> M_O, M_S, M_P;
+
+                M_S.resize(alphabet_SO + 1, 0);
+                M_S.shrink_to_fit();
+
+                for (it = triple_begin, i = 0; i < n; i++, it++)
+                    M_S[std::get<0>(*it)]++;
+
+                // Sorts the triples lexycographically
+                sort(triple_begin, triple_end);
+
+                // First O
+                {
+                    uint64_t c;
+                    vector<uint64_t> new_C_O;
+                    uint64_t cur_pos = 1;
+                    new_C_O.push_back(0); // Dummy value
+                    new_C_O.push_back(cur_pos);
+                    for (c = 2; c <= alphabet_SO; c++) {
+                        cur_pos += M_S[c - 1];
+                        new_C_O.push_back(cur_pos);
+                    }
+                    new_C_O.push_back(n + 1);
+                    new_C_O.shrink_to_fit();
+
+                    M_S.clear();
+                    M_S.shrink_to_fit();
+
+                    int_vector<> new_O(n + 1);
+                    new_O[0] = 0;
+                    for (i = 1; i <= n; i++)
+                        new_O[i] = std::get<2>(D[i - 1]);
+
+                    sdsl::util::bit_compress(new_O);
+                    // builds the WT for BWT(O)
+                    m_bwt_o = bwt_type(new_O, new_C_O);
+                }
+
+                M_O.resize(alphabet_SO + 1, 0);
+                M_O.shrink_to_fit();
+
+                for (it = triple_begin, i = 0; i < n; i++, it++)
+                    M_O[std::get<2>(*it)]++;
+
+                stable_sort(D.begin(), D.end(), [](const spo_triple &a,
+                                                   const spo_triple &b) {
+                    return std::get<2>(a) < std::get<2>(b);
+                }); {
+                    uint64_t c;
+                    vector<uint64_t> new_C_P;
+
+                    uint64_t cur_pos = 1;
+                    new_C_P.push_back(0); // Dummy value
+                    new_C_P.push_back(cur_pos);
+                    for (c = 2; c <= alphabet_SO; c++) {
+                        cur_pos += M_O[c - 1];
+                        new_C_P.push_back(cur_pos);
+                    }
+                    new_C_P.push_back(n + 1);
+                    new_C_P.shrink_to_fit();
+
+                    M_O.clear();
+
+                    int_vector<> new_P(n + 1);
+                    new_P[0] = 0;
+                    for (i = 1; i <= n; i++)
+                        new_P[i] = std::get<1>(D[i - 1]);
+
+                    sdsl::util::bit_compress(new_P);
+                    m_bwt_p = bwt_p_type(new_P, new_C_P);
+                }
+
+                M_P.resize(m_max_p + 1, 0);
+                M_P.shrink_to_fit();
+
+                for (it = triple_begin, i = 0; i < n; i++, it++)
+                    M_P[std::get<1>(*it)]++;
+
+                stable_sort(D.begin(), D.end(), [](const spo_triple &a,
+                                                   const spo_triple &b) {
+                    return std::get<1>(a) < std::get<1>(b);
+                });
+                // Builds BWT_S
+                {
+                    uint64_t c;
+                    vector<uint64_t> new_C_S;
+
+                    uint64_t cur_pos = 1;
+                    new_C_S.push_back(0); // Dummy value
+                    new_C_S.push_back(cur_pos);
+                    for (c = 2; c <= m_max_p; c++) {
+                        cur_pos += M_P[c - 1];
+                        new_C_S.push_back(cur_pos);
+                    }
+                    new_C_S.push_back(n + 1);
+                    new_C_S.shrink_to_fit();
+
+                    M_P.clear();
+
+                    int_vector<> new_S(n + 1);
+                    new_S[0] = 0;
+                    for (i = 1; i <= n; i++)
+                        new_S[i] = std::get<0>(D[i - 1]);
+                    sdsl::util::bit_compress(new_S);
+
+                    m_bwt_s = bwt_type(new_S, new_C_S);
+                }
+            }
+        }
+
+        void build_labelsmap(const std::string &labels_file) {
+            std::ifstream ifs(labels_file);
+            uint32_t node, size, label;
+            do {
+                ifs >> label;
+                if(ifs.eof()) break;
+                ifs >> size;
+                m_bvts.emplace_back(); m_cnt_labels.emplace_back();
+                m_succs0.emplace_back(); m_succs1.emplace_back();
+                sdsl::bit_vector bvt(m_max_s + 2, 0);
+                m_cnt_labels.back() = size;
+                for (uint32_t i = 0; i < size; i++) {
+                    ifs >> node;
+                    bvt[node] = 1;
+                }
+                bvt[max_s+1]= 1; // sentinel
+                m_bvts.back() = bit_vector_type(bvt);
+                sdsl::util::init_support(m_succs0.back(), &m_bvts.back());
+                sdsl::util::init_support(m_succs1.back(), &m_bvts.back());
+            } while (true);
+        }
+
+        void get_strings(const std::string &base_prop, std::set<std::string> &strings_in_prop) {
+            {
+                uint32_t prop_id = 1;
+                uint32_t id;
+                int64_t aux;
+                std::string value;
+                do {
+                    std::string file = base_prop + std::to_string(prop_id);
+                    std::ifstream ifs(file);
+                    if (!ifs.good()) break;
+                    do {
+                        ifs >> id;
+                        if(ifs.eof()) break;
+                        std::getline(ifs, value);
+                        value = value.substr(1); // remove leading space
+                        if (!value.empty() && value.back() == '\r') value.pop_back();
+                        if (!::ring::query::constant::is_string(value)) {
+                            break;
+                        }
+                        strings_in_prop.insert(value);
+                    } while (true);
+                    ifs.close();
+                    ++prop_id;
+                } while (true);
+            }
+        }
+
+
+        void build_props(const std::string &base_prop, std::vector<property_grid_v2<>> &grids, size_type max_v) {
+            {
+                uint32_t prop_id = 1;
+                uint32_t id;
+                std::string value;
+                do {
+                    std::string file = base_prop + std::to_string(prop_id);
+                    std::ifstream ifs(file);
+                    if (!ifs.good()) break;
+                    std::vector<std::pair<uint32_t, int64_t>> prop2values;
+                    do {
+                        ifs >> id;
+                        if(ifs.eof()) break;
+                        std::getline(ifs, value);
+                        value = value.substr(1); // remove leading space
+                        if (!value.empty() && value.back() == '\r') value.pop_back();
+                        int64_t data;
+                        if (::ring::query::constant::is_string(value)) {
+                            int64_t str_id = m_string_mgr.find(value);
+                            prop2values.emplace_back(id, str_id);
+                        }else if (::ring::query::constant::is_date(value, data)){
+                            prop2values.emplace_back(id, data);
+                        }else if (::ring::query::constant::is_integer(value, data)) {
+                            prop2values.emplace_back(id, data);
+                        }else if (::ring::query::constant::is_double(value, data)) {
+                            prop2values.emplace_back(id, data);
+                        }
+                    } while (true);
+                    ifs.close();
+
+                    grids.emplace_back();
+                    grids.back() = property_grid_v2<>(prop2values, max_v);
+                    ++prop_id;
+                } while (true);
+            }
+        }
+
     public:
 
         const bwt_type &s_spo = m_bwt_s; //POS
@@ -111,8 +343,33 @@ namespace ring {
 
         ring_pg() = default;
 
+        ring_pg(std::string &file_base) {
+            std::string triples_file = file_base + ".triples";
+            std::string labels_file = file_base + ".label2nodes";
+            std::string node_prop_base = file_base + ".nprop2values.";
+            std::string edge_prop_base = file_base + ".eprop2values.";
+
+            std::cout << "Building Ring-PG from files with base name: " << file_base << std::endl;
+            std::cout << " - Building BWTs and loading triples" << std::endl;
+            build_bwts(triples_file);
+            std::cout << " - Building labels map" << std::endl;
+            build_labelsmap(labels_file);
+            std::cout << " - Collecting strings in properties" << std::endl;
+            // First, we collect all strings in properties to build the string manager
+            std::set<std::string> strings_in_props;
+            get_strings(node_prop_base, strings_in_props);
+            get_strings(edge_prop_base, strings_in_props);
+            m_string_mgr = string_mgr(strings_in_props);
+            // Now we can build the property grids
+            std::cout << " - Building node properties" << std::endl;
+            build_props(node_prop_base, m_node_properties, m_max_s);
+            std::cout << " - Building edge properties" << std::endl;
+            build_props(edge_prop_base, m_edge_properties, m_n_triples);
+            std::cout << " - Ring-PG construction completed" << std::endl;
+        }
+
         // Assumes the triples have been stored in a vector<spo_triple>
-        ring_pg(vector<spo_triple_type> &D, std::vector<std::vector<uint32_t>>& label2nodes,
+       /* ring_pg(vector<spo_triple_type> &D, std::vector<std::vector<uint32_t>>& label2nodes,
                 std::vector<std::vector<std::pair<id_type, std::string>>>& node_properties,
                 std::vector<std::vector<std::pair<id_type, std::string>>>& edge_properties,
                 std::vector<bool> &nprop_numeric, std::vector<bool> &eprop_numeric) {
@@ -322,7 +579,7 @@ namespace ring {
             cout << "-- Grids built successfully" << endl;
 
             cout << "-- Index constructed successfully" << endl;
-        };
+        };*/
 
 
         //! Copy constructor

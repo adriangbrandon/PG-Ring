@@ -16,7 +16,7 @@ namespace ring {
     public:
 
         typedef uint64_t size_type;
-        typedef int32_t value_type;
+        typedef int64_t value_type;
         typedef uint32_t id_type;
         typedef sdsl::wm_int<wm_bit_vector_t> wm_type;
         typedef bit_vector_t bv_type;
@@ -67,14 +67,14 @@ namespace ring {
         property_grid_v2() = default;
 
         //PRE: sorted by id (first) and value (second)
-        property_grid_v2(const std::vector<std::pair<id_type, std::string>> &values, const id_type max_id) {
+        property_grid_v2(const std::vector<std::pair<id_type, value_type>> &values, const id_type max_id) {
             sdsl::bit_vector bv_aux(max_id+1, 0);
             std::vector<value_type> aux_y(values.size()+1);
             value_type min_val = std::numeric_limits<value_type>::max();
             value_type max_val = std::numeric_limits<value_type>::min();
             for (size_type i = 0; i < values.size(); i++) {
                 bv_aux[values[i].first] = 1;
-                aux_y[i+1] = std::stoi(values[i].second); //the value as integer
+                aux_y[i+1] = values[i].second; //the value as integer
                 if (aux_y[i+1] < min_val) min_val = aux_y[i+1];
                 if (aux_y[i+1] > max_val) max_val = aux_y[i+1];
             }

@@ -31,7 +31,7 @@ namespace ring {
     class ltj_iterator_comp : public ltj_iterator_base<var_t, cons_t> {
     public:
         typedef cons_t id_type;
-        typedef int32_t value_type;
+        typedef int64_t value_type;
         typedef var_t var_type;
         typedef ring_t ring_type;
         typedef uint64_t size_type;
@@ -212,13 +212,13 @@ namespace ring {
                 case query::NEQ:
                     return 1.0 - 1 / static_cast<double_t>(max_a - min_a + 1);
                 case query::ST:
-                    return 1.0 - std::max(0, (max_a - min_a +1) - c + 1) / static_cast<double_t>(max_a - min_a + 1);
+                    return 1.0 - std::max(0L, (max_a - min_a +1) - c + 1) / static_cast<double_t>(max_a - min_a + 1);
                 case query::GT:
-                    return std::max(0, (max_a - min_a +1) - c) / static_cast<double_t>(max_a - min_a + 1);
+                    return std::max(0L, (max_a - min_a +1) - c) / static_cast<double_t>(max_a - min_a + 1);
                 case query::SE:
-                    return 1.0 - std::max(0, (max_a - min_a +1) - c + 1) / static_cast<double_t>(max_a - min_a + 1);
+                    return 1.0 - std::max(0L, (max_a - min_a +1) - c + 1) / static_cast<double_t>(max_a - min_a + 1);
                 case query::GE:
-                    return std::max(0, (max_a - min_a +1) - c + 1) / static_cast<double_t>(max_a - min_a + 1);
+                    return std::max(0L, (max_a - min_a +1) - c + 1) / static_cast<double_t>(max_a - min_a + 1);
                 default:
                     return 1.0;
             }

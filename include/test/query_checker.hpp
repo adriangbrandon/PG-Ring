@@ -14,7 +14,7 @@ namespace ring {
         private:
             std::vector<spo_triple> *m_ptr_triples; //should be sorted by POS
             std::vector<std::vector<uint32_t> > *m_ptr_node_labels; //adjlist of node->labels
-            std::vector<std::vector<std::pair<uint32_t, uint32_t> > > *m_ptr_numeric_properties;
+            std::vector<std::vector<std::pair<uint32_t, int64_t> > > *m_ptr_numeric_properties;
             std::vector<std::vector<std::pair<uint32_t, std::string> > > *m_ptr_string_properties;
             std::unordered_map<uint32_t, std::pair<bool, uint32_t> > *m_ptr_node_properties;
             std::unordered_map<uint32_t, std::pair<bool, uint32_t> > *m_ptr_edge_properties;
@@ -220,7 +220,7 @@ namespace ring {
                 run(p_i, t_i + 1, tuple);
             }
 
-            bool get_node_property_value_numeric(uint32_t prop_id, uint32_t node_id, uint32_t &value) {
+            bool get_node_property_value_numeric(uint32_t prop_id, uint32_t node_id, int64_t &value) {
                 auto it = m_ptr_node_properties->find(prop_id);
                 auto pos = it->second.second;
                 const auto &vec = m_ptr_numeric_properties->at(pos);
@@ -246,7 +246,7 @@ namespace ring {
                 return false;
             }
 
-            bool get_edge_property_value_numeric(uint32_t prop_id, uint32_t node_id, uint32_t &value) {
+            bool get_edge_property_value_numeric(uint32_t prop_id, uint32_t node_id, int64_t &value) {
                 auto it = m_ptr_edge_properties->find(prop_id);
                 auto pos = it->second.second;
                 const auto &vec = m_ptr_numeric_properties->at(pos);
@@ -306,7 +306,7 @@ namespace ring {
 
 
             bool check_expr_cmp(query::where_expr_parser::expr expr, const std::vector<uint32_t> &tuple) {
-                uint32_t e0, e1;
+                int64_t e0, e1;
                 std::string s0, s1;
                 if (expr.has_property()) {
                     if (expr.is_var[0] && expr.is_var[1]) {
@@ -318,7 +318,7 @@ namespace ring {
                                 auto ok1 = get_node_property_value_numeric(
                                     expr.property_values[1], tuple[expr.values[1] - 1], e1);
                                 if (!(ok0 && ok1)) return false;
-                                compare<uint32_t> cmp;
+                                compare<int64_t> cmp;
                                 return cmp(e0, e1, expr);
                             } else {
                                 auto ok0 = get_node_property_value_string(
@@ -337,7 +337,7 @@ namespace ring {
                                 auto ok1 = get_edge_property_value_numeric(
                                     expr.property_values[1], tuple[expr.values[1] - 1], e1);
                                 if (!(ok0 && ok1)) return false;
-                                compare<uint32_t> cmp;
+                                compare<int64_t> cmp;
                                 return cmp(e0, e1, expr);
                             } else {
                                 auto ok0 = get_edge_property_value_string(
@@ -355,7 +355,7 @@ namespace ring {
                             if (is_property_numeric(true, expr.property_values[1])) {
                                 if (!get_node_property_value_numeric(expr.property_values[1], tuple[expr.values[1] - 1],
                                                                      e0)) return false;
-                                compare<uint32_t> cmp;
+                                compare<int64_t> cmp;
                                 return cmp(expr.values[0], e0, expr);
                             } else {
                                 if (!get_node_property_value_string(expr.property_values[1], tuple[expr.values[1] - 1],
@@ -368,7 +368,7 @@ namespace ring {
                             if (is_property_numeric(false, expr.property_values[1])) {
                                 if (!get_edge_property_value_numeric(expr.property_values[1], tuple[expr.values[1] - 1],
                                                                      e0)) return false;
-                                compare<uint32_t> cmp;
+                                compare<int64_t> cmp;
                                 return cmp(expr.values[0], e0, expr);
                             } else {
                                 if (!get_edge_property_value_string(expr.property_values[1], tuple[expr.values[1] - 1],
@@ -382,7 +382,7 @@ namespace ring {
                             if (is_property_numeric(true, expr.property_values[0])) {
                                 if (!get_node_property_value_numeric(expr.property_values[0], tuple[expr.values[0] - 1],
                                                                      e0)) return false;
-                                compare<uint32_t> cmp;
+                                compare<int64_t> cmp;
                                 return cmp(e0, expr.values[1], expr);
                             } else {
                                 if (!get_node_property_value_string(expr.property_values[0], tuple[expr.values[0] - 1],
@@ -394,7 +394,7 @@ namespace ring {
                             if (is_property_numeric(false, expr.property_values[0])) {
                                 if (!get_edge_property_value_numeric(expr.property_values[0], tuple[expr.values[0] - 1],
                                                                      e0)) return false;
-                                compare<uint32_t> cmp;
+                                compare<int64_t> cmp;
                                 return cmp(e0, expr.values[1], expr);
                             } else {
                                 if (!get_edge_property_value_string(expr.property_values[0], tuple[expr.values[0] - 1],
@@ -449,7 +449,7 @@ namespace ring {
             const std::vector<std::vector<uint32_t> > &res = m_res;
 
             query_checker(std::vector<spo_triple> *ptr_triples, std::vector<std::vector<uint32_t> > *ptr_node_labels,
-                          std::vector<std::vector<std::pair<uint32_t, uint32_t> > > *ptr_numeric_properties,
+                          std::vector<std::vector<std::pair<uint32_t, int64_t> > > *ptr_numeric_properties,
                           std::vector<std::vector<std::pair<uint32_t, std::string> > > *ptr_string_properties,
                           std::unordered_map<uint32_t, std::pair<bool, uint32_t>>  *ptr_node_properties,
                           std::unordered_map<uint32_t, std::pair<bool, uint32_t>> *ptr_edge_properties,

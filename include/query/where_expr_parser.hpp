@@ -19,7 +19,7 @@ namespace ring {
         class where_expr_parser {
         public:
             typedef uint32_t property_type;
-            typedef uint32_t value_type;
+            typedef int64_t value_type;
 
             typedef struct expr {
                 enum_comp_where_type type = WAND;
@@ -251,7 +251,7 @@ namespace ring {
             }
 
             // parse_operand on exact string
-            static void parse_operand(const std::string &s, bool &is_var, uint32_t &value, std::string &str, uint32_t &prop,
+            static void parse_operand(const std::string &s, bool &is_var, int64_t &value, std::string &str, uint32_t &prop,
                                       std::unordered_map<std::string, std::uint8_t> &ht) {
                 is_var = false;
                 value = 0;
@@ -281,15 +281,13 @@ namespace ring {
                     size_t start = pos;
                     while (pos < s.size() && !isspace(s[pos])) ++pos;
                     std::string token = s.substr(start, pos - start);
-                    std::uint32_t integer_val;
-                    std::uint64_t date_val;
-                    double double_val;
-                    if (constant::is_integer(token, integer_val)) {
-                        value = integer_val;
-                    } else if (constant::is_double(token, double_val)) {
-                        value = static_cast<uint32_t>(double_val);
-                    }else if (constant::is_date(token, date_val)) {
-                        value = static_cast<uint32_t>(date_val);
+                    std::int64_t aux;
+                    if (constant::is_integer(token, aux)) {
+                        value = aux;
+                    } else if (constant::is_double(token, aux)) {
+                        value = aux;
+                    }else if (constant::is_date(token, aux)) {
+                        value = aux;
                     }
                 }
             }

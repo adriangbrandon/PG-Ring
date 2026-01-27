@@ -444,11 +444,7 @@ namespace ring {
             }
         };
 
-        static bool is_number(const std::string& s) {
-            char* end;
-            std::strtod(s.c_str(), &end);
-            return end != s.c_str() && *end == '\0';
-        }
+
     }
 
 }

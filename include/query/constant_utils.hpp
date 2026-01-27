@@ -14,29 +14,10 @@ namespace ring {
 
         namespace constant {
 
-            enum enum_constant_type {INTEGER, DOUBLE, STRING, DATE};
-            typedef struct {
-                enum_constant_type type;
-                std::uint32_t value;
-                std::string string;
-            } constant_type;
-
-
-            static bool is_integer(const std::string& s, std::uint32_t& result) {
+            static bool is_integer(const std::string& s, int64_t& result) {
                 if (s.empty()) return false;
                 char* end;
-                unsigned long val = std::strtoul(s.c_str(), &end, 10);
-                if (end != s.c_str() && *end == '\0') {
-                    result = static_cast<std::uint32_t>(val);
-                    return true;
-                }
-                return false;
-            }
-
-            static bool is_double(const std::string& s, double& result) {
-                if (s.empty()) return false;
-                char* end;
-                double val = std::strtod(s.c_str(), &end);
+                int64_t val = std::strtol(s.c_str(), &end, 10);
                 if (end != s.c_str() && *end == '\0') {
                     result = val;
                     return true;
@@ -44,7 +25,81 @@ namespace ring {
                 return false;
             }
 
-            static bool is_date(const std::string& s, std::uint64_t& result) {
+            static int64_t double_to_int64(double x)
+            {
+                uint64_t bits;
+                std::memcpy(&bits, &x, sizeof(double));
+
+                if (bits >> 63) {
+                    // negativo: invertir todos los bits
+                    bits = ~bits;
+                } else {
+                    // positivo: flip del bit de signo
+                    bits ^= (1ULL << 63);
+                }
+                return static_cast<int64_t>(bits);
+            }
+
+            static double int64_to_double(int64_t x)
+            {
+                auto bits = static_cast<uint64_t>(x);
+
+                if (bits >> 63) {
+                    // era positivo: desflip del signo
+                    bits ^= (1ULL << 63);
+                } else {
+                    // era negativo: reinvertir todo
+                    bits = ~bits;
+                }
+                double d;
+                std::memcpy(&d, &bits, sizeof(double));
+                return d;
+            }
+
+            static bool is_double(const std::string& s, int64_t& result) {
+                if (s.empty()) return false;
+                char* end;
+                double val = std::strtod(s.c_str(), &end);
+                if (end != s.c_str() && *end == '\0') {
+                    result = double_to_int64(val);
+                    return true;
+                }
+                return false;
+            }
+
+            // Nuevo formato: ±YYYY-MM-DDThh:mm:ssZ (por ejemplo: +1983-00-00T00:00:00Z o -0450-01-01T00:00:00Z)
+            static bool is_date(const std::string& s, int64_t& result) {
+                // Longitud fija esperada: 21 caracteres: ±YYYY-MM-DDThh:mm:ssZ
+                if (s.size() != 21) return false;
+                if (s[0] != '+' && s[0] != '-') return false;
+                if (s[5] != '-' || s[8] != '-' || s[11] != 'T' || s[14] != ':' || s[17] != ':' || s[20] != 'Z') return false;
+
+                auto parse_int = [](const std::string& str, size_t start, size_t len, int& out) -> bool {
+                    if (start + len > str.size()) return false;
+                    int val = 0;
+                    for (size_t i = start; i < start + len; ++i) {
+                        char c = str[i];
+                        if (!std::isdigit(static_cast<unsigned char>(c))) return false;
+                        val = val * 10 + (c - '0');
+                    }
+                    out = val;
+                    return true;
+                };
+
+                int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
+                if (!parse_int(s, 1, 4, year)) return false;
+                if (s[0] == '-') year = -year; // permitir años negativos
+                if (!parse_int(s, 6, 2, month)) return false;
+                if (!parse_int(s, 9, 2, day)) return false;
+                if (!parse_int(s, 12, 2, hour)) return false;
+                if (!parse_int(s, 15, 2, min)) return false;
+                if (!parse_int(s, 18, 2, sec)) return false;
+
+                result = ((((year * 13 + month) * 32 + day)* 24 + hour) * 60 + min)* 60 + sec;
+                return true;
+            }
+
+            static bool is_date_old(const std::string& s, uint64_t& result) {
                 // Accepts: D/M/YYYY or DD/MM/YYYY, with optional time: [ H[:M[:S]] ]
                 size_t pos = 0;
                 // Parse day
@@ -129,31 +184,6 @@ namespace ring {
             static bool is_string(const std::string& s) {
                 // Debe empezar y acabar por comillas dobles, pero permite cualquier cosa dentro
                 return s.size() >= 2 && s.front() == '"' && s.back() == '"';
-            }
-
-            static constant_type get_constant(size_t &pos, const std::string &s) {
-                constant_type c;
-                std::string aux_str = s.substr(pos);
-                uint int_res;
-                double double_res;
-                uint64_t date_res;
-                if (is_integer(aux_str, int_res)) {
-                    c.type = INTEGER;
-                    c.value = int_res;
-                    pos += aux_str.size();
-                } else if (is_double(aux_str, double_res)) {
-                    c.type = DOUBLE;
-                    c.value = static_cast<uint32_t>(double_res);
-                    pos += aux_str.size();
-                } else if (is_date(aux_str, date_res)) {
-                    c.type = DATE;
-                    c.value = static_cast<uint32_t>(date_res);
-                    pos += aux_str.size();
-                }else {
-                    c.type = STRING;
-                    c.string = aux_str.substr(1, aux_str.size() - 2); //removing the quotes
-                }
-                return c;
             }
 
 
