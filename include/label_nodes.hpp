@@ -22,6 +22,8 @@ namespace ring {
         typedef sdsl::succ_support_sd<> succ_1_type;
         typedef typename bv_type::rank_1_type rank_1_type;
         typedef typename sdsl::int_vector<64> int_vector_type;
+        typedef std::vector<size_type>::const_iterator const_iterator;
+        typedef std::vector<size_type>::iterator iterator;
 
     private:
 
@@ -52,28 +54,31 @@ namespace ring {
 
         label_nodes() = default;
 
-        label_nodes(const sdsl::bit_vector &bv) {
-            m_bv_nodes = bv_type(bv);
+        label_nodes(iterator begin, iterator end) {
+            m_bv_nodes = bv_type(begin, end);
             sdsl::util::init_support(m_succ_node, &m_bv_nodes);
 
             //compute starting positions of runs
-            size_type beg = 0, l = 0;
-            m_size = 0;
+            m_size = std::distance(begin, end)-1; //removing sentinel
             std::vector<size_type> beg_runs, next_0;
-            for (size_type i = 0; i < bv.size(); ++i) {
-                if (bv[i]) {
-                    ++m_size;
-                    if (l == 0) beg = i;
-                    l++;
+            auto p1 = begin;
+            auto p2 = begin;
+            ++p2;
+            size_type beg = *p1, l = 1;
+            while (p2 != end) {
+                if (*p2 == *p1 + 1) {
+                    ++l;
                 }else {
                     if (l >= length) {
                         beg_runs.push_back(beg);
-                        next_0.push_back(i);
+                        next_0.push_back(*p1 + 1);
                     }
-                    l = 0;
+                    l = 1;
+                    beg = *p2;
                 }
+                ++p1; ++p2;
             }
-            beg_runs.push_back(bv.size()); //sentinel
+            beg_runs.push_back(*p1); //sentinel
             m_bv_runs = bv_type(beg_runs.begin(), beg_runs.end());
             sdsl::util::init_support(m_rank_runs, &m_bv_runs);
             m_next_0.resize(m_bv_runs.size());

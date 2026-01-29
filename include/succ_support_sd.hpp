@@ -61,7 +61,7 @@ namespace sdsl {
         enum { bit_pat = t_b };
         enum { bit_pat_len = (uint8_t)1 };
     private:
-        const bit_vector_type* m_v;
+        const bit_vector_type* m_v = nullptr;
         sdsl::succ_support_v<1> m_succ_high;
 
         void copy(const succ_support_sd& ss){

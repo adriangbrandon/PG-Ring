@@ -244,14 +244,15 @@ namespace ring {
                 ifs >> label;
                 if(ifs.eof()) break;
                 ifs >> size;
-                m_label_nodes.emplace_back();
-                sdsl::bit_vector bvt(m_max_s + 2, 0);
-                for (uint32_t i = 0; i < size; i++) {
+                std::vector<size_type> nodes(size+1);
+                for (uint64_t i = 0; i < size; i++) {
                     ifs >> node;
-                    bvt[node] = 1;
+                    nodes[i] = node;
                 }
-                bvt[max_s+1]= 1; // sentinel
-                m_label_nodes.back() = label_nodes<>(bvt);
+                nodes[size] = max_s + 1; // sentinel
+                m_label_nodes.emplace_back( nodes.begin(), nodes.end());
+                std::cout << sdsl::size_in_mega_bytes(m_label_nodes.back()) << " MB for label " << label << " with " << size << " nodes." <<std::endl;
+
             } while (true);
         }
 
