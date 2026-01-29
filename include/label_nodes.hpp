@@ -81,7 +81,7 @@ namespace ring {
             beg_runs.push_back(*p1); //sentinel
             m_bv_runs = bv_type(beg_runs.begin(), beg_runs.end());
             sdsl::util::init_support(m_rank_runs, &m_bv_runs);
-            m_next_0.resize(m_bv_runs.size());
+            m_next_0.resize(next_0.size());
             for (size_type i = 0; i < next_0.size(); ++i) {
                 m_next_0[i] = next_0[i];
             }
