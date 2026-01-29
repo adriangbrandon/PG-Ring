@@ -10,7 +10,7 @@
 
 namespace ring {
 
-    template<class bit_vector_t = sdsl::bit_vector, class wm_bit_vector_t = sdsl::bit_vector>
+    template<class bit_vector_t = sdsl::sd_vector<>, class wm_bit_vector_t = sdsl::bit_vector>
     class property_grid_v2 {
 
     public:

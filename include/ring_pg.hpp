@@ -32,6 +32,7 @@
 
 #include <property_grid_v2.hpp>
 
+#include "label_nodes.hpp"
 #include "string_mgr.hpp"
 #include "utils.hpp"
 #include "query/where_expr_parser.hpp"
@@ -63,10 +64,12 @@ namespace ring {
         size_type m_n_triples;  // number of triples
 
         //labels of nodes
-        std::vector<bit_vector_type> m_bvts;
-        std::vector<size_type> m_cnt_labels;
-        std::vector<succ_0_type> m_succs0;
-        std::vector<succ_1_type> m_succs1;
+        std::vector<label_nodes<>> m_label_nodes;
+        //std::vector<bit_vector_type> m_bvts;
+        //std::vector<size_type> m_cnt_labels;
+        //std::vector<succ_0_type> m_succs0;
+        //std::vector<succ_1_type> m_succs1;
+
 
         //properties
         std::vector<property_grid_v2<>> m_node_properties;
@@ -83,16 +86,7 @@ namespace ring {
             m_max_p = o.m_max_p;
             m_max_o = o.m_max_o;
             m_n_triples = o.m_n_triples;
-
-            m_bvts = o.m_bvts;
-            m_cnt_labels = o.m_cnt_labels;
-            m_succs0 = o.m_succs0;
-            m_succs1 = o.m_succs1;
-            for (size_t i = 0; i < m_bvts.size(); i++) {
-                m_succs0[i].set_vector(&m_bvts[i]);
-                m_succs1[i].set_vector(&m_bvts[i]);
-            }
-
+            m_label_nodes = o.m_label_nodes;
             m_node_properties = o.m_node_properties;
             m_edge_properties = o.m_edge_properties;
 
@@ -250,18 +244,14 @@ namespace ring {
                 ifs >> label;
                 if(ifs.eof()) break;
                 ifs >> size;
-                m_bvts.emplace_back(); m_cnt_labels.emplace_back();
-                m_succs0.emplace_back(); m_succs1.emplace_back();
+                m_label_nodes.emplace_back();
                 sdsl::bit_vector bvt(m_max_s + 2, 0);
-                m_cnt_labels.back() = size;
                 for (uint32_t i = 0; i < size; i++) {
                     ifs >> node;
                     bvt[node] = 1;
                 }
                 bvt[max_s+1]= 1; // sentinel
-                m_bvts.back() = bit_vector_type(bvt);
-                sdsl::util::init_support(m_succs0.back(), &m_bvts.back());
-                sdsl::util::init_support(m_succs1.back(), &m_bvts.back());
+                m_label_nodes.back() = label_nodes<>(bvt);
             } while (true);
         }
 
@@ -610,14 +600,7 @@ namespace ring {
                 m_max_p = o.m_max_p;
                 m_max_o = o.m_max_o;
                 m_n_triples = o.m_n_triples;
-                m_bvts = std::move(o.m_bvts);
-                m_cnt_labels = std::move(o.m_cnt_labels);
-                m_succs0 = std::move(o.m_succs0);
-                m_succs1 = std::move(o.m_succs1);
-                for (size_t i = 0; i < m_bvts.size(); i++) {
-                    m_succs0[i].set_vector(&m_bvts[i]);
-                    m_succs1[i].set_vector(&m_bvts[i]);
-                }
+                m_label_nodes = std::move(o.m_label_nodes);
                 m_node_properties = std::move(o.m_node_properties);
                 m_edge_properties = std::move(o.m_edge_properties);
                 m_string_mgr = std::move(o.m_string_mgr);
@@ -635,12 +618,7 @@ namespace ring {
             std::swap(m_max_p, o.m_max_p);
             std::swap(m_max_o, o.m_max_o);
             std::swap(m_n_triples, o.m_n_triples);
-            std::swap(m_bvts, o.m_bvts);
-            std::swap(m_cnt_labels, o.m_cnt_labels);
-            for (size_t i = 0; i < m_bvts.size(); i++) {
-                sdsl::util::swap_support(m_succs0[i], o.m_succs0[i], &m_bvts[i], &o.m_bvts[i]);
-                sdsl::util::swap_support(m_succs1[i], o.m_succs1[i], &m_bvts[i], &o.m_bvts[i]);
-            }
+            m_label_nodes.swap(o.m_label_nodes);
             m_node_properties.swap(o.m_node_properties);
             m_edge_properties.swap(o.m_edge_properties);
             m_string_mgr.swap(o.m_string_mgr);
@@ -657,11 +635,8 @@ namespace ring {
             written_bytes += sdsl::write_member(m_max_p, out, child, "max_p");
             written_bytes += sdsl::write_member(m_max_o, out, child, "max_o");
             written_bytes += sdsl::write_member(m_n_triples, out, child, "n_triples");
-            sdsl::write_member(m_bvts.size(), out,  child, "labels");
-            written_bytes += sdsl::serialize_vector(m_bvts, out, child, "bvts");
-            written_bytes += sdsl::serialize_vector(m_cnt_labels, out, child, "cnt_labels");
-            written_bytes += sdsl::serialize_vector(m_succs0, out, child, "succs0");
-            written_bytes += sdsl::serialize_vector(m_succs1, out, child, "succs1");
+            sdsl::write_member(m_label_nodes.size(), out,  child, "label_nodes_size");
+            written_bytes += sdsl::serialize_vector(m_label_nodes, out, child, "label_nodes");
             sdsl::write_member(m_node_properties.size(), out,  child, "node_prop_size");
             written_bytes += sdsl::serialize_vector(m_node_properties, out, child, "node_properties");
             sdsl::write_member(m_edge_properties.size(), out,  child, "edge_prop_size");
@@ -681,18 +656,8 @@ namespace ring {
             sdsl::read_member(m_n_triples, in);
             size_t labels_size;
             sdsl::read_member(labels_size, in);
-            m_bvts.resize(labels_size);
-            m_cnt_labels.resize(labels_size);
-            m_succs0.resize(labels_size);
-            m_succs1.resize(labels_size);
-            sdsl::load_vector(m_bvts, in);
-            sdsl::load_vector(m_cnt_labels, in);
-            sdsl::load_vector(m_succs0, in);
-            sdsl::load_vector(m_succs1, in);
-            for (size_t i = 0; i < m_bvts.size(); i++) {
-                m_succs0[i].set_vector(&m_bvts[i]);
-                m_succs1[i].set_vector(&m_bvts[i]);
-            }
+            m_label_nodes.resize(labels_size);
+            sdsl::load_vector(m_label_nodes, in);
             size_t node_prop_size;
             sdsl::read_member(node_prop_size, in);
             m_node_properties.resize(node_prop_size);
@@ -1316,23 +1281,23 @@ namespace ring {
 
 
         id_type next_node_label(uint32_t label, id_type node) {
-            auto n = m_succs1[label-1](node);
+            auto n = m_label_nodes[label-1].next_node(node);
             if (n > m_max_s) return 0;
             return n;
         }
 
         id_type next_node_neg_label(uint32_t label, id_type node) {
-            auto n =  m_succs0[label-1](node);
+            auto n =  m_label_nodes[label-1].next_neg_node(node);
             if (n > m_max_s) return 0;
             return n;
         }
 
         size_type node_label_cnt(id_type label) {
-            return m_cnt_labels[label-1];
+            return m_label_nodes[label-1].size;
         }
 
         size_type node_neg_label_cnt(id_type label) {
-            return m_max_s - m_cnt_labels[label-1];
+            return m_max_s - m_label_nodes[label-1].size;
         }
 
         std::pair<id_type, value_type> next_node_in_property(const value_type prop_id, const value_type node_id) {

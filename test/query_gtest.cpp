@@ -455,7 +455,7 @@ TEST(QueryTest, CompIds)
 TEST(QueryTest, Error)
 {
      std::vector<std::string> queries = {
-         "(?k:2)-[?y]->(1), (?j:2)-[?w]->(30) WHERE (?j.5 > ?k.5)"
+         "(?k:2)-[?y:1]->(1), (?k:2)-[?w]->(?z:(NOT 2))"
     };
     run_queries_test(queries);
 }
