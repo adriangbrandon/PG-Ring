@@ -56,10 +56,6 @@ namespace ring {
             m_bv_nodes = bv_type(bv);
             sdsl::util::init_support(m_succ_node, &m_bv_nodes);
 
-            for (size_type i = 0; i < m_bv_nodes.size(); i++) {
-                std::cout << m_bv_nodes[i] << " ";
-            }
-            std::cout << std::endl;
             //compute starting positions of runs
             size_type beg = 0, l = 0;
             m_size = 0;
