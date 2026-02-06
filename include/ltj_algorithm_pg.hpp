@@ -435,21 +435,21 @@ namespace ring {
             if (j == m_veo.size()) {
                 //Report results
                 res.add(tuple);
-                std::cout << "Add result" << std::endl;
+                /*std::cout << "Add result" << std::endl;
                 uint i = 1;
                 for (const auto &dat: tuple) {
                     std::cout << "x_" << i << "=" << dat << " ";
                     ++i;
                 }
-                std::cout << std::endl;
+                std::cout << std::endl;*/
             } else {
                 var_type x_j = m_veo.next();
-                std::cout << "Variable: " << (uint64_t) x_j << std::endl;
+                //std::cout << "Variable: " << (uint64_t) x_j << std::endl;
                 std::vector<ltj_iter_type *> &itrs = m_var_to_iterators[x_j];
                 bool ok;
                 if (itrs.size() == 1 && itrs[0]->in_last_level()) {
                     //Lonely variables
-                    std::cout << "Seeking (last level)" << std::endl;
+                    //std::cout << "Seeking (last level)" << std::endl;
                     value_type c = itrs[0]->seek_last(x_j);
                     //auto results = itrs[0]->seek_all(x_j);
                     //std::cout << "Results: " << results.size() << std::endl;
@@ -474,7 +474,7 @@ namespace ring {
                     std::vector<ltj_iter_type *> sorted_itrs = itrs; //copy iterators to sort them by interval length
                     std::sort(sorted_itrs.begin(), sorted_itrs.end(), compare_iterator);
                     value_type c = seek(sorted_itrs, x_j);
-                    std::cout << "Seek (init): (" << (uint64_t) x_j << ": " << c << ")" << std::endl;
+                    //std::cout << "Seek (init): (" << (uint64_t) x_j << ": " << c << ")" << std::endl;
                     while (c != 0) {
                         //If empty c=0
                         //1. Adding result to tuple
@@ -496,7 +496,7 @@ namespace ring {
                         m_veo.up();
                         //5. Next constant for x_j
                         c = seek(sorted_itrs, x_j, c + 1);
-                        std::cout << "Seek (bucle): (" << (uint64_t) x_j << ": " << c << ")" << std::endl;
+                        //std::cout << "Seek (bucle): (" << (uint64_t) x_j << ": " << c << ")" << std::endl;
                     }
                 }
                 m_veo.done();

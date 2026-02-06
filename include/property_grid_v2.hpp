@@ -22,6 +22,7 @@ namespace ring {
         typedef bit_vector_t bv_type;
         typedef typename bv_type::rank_1_type rank_1_type;
         typedef typename bv_type::select_1_type select_1_type;
+        typedef typename bv_type::select_0_type select_0_type;
 
 
     private:
@@ -29,10 +30,12 @@ namespace ring {
         bv_type m_exists; //bitvector to know which ids have a property
         rank_1_type m_rank_exists;
         select_1_type m_select_exists;
+        select_0_type m_select_not_exists;
         wm_type m_grid; //the grid with the values in Y and the ids in X
         id_type m_n_points; //n points in the grid
         value_type m_min_val;
         value_type m_max_val;
+        size_type m_grid_max_val;
 
 
         std::pair<id_type, value_type> next(const id_type c_id, std::vector<sdsl::range_type> &ranges) {
@@ -49,8 +52,10 @@ namespace ring {
             m_exists = o.m_exists;
             m_rank_exists = o.m_rank_exists;
             m_select_exists = o.m_select_exists;
+            m_select_not_exists = o.m_select_not_exists;
             m_rank_exists.set_vector(&m_exists);
             m_select_exists.set_vector(&m_exists);
+            m_select_not_exists.set_vector(&m_exists);
             m_grid = o.m_grid;
             m_n_points = o.m_n_points;
             m_min_val = o.m_min_val;
@@ -81,6 +86,7 @@ namespace ring {
             sdsl::int_vector<> grid_y(values.size()+1);
             for (size_type i = 1; i < grid_y.size(); i++) {
                 grid_y[i] = aux_y[i] - (min_val-1); //shift to start from 1
+                std::cout << grid_y[i] << std::endl;
             }
             grid_y[0] = 0; //dummy
             m_min_val = min_val;
@@ -90,7 +96,9 @@ namespace ring {
             m_exists = bv_type(bv_aux);
             sdsl::util::init_support(m_rank_exists, &m_exists);
             sdsl::util::init_support(m_select_exists, &m_exists);
+            sdsl::util::init_support(m_select_not_exists, &m_exists);
             m_n_points = values.size();
+            m_grid_max_val = (63 >= m_grid.max_level) ? (1ULL << m_grid.max_level) -1 : UINT64_MAX;
         }
 
         property_grid_v2(const property_grid_v2 &o) {
@@ -113,8 +121,10 @@ namespace ring {
                 m_exists = std::move(o.m_exists);
                 m_rank_exists = std::move(o.m_rank_exists);
                 m_select_exists = std::move(o.m_select_exists);
+                m_select_not_exists = std::move(o.m_select_not_exists);
                 m_rank_exists.set_vector(&m_exists);
                 m_select_exists.set_vector(&m_exists);
+                m_select_not_exists.set_vector(&m_exists);
                 m_grid = std::move(o.m_grid);
                 m_n_points = o.m_n_points;
                 m_min_val = o.m_min_val;
@@ -127,14 +137,15 @@ namespace ring {
             m_grid.swap(o.m_grid);
             m_exists.swap(o.m_exists);
             sdsl::util::swap_support(m_rank_exists, o.m_rank_exists, &m_exists, &o.m_exists);
-            sdsl::util::swap_support(m_select_exists, o.m_select_exists, &m_exists, &o.m_select_exists);
+            sdsl::util::swap_support(m_select_exists, o.m_select_exists, &m_exists, &o.m_exists);
+            sdsl::util::swap_support(m_select_not_exists, o.m_select_not_exists, &m_exists, &o.m_exists);
             std::swap(m_n_points, o.m_n_points);
             std::swap(m_min_val, o.m_min_val);
             std::swap(m_max_val, o.m_max_val);
         }
 
         std::pair<id_type, value_type> next_ge(const id_type c_id, const value_type c_value) {
-            std::vector<sdsl::range_type> ranges = {{c_value - (m_min_val-1), (1ULL << m_grid.max_level) -1}};
+            std::vector<sdsl::range_type> ranges = {{static_cast<size_type>(c_value - (m_min_val-1)), m_grid_max_val}};
             return next(c_id, ranges);
         }
 
@@ -156,12 +167,28 @@ namespace ring {
 
         std::pair<id_type, value_type> next_not_eq(const id_type c_id, const value_type c_value) {
             if (c_value == 0) {
-                std::vector<sdsl::range_type> ranges = {{1, (1ULL << m_grid.max_level) -1}};
+                std::vector<sdsl::range_type> ranges = {{1, m_grid_max_val}};
                 return next(c_id, ranges);
             }
             size_type aux = c_value - (m_min_val-1);
-            std::vector<sdsl::range_type> ranges = {{1, aux-1}, {aux+1, (1ULL << m_grid.max_level) -1}};
+            std::vector<sdsl::range_type> ranges = {{1, aux-1}, {aux+1, m_grid_max_val}};
             return next(c_id, ranges);
+        }
+
+        std::pair<id_type, value_type> next_is_null(const id_type c_id) {
+            if (c_id >= m_exists.size()) return {0, 0}; //no more ids
+            if (!m_exists[c_id]) return {c_id, 0}; // the value is not needed
+            size_type rank = c_id - m_rank_exists(c_id);
+            if (rank == m_exists.size() - m_n_points) return {0, 0}; //no more ids with property
+            return {m_select_not_exists(rank + 1), 0}; // the value is not needed
+        }
+
+        std::pair<id_type, value_type> next_is_not_null(const id_type c_id) {
+            if (c_id >= m_exists.size()) return {0, 0}; //no more ids
+            if (m_exists[c_id]) return {c_id, 0}; // the value is not needed
+            size_type rank = m_rank_exists(c_id);
+            if (rank == m_n_points) return {0, 0}; //no more ids with property
+            return {m_select_exists(rank + 1), 0}; // the value is not needed
         }
 
         value_type operator[](const value_type c_id) {
@@ -180,7 +207,7 @@ namespace ring {
             return {id, m_grid[rank + 1] + (m_min_val-1)};
         }
 
-        size_type cnt_values_range(int32_t l, int32_t r) {
+        size_type cnt_values_range(value_type l, value_type r) {
             return m_grid.count_range_search_2d(1, m_n_points, l - (m_min_val-1), r - (m_min_val-1));
         }
 
@@ -191,6 +218,7 @@ namespace ring {
             written_bytes += m_exists.serialize(out, child, "exists");
             written_bytes += m_rank_exists.serialize(out, child, "rank");
             written_bytes += m_select_exists.serialize(out, child, "select");
+            written_bytes += m_select_not_exists.serialize(out, child, "select_not");
             written_bytes += m_grid.serialize(out, child, "grid");
             written_bytes += sdsl::write_member(m_n_points, out, child, "last");
             written_bytes += sdsl::write_member(m_min_val, out, child, "min_val");
@@ -202,10 +230,12 @@ namespace ring {
             m_exists.load(in);
             m_rank_exists.load(in, &m_exists);
             m_select_exists.load(in, &m_exists);
+            m_select_not_exists.load(in, &m_exists);
             m_grid.load(in);
             sdsl::read_member(m_n_points, in);
             sdsl::read_member(m_min_val, in);
             sdsl::read_member(m_max_val, in);
+            m_grid_max_val = (63 >= m_grid.max_level) ? (1ULL << m_grid.max_level) -1 : UINT64_MAX;
         }
 
     };

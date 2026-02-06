@@ -130,4 +130,10 @@ target_link_libraries(test_query sdsl divsufsort divsufsort64)
 add_executable(query_gtest test/query_gtest.cpp)
 target_link_libraries(query_gtest gtest gtest_main sdsl divsufsort divsufsort64)
 
+add_executable(interactive-query src/interactive-query.cpp)
+target_link_libraries(interactive-query sdsl divsufsort divsufsort64)
+
+add_executable(mapping-types test/mapping-types.cpp)
+target_link_libraries(mapping-types sdsl divsufsort divsufsort64)
+
 add_executable(process src/process.c)

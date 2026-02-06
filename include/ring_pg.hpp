@@ -45,6 +45,7 @@ namespace ring {
         typedef uint64_t size_type;
         typedef uint32_t id_type;
         typedef int32_t value_type;
+        typedef int64_t prop_value_type;
         typedef bwt_so_t bwt_type;
         typedef bwt_p_t bwt_p_type;
         typedef std::tuple<uint32_t, uint32_t, uint32_t> spo_triple_type;
@@ -301,15 +302,15 @@ namespace ring {
                         value = value.substr(1); // remove leading space
                         if (!value.empty() && value.back() == '\r') value.pop_back();
                         int64_t data;
-                        if (::ring::query::constant::is_string(value)) {
-                            int64_t str_id = m_string_mgr.find(value);
-                            prop2values.emplace_back(id, str_id);
-                        }else if (::ring::query::constant::is_date(value, data)){
+                         if (::ring::query::constant::is_date(value, data)){
                             prop2values.emplace_back(id, data);
                         }else if (::ring::query::constant::is_integer(value, data)) {
                             prop2values.emplace_back(id, data);
                         }else if (::ring::query::constant::is_double(value, data)) {
                             prop2values.emplace_back(id, data);
+                        }else {
+                            int64_t str_id = m_string_mgr.find(value);
+                            prop2values.emplace_back(id, str_id);
                         }
                     } while (true);
                     ifs.close();
@@ -1317,7 +1318,7 @@ namespace ring {
             return {m_edge_properties[prop_id-1].min_val, m_edge_properties[prop_id-1].max_val};
         }
 
-        std::pair<id_type, value_type> next_node_property(const value_type prop_id, const value_type node_id, const value_type value,
+        std::pair<id_type, value_type> next_node_property(const value_type prop_id, const value_type node_id, const prop_value_type value,
                                      const query::enum_comp_where_type op) {
             std::cout << "Next node property called: prop_id=" << prop_id << " node_id=" << node_id << " value=" << value << " op=" << op << std::endl;
             switch (op) {
@@ -1335,12 +1336,16 @@ namespace ring {
                     return m_node_properties[prop_id-1].next_ge(node_id, value);
                 case query::NEQ:
                     return m_node_properties[prop_id-1].next_not_eq(node_id, value);
+                case query::ISNULL:
+                    return m_node_properties[prop_id-1].next_is_null(node_id);
+                case query::ISNOTNULL:
+                    return m_node_properties[prop_id-1].next_is_not_null(node_id);
                 default:
                     throw std::runtime_error("Unsupported operator in property graph queries");
             }
          }
  
-         std::pair<id_type, value_type> next_edge_property(const value_type prop_id, const value_type node_id, const value_type value,
+         std::pair<id_type, value_type> next_edge_property(const value_type prop_id, const value_type node_id, const prop_value_type value,
                                       const query::enum_comp_where_type op) {
             switch (op) {
                 case query::EQ:
@@ -1357,16 +1362,20 @@ namespace ring {
                     return m_edge_properties[prop_id-1].next_ge(node_id, value);
                 case query::NEQ:
                     return m_edge_properties[prop_id-1].next_not_eq(node_id, value);
+                case query::ISNULL:
+                    return m_edge_properties[prop_id-1].next_is_null(node_id);
+                case query::ISNOTNULL:
+                    return m_edge_properties[prop_id-1].next_is_not_null(node_id);
                 default:
                     throw std::runtime_error("Unsupported operator in property graph queries");
             }
          }
 
-        value_type get_node_property_value(const id_type prop_id, const id_type node_id) {
+        prop_value_type get_node_property_value(const id_type prop_id, const id_type node_id) {
             return m_node_properties[prop_id-1][node_id];
         };
 
-        value_type get_edge_property_value(const id_type prop_id, const id_type edge_id) {
+        prop_value_type get_edge_property_value(const id_type prop_id, const id_type edge_id) {
             return m_edge_properties[prop_id-1][edge_id];
         };
 
@@ -1374,7 +1383,7 @@ namespace ring {
             return m_string_mgr.get_id(s, op);
         }
 
-        size_type cnt_node_property_value(const id_type prop_id, value_type l, value_type r) {
+        size_type cnt_node_property_value(const id_type prop_id, prop_value_type l, prop_value_type r) {
             if (l > r) return 0;
             return m_node_properties[prop_id-1].cnt_values_range(l, r);
         }

@@ -246,7 +246,6 @@ namespace ring {
         };
 
         value_type leap(var_type var) {
-            std::cout << "leap: var=" << (uint) var << ", level=" << m_level << std::endl;
             //Return the minimum in the range
             //0. Which term of our triple pattern is var
             if (m_level == 0) {
@@ -298,7 +297,6 @@ namespace ring {
         };
 
         value_type leap(var_type var, size_type c) {
-            std::cout << "leap: var=" << (uint) var << " c=" << c << ", level=" << m_level << std::endl;
             //Return the minimum in the range
             //0. Which term of our triple pattern is var
             if (m_level == 0) {

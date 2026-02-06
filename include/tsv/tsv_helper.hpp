@@ -55,7 +55,7 @@ namespace tsv_helper {
         std::stringstream ss(prop_str);
         std::string key_str, val_str;
         std::getline(ss, key_str, ':');
-        std::getline(ss, val_str, ':');
+        std::getline(ss, val_str);
         property_tsv_type prop;
         prop.key = trim(key_str);
         prop.value = trim(val_str);
@@ -72,7 +72,7 @@ namespace tsv_helper {
         node.variable = trim(var_str);
         node.labels = parse_labels(labels_str);
         while (std::getline(ss, prop_str, '\t')) {
-            node.properties.push_back(parse_property(prop_str));
+            if (!prop_str.empty()) node.properties.push_back(parse_property(prop_str));
         }
         return node;
     }
