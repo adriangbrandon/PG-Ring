@@ -309,6 +309,31 @@ namespace ring {
                 int64_t e0, e1;
                 std::string s0, s1;
                 if (expr.has_property()) {
+                    // unary comparison (is null / is not null)
+                    if (expr.type == query::ISNULL || expr.type == query::ISNOTNULL) {
+                        if (m_query.vnodes[expr.values[0]]) {
+                            if (is_property_numeric(true, expr.property_values[0])) {
+                                auto ok0 = get_node_property_value_numeric(
+                                    expr.property_values[0], tuple[expr.values[0] - 1], e0);
+                                return (expr.type == query::ISNULL && !ok0) || (expr.type == query::ISNOTNULL && ok0);
+                            } else {
+                                auto ok0 = get_node_property_value_string(
+                                    expr.property_values[0], tuple[expr.values[0] - 1], s0);
+                                return (expr.type == query::ISNULL && !ok0) || (expr.type == query::ISNOTNULL && ok0);
+                            }
+                        }else {
+                            if (is_property_numeric(false, expr.property_values[0])) {
+                                auto ok0 = get_edge_property_value_numeric(
+                                    expr.property_values[0], tuple[expr.values[0] - 1], e0);
+                                return (expr.type == query::ISNULL && !ok0) || (expr.type == query::ISNOTNULL && ok0);
+                            } else {
+                                auto ok0 = get_edge_property_value_string(
+                                   expr.property_values[0], tuple[expr.values[0] - 1], s0);
+                                return (expr.type == query::ISNULL && !ok0) || (expr.type == query::ISNOTNULL && ok0);
+                            }
+                        }
+                    }
+                    // binary comparison
                     if (expr.is_var[0] && expr.is_var[1]) {
                         if (m_query.vnodes[expr.values[0]]) {
                             if (is_property_numeric(true, expr.property_values[0]) && is_property_numeric(
@@ -349,7 +374,6 @@ namespace ring {
                                 return cmp(s0, s1, expr);
                             }
                         }
-                        // c++
                     } else if (!expr.is_var[0] && expr.is_var[1]) {
                         if (m_query.vnodes[expr.values[1]]) {
                             if (is_property_numeric(true, expr.property_values[1])) {

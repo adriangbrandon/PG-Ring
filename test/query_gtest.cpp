@@ -452,6 +452,15 @@ TEST(QueryTest, CompIds)
     run_queries_test(queries);
 }
 
+TEST(QueryTest, CompNulls)
+{
+    std::vector<std::string> queries = {
+        "(?a1)-[?w]->(?m), (?a2)-[?y]->(?m) WHERE (?a1.5 IS NULL)",
+        "(?a1)-[?w]->(?m), (?a2)-[?y]->(?m) WHERE (?a1.5 IS NOT NULL)"
+    };
+    run_queries_test(queries);
+}
+
 TEST(QueryTest, Error)
 {
      std::vector<std::string> queries = {
