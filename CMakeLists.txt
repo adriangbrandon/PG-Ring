@@ -136,4 +136,8 @@ target_link_libraries(interactive-query sdsl divsufsort divsufsort64)
 add_executable(mapping-types test/mapping-types.cpp)
 target_link_libraries(mapping-types sdsl divsufsort divsufsort64)
 
+
+add_executable(query-filter query-filter/query-filter.cpp)
+target_link_libraries(query-filter sdsl divsufsort divsufsort64)
+
 add_executable(process src/process.c)

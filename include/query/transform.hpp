@@ -1,0 +1,672 @@
+//
+// Created by adrian on 9/2/26.
+//
+
+#ifndef TRANSFORM_HPP
+#define TRANSFORM_HPP
+#include <array>
+#include <string>
+#include <vector>
+
+#include "configuration.hpp"
+#include "constant_utils.hpp"
+#include "label_expr_parser.hpp"
+
+namespace ring {
+
+    namespace query {
+        class transform {
+        public:
+            typedef struct {
+                std::string key;
+                std::string value;
+            } prop_type;
+
+            typedef struct expr {
+                enum_expr_label_type type = EMPTY;
+                std::string value; //only for LAB and NEG, the label name
+                std::vector<expr> args;
+            } expr_label_type;
+
+            typedef struct {
+                bool is_variable;
+                std::string value;
+                expr_label_type expr_label;
+            } node_type;
+
+            typedef struct {
+                std::string value;
+                expr_label_type expr_label;
+                node_type from;
+                node_type to;
+            } edge_type;
+
+
+            typedef struct {
+                bool is_var;
+                std::string value; //either variable name or constant value
+                bool has_property;
+                std::string property;
+            } expr_where_type;
+
+
+            typedef struct {
+                std::string comp;
+                std::array<expr_where_type, 2> args;
+            } op_where_type;
+
+
+            typedef struct {
+                std::vector<edge_type> patterns;
+                std::vector<op_where_type> where_exprs;
+            } query_type;
+
+        private:
+
+            std::unordered_map<std::string, uint32_t> m_set_nodes;   // Nombres de nodos
+            std::unordered_map<std::string, uint32_t> m_set_label_nodes;  // Labels de nodos
+            std::unordered_map<std::string, uint32_t> m_set_label_edges;  // Labels de aristas
+            std::unordered_map<std::string, uint32_t> m_properties_node;  // Properties de nodos
+            std::unordered_map<std::string, uint32_t> m_properties_edge;  // Properties de aristas
+
+            void read_nodes_dict(const std::string& prefix) {;
+                std::ifstream file(prefix + ".nodes.dict");
+                uint32_t id;
+                std::string data;
+                while (file >> id >> data) {
+                    m_set_nodes.insert({data, id});
+                }
+            }
+
+            void read_nlabels_dict(const std::string& prefix) {;
+                std::ifstream file(prefix + ".nlabels.dict");
+                uint32_t id;
+                std::string data;
+                while (file >> id >> data) {
+                    m_set_label_nodes.insert({data, id});
+                }
+            }
+
+            void read_elabels_dict(const std::string& prefix) {;
+                std::ifstream file(prefix + ".elabels.dict");
+                uint32_t id;
+                std::string data;
+                while (file >> id >> data) {
+                    m_set_label_edges.insert({data, id});
+                }
+            }
+
+            void read_nprops_dict(const std::string& prefix) {;
+                std::ifstream file(prefix + ".nprops.dict");
+                uint32_t id;
+                std::string data;
+                while (file >> id >> data) {
+                    m_properties_node.insert({data, id});
+                }
+            }
+
+            void read_eprops_dict(const std::string& prefix) {;
+                std::ifstream file(prefix + ".eprops.dict");
+                uint32_t id;
+                std::string data;
+                while (file >> id >> data) {
+                    m_properties_edge.insert({data, id});
+                }
+            }
+
+            size_t find_close(char open, char close, size_t pos, const std::string& str) {
+                if (str[pos] != open) throw std::runtime_error(std::string("Expected '") + open + "' at position " + std::to_string(pos));
+                int count = 1;
+                for (size_t i = pos+1; i < str.size(); ++i) {
+                    if (str[i] == open) count++;
+                    else if (str[i] == close) count--;
+                    if (count == 0) return i;
+                }
+                throw std::runtime_error(std::string("No matching closing '") + close + "' found for '" + open + "'");
+            }
+
+            size_t end_string(char open, char close, size_t pos, const std::string& str) {
+                if (str[pos] != open) throw std::runtime_error(std::string("Expected '") + open + "' at position " + std::to_string(pos));
+                for (size_t i = pos+1; i < str.size(); ++i) {
+                    if (str[i] == '\\') { // skip escaped characters
+                        ++i;
+                        continue;
+                    }
+                    if (str[i] == close) return i;
+                }
+            }
+
+            void skip_ws(size_t& pos, const std::string& s) {
+                while (pos < s.size() && isspace(s[pos])) ++pos;
+            }
+
+
+            bool contains_char(const std::string& str, char c, size_t pos, size_t end) {
+                for (size_t i = pos; i < end; ++i) {
+                    if (str[i] == c) return true;
+                }
+                return false;
+            }
+
+            bool match(const std::string &tok, size_t& pos, const std::string& s) {
+                skip_ws(pos, s);
+                size_t len = tok.size();
+                if (s.substr(pos, len) == tok) {
+                    pos += len;
+                    return true;
+                }
+                return false;
+            }
+
+            bool startswith(const std::string &tok, size_t pos, const std::string& s) {
+                skip_ws(pos, s);
+                for (size_t i = 0; i < tok.size(); ++i) {
+                    if (tok[i] != s[i + pos]) return false;
+                }
+                return true;
+            }
+
+            expr_label_type parse_expr(const std::string& s, size_t &pos, size_t end) {
+                skip_ws(pos, s);
+                return parse_or(s, pos, end);
+            }
+
+            expr_label_type parse_or(const std::string& s, size_t &pos, size_t end) {
+                std::vector<expr_label_type> children;
+                children.push_back(parse_and(s, pos, end));
+                skip_ws(pos, s);
+                while (match("OR", pos, s)) {
+                    children.push_back(parse_and(s, pos, end));
+                    skip_ws(pos, s);
+                }
+                if (children.size() == 1) return std::move(children[0]);
+                expr_label_type e;
+                e.type = OR;
+                e.args = std::move(children);
+                return e;
+            }
+
+            expr_label_type parse_and(const std::string& s, size_t &pos, size_t end) {
+                std::vector<expr_label_type> children;
+                children.push_back(parse_factor(s, pos, end));
+                skip_ws(pos, s);
+                while (match("AND", pos, s)) {
+                    children.push_back(parse_factor(s, pos, end));
+                    skip_ws(pos, s);
+                }
+                if (children.size() == 1) return std::move(children[0]);
+                expr_label_type e;
+                e.type = AND;
+                e.args = std::move(children);
+                return e;
+            }
+
+            expr_label_type parse_factor(const std::string& s, size_t &pos, size_t end) {
+                skip_ws(pos, s);
+                if (match("(", pos, s)) {
+                    expr_label_type e = parse_expr(s, pos, end);
+                    skip_ws(pos, s);
+                    if (!match(")", pos, s)) throw std::runtime_error("Missing ')' in expression");
+                    return e;
+                } else if (match("NOT", pos, s)) {
+                    return parse_label(s, pos, end, NEG);
+                } else {
+                    return parse_label(s, pos, end);
+                }
+            }
+
+            expr_label_type parse_label(const std::string& s, size_t &pos, size_t end, enum_expr_label_type t = LAB) {
+                skip_ws(pos, s);
+                size_t start = pos;
+                expr_label_type e;
+                e.type = t;
+                e.value = "";
+                while (pos < end && !isspace(s[pos]) && s[pos] != ')') {
+                    e.value += s[pos];
+                    ++pos;
+                }
+                return e;
+            }
+
+
+
+            node_type parse_node(const std::string& str, size_t &pos, size_t end) {
+                ++pos; // skip '('
+                skip_ws(pos, str);
+                node_type node;
+                // Parse variable or constant
+                if (str[pos] == '?') {
+                    node.is_variable = true;
+                    ++pos;
+                    node.value = "";
+                    while (pos < end && str[pos] != ':') {
+                        node.value += str[pos++];
+                    }
+                    // parse label expression if any
+                    if (pos < end && str[pos] == ':') {
+                        ++pos; // skip ':'
+                        skip_ws(pos, str);
+                        if (!contains_char(str, '&', pos, end)) { //normal expression without '&'
+                            expr_label_type e = parse_expr(str, pos, end);
+                            node.expr_label = e;
+                        }else { // Aidan format (&)
+                            expr_label_type main_expr, aux_expr;
+                            main_expr.type = AND;
+                            while (pos < end) {
+                                skip_ws(pos, str);
+                                aux_expr.type = LAB;
+                                aux_expr.value = "";
+                                while (pos < end && str[pos] != '&') {
+                                    aux_expr.value += str[pos];
+                                    ++pos;
+                                }
+                                main_expr.args.push_back(aux_expr);
+                                ++pos;
+                            }
+                            node.expr_label = main_expr;
+                        }
+                    }
+                }
+                else {
+                    node.is_variable = false;
+                    node.value = str.substr(pos, end-pos);
+                }
+                return node;
+            }
+
+            edge_type parse_edge(const std::string& str, size_t &pos, size_t end) {
+                ++pos; // skip '['
+                skip_ws(pos, str);
+                edge_type edge;
+                // Parse variable or constant
+                if (str[pos] == '?') {
+                    ++pos;
+                    edge.value = "";
+                    while (pos < end && str[pos] != ':') {
+                        edge.value += str[pos++];
+                    }
+                    // parse label expression if any
+                    if (pos < end && str[pos] == ':') {
+                        ++pos; // skip ':'
+                        skip_ws(pos, str);
+                        if (!contains_char(str, '&', pos, end)) { //normal expression without '&'
+                            expr_label_type e = parse_expr(str, pos, end);
+                            edge.expr_label = e;
+                        }else { // Aidan format: <l1>&<l2>&...
+                            expr_label_type main_expr, aux_expr;
+                            main_expr.type = AND;
+                            while (pos < end) {
+                                skip_ws(pos, str);
+                                aux_expr.type = LAB;
+                                aux_expr.value = "";
+                                while (pos < end && str[pos] != '&') {
+                                    aux_expr.value += str[pos];
+                                    ++pos;
+                                }
+                                main_expr.args.push_back(aux_expr);
+                                ++pos;
+                            }
+                            edge.expr_label = main_expr;
+                        }
+                    }
+                }
+                else {
+                    throw std::runtime_error("Unexpected character: " + str.substr(pos, end-pos));
+                }
+                return edge;
+            }
+
+
+            void parse_operand(const std::string& str, size_t &pos, size_t end, op_where_type &op, size_t arg_i) {
+                skip_ws(pos, str);
+                if (str[pos] == '?') {
+                    op.args[arg_i].is_var = true;
+                    ++pos;
+                    op.args[arg_i].value = "";
+                    while (pos < end && !isspace(str[pos]) && str[pos] != '.' && str[pos] != ')') {
+                        op.args[arg_i].value += str[pos++];
+                    }
+                    if (pos < end && str[pos] == '.') {
+                        ++pos; // skip '.'
+                        op.args[arg_i].has_property = true;
+                        while (pos < end && !isspace(str[pos]) && str[pos] != ')') op.args[arg_i].property += str[pos++];
+                    }
+                }else {
+                    op.args[arg_i].is_var = false;
+                    op.args[arg_i].has_property = false;
+                    if (startswith("ZONED_DATETIME", pos, str)) {
+                        auto z_b = pos + 14; // skip "ZONED_DATETIME"
+                        auto z_e = find_close('(', ')', z_b, str); // find closing parenthesis of ZONED_DATETIME
+                        op.args[arg_i].value = str.substr(pos, z_e-pos+1); // include closing parenthesis
+                    }else if (str[pos] == '"') {
+                        end_string('"', '"', pos, str);
+                        op.args[arg_i].value = str.substr(pos, end-pos);
+                    }else if (str[pos] == '\'') {
+                        end_string('\'', '\'', pos, str);
+                        op.args[arg_i].value = str.substr(pos, end-pos);
+                    }else { // number/date
+                        while (pos < end && !isspace(str[pos])) {
+                            op.args[arg_i].value += str[pos++];
+                        }
+                    }
+                }
+            }
+
+            op_where_type parse_op_where(const std::string& str, size_t &pos, size_t end) {
+                ++pos; // skip '('
+                op_where_type op;
+                skip_ws(pos, str);
+                // Parse operand
+                parse_operand(str, pos, end, op, 0);
+                skip_ws(pos, str);
+                // Parse operator
+                if (match(">=", pos, str)) {
+                    op.comp = ">=";
+                } else if (match("<=", pos, str)) {
+                    op.comp = "<=";
+                } else if (match("!=", pos, str)) {
+                    op.comp = "!=";
+                } else if (match(">", pos, str)) {
+                    op.comp = ">";
+                } else if (match("<", pos, str)) {
+                    op.comp = "<";
+                } else if (match("=", pos, str)) {
+                    op.comp = "=";
+                } else if (match("IS NULL", pos, str)) {
+                    op.comp = "IS NULL";
+                } else if (match("IS NOT NULL", pos, str)) {
+                    op.comp = "IS NOT NULL";
+                }
+                if (op.comp != "IS NULL" && op.comp != "IS NOT NULL") {
+                    //pos += op.comp.size();
+                    skip_ws(pos, str);
+                    // Parse second operand
+                    parse_operand(str, pos, end, op, 1);
+                }
+                return op;
+            }
+
+        public:
+            query_type parse_query(const std::string& query) {
+                query_type result;
+                size_t pos = 0;
+                // Parse patterns until "WHERE"
+                while (pos < query.size()) {
+                    skip_ws(pos, query);
+                    auto c_n1 = find_close('(', ')', pos, query);
+                    auto src = parse_node(query, pos, c_n1);
+                    pos = c_n1 + 2; // skip ")-
+                    auto c_edge = find_close('[', ']', pos, query);
+                    auto edge = parse_edge(query, pos, c_edge);
+                    pos = c_edge + 3; // skip "]->"
+                    auto c_n2 = find_close('(', ')', pos, query);
+                    auto tgt = parse_node(query, pos, c_n2);
+                    pos = c_n2 + 1; // skip ')'
+
+                    edge.from = src;
+                    edge.to = tgt;
+                    result.patterns.push_back(edge);
+
+                    skip_ws(pos, query);
+                    if (query[pos] == ',') {
+                        ++pos; // skip ','
+                    } else if (match("WHERE", pos, query)) {
+                        //pos += 5; // skip "WHERE"
+                        break;
+                    } else if (pos < query.size()) {
+                        throw std::runtime_error("Expected ',' or 'WHERE' at position " + std::to_string(pos));
+                    }
+                }
+                // Parse WHERE expressions
+                while (pos < query.size()) {
+                    skip_ws(pos, query);
+                    auto c_op = find_close('(', ')', pos, query);
+                    op_where_type op = parse_op_where(query, pos, c_op);
+                    if (!op.args[0].is_var && !op.args[1].is_var) throw std::runtime_error("At least one operand must be a variable in WHERE expression.");
+                    result.where_exprs.push_back(op);
+                    pos = c_op + 1;
+                    skip_ws(pos, query);
+                    if (pos < query.size()) {
+                        if (!match("AND", pos, query)) {
+                            throw std::runtime_error("Expected AND at position " + std::to_string(pos));
+                        }
+                    }
+                }
+                return result;
+
+            }
+
+
+            std::string str_expr(const expr_label_type& expr) {
+                std::string result;
+                if (expr.type == LAB || expr.type == NEG) {
+                    if (expr.type == NEG) result += "(NOT ";
+                    result += expr.value;
+                    if (expr.type == NEG) result += ")";
+                } else {
+                    result += "(";
+                    for (size_t i = 0; i < expr.args.size(); ++i) {
+                        result += str_expr(expr.args[i]);
+                        if (i < expr.args.size() - 1) {
+                            if (expr.type == AND) result += " AND ";
+                            else if (expr.type == OR) result += " OR ";
+                        }
+                    }
+                    result += ")";
+                }
+                return result;
+            }
+
+            std::string str_pattern(const edge_type& edge) {
+                std::string result;
+                result += "(";
+                if (edge.from.is_variable)
+                    result += "?" + edge.from.value;
+                else
+                    result += edge.from.value;
+                if (edge.from.expr_label.type != EMPTY) {
+                    result += ":";
+                    // print label expression
+                    result += str_expr(edge.from.expr_label);
+                }
+                result += ")-[";
+                if (!edge.value.empty())
+                    result += "?" + edge.value;
+                if (edge.expr_label.type != EMPTY) {
+                    result += ":";
+                    // print label expression
+                    result += str_expr(edge.expr_label);
+                }
+                result += "]->(";
+                if (edge.to.is_variable)
+                    result += "?" + edge.to.value;
+                else
+                    result += edge.to.value;
+                if (edge.to.expr_label.type != EMPTY) {
+                    result += ":";
+                    // print label expression
+                    result += str_expr(edge.to.expr_label);
+                }
+                result += ")";
+                return result;
+            }
+
+            std::string to_string(query_type &q) {
+                std::string result;
+                for (size_t i = 0; i < q.patterns.size(); ++i) {
+                    result += str_pattern(q.patterns[i]);
+                    if (i < q.patterns.size() - 1) result += ", ";
+                }
+                if (!q.where_exprs.empty()) {
+                    result += " WHERE ";
+                    for (size_t i = 0; i < q.where_exprs.size(); ++i) {
+                        auto &op = q.where_exprs[i];
+                        result += "(";
+                        if (op.args[0].is_var) result += "?";
+                        result += op.args[0].value;
+                        if (op.args[0].has_property) result += "." + op.args[0].property;
+
+                        if (op.comp != "IS NULL" && op.comp != "IS NOT NULL") {
+                            result += " " + op.comp + " ";
+                            if (op.args[1].is_var) result += "?";
+                            result += op.args[1].value;
+                            if (op.args[1].has_property) result += "." + op.args[1].property;
+                        }else {
+                            result += " " + op.comp;
+                        }
+                        result += ")";
+                        if (i < q.where_exprs.size() - 1) result += " AND ";
+                    }
+                }
+                return result;
+            }
+
+
+            void transform_expr(expr_label_type &expr, bool is_node) {
+                if (expr.type == LAB || expr.type == NEG) {
+                    if (is_node) {
+                        auto it = m_set_label_nodes.find(expr.value);
+                        if (it != m_set_label_nodes.end()) {
+                            expr.value = std::to_string(it->second);
+                        } else {
+                            throw std::runtime_error("Unknown label: " + expr.value);
+                        }
+                    }else {
+                        auto it = m_set_label_edges.find(expr.value);
+                        if (it != m_set_label_edges.end()) {
+                            expr.value = std::to_string(it->second);
+                        } else {
+                            throw std::runtime_error("Unknown label: " + expr.value);
+                        }
+                    }
+                } else {
+                    for (auto &arg: expr.args) {
+                        transform_expr(arg, is_node);
+                    }
+                }
+            }
+
+            void transform_node(node_type &node) {
+                if (!node.is_variable) {
+                    auto it = m_set_nodes.find(node.value);
+                    if (it == m_set_nodes.end()) throw std::runtime_error("Unknown node: " + node.value);
+                    node.value = std::to_string(it->second);
+                }else {
+                    transform_expr(node.expr_label, true);
+                }
+            }
+
+            void transform_edge(edge_type &edge) {
+                transform_node(edge.from);
+                transform_expr(edge.expr_label, false);
+                transform_node(edge.to);
+            }
+
+            void transform_op_where(op_where_type &op, std::set<std::string> &node_vars, std::set<string> &edge_vars) {
+                size_t args = 2;
+                if (op.comp == "IS NULL" || op.comp == "IS NOT NULL") args = 1;
+                for (size_t i = 0; i < args; ++i) {
+                    if (op.args[i].is_var) {
+                        if (op.args[i].has_property) {
+                            if (node_vars.find(op.args[i].value) != node_vars.end()) {
+                                auto it_prop = m_properties_node.find(op.args[i].property);
+                                if (it_prop != m_properties_node.end()) {
+                                    op.args[i].property = std::to_string(it_prop->second);
+                                }else {
+                                    throw std::runtime_error("Unknown node property: " + op.args[i].property);
+                                }
+                            }else {
+                                if (edge_vars.find(op.args[i].value) != edge_vars.end()) {
+                                    auto it_prop = m_properties_edge.find(op.args[i].property);
+                                    if (it_prop != m_properties_edge.end()) {
+                                        op.args[i].property = std::to_string(it_prop->second);
+                                    }else {
+                                        throw std::runtime_error("Unknown edge property: " + op.args[i].property);
+                                    }
+                                } else {
+                                    throw std::runtime_error("Unknown variable: " + op.args[i].value);
+                                }
+
+                            }
+                        } else {
+                            if (node_vars.find(op.args[i].value) == node_vars.end() && edge_vars.find(op.args[i].value) == edge_vars.end()) { throw std::runtime_error("Unknown variable: " + op.args[i].value); }
+                        }
+                    }else {
+                        // constant can be a ID or any literal
+                        int64_t res;
+
+                        if (!(constant::is_date(op.args[i].value, res) || constant::is_integer(op.args[i].value, res) || constant::is_double(op.args[i].value, res) || constant::is_string(op.args[i].value))) {
+                            bool is_node = node_vars.find(op.args[(i+1) % 2].value) != node_vars.end();
+                            if (is_node) {
+                                auto it_node = m_set_nodes.find(op.args[i].value);
+                                if (it_node != m_set_nodes.end()) {
+                                    op.args[i].value = std::to_string(it_node->second);
+                                }else {
+                                    throw std::runtime_error("Unknown node: " + op.args[i].value);
+                                }
+                            }else {
+                                throw std::runtime_error("Edge shouldn't have an ID");
+                            }
+
+                        }
+
+                    }
+                }
+            }
+
+            void run(const std::string &queries, const std::string &prefix) {
+
+                //extract extension
+                auto p = queries.rfind('.');
+                std::string name = queries.substr(0, p);
+
+                std::string ok = name + ".ok.tsv";
+                std::string err = name + ".err.tsv";
+                std::ofstream out(ok);
+                std::ofstream err_out(err);
+
+                read_nodes_dict(prefix);
+                read_nlabels_dict(prefix);
+                read_elabels_dict(prefix);
+                read_nprops_dict(prefix);
+                read_eprops_dict(prefix);
+
+                std::string query;
+                std::ifstream ifs(queries);
+                uint i = 1;
+                while (std::getline(ifs, query)) {
+                    try {
+                        std::set<std::string> node_vars, edge_vars;
+                        auto q = parse_query(query);
+                        for (auto &edge: q.patterns) {
+                            if (edge.from.is_variable) node_vars.insert(edge.from.value);
+                            if (edge.to.is_variable) node_vars.insert(edge.to.value);
+                            if (!edge.value.empty()) edge_vars.insert(edge.value);
+                        }
+                        for (auto &edge: q.patterns) {
+                            transform_edge(edge);
+                        }
+                        for (auto &op: q.where_exprs) {
+                            transform_op_where(op, node_vars, edge_vars);
+                        }
+                        out << to_string(q) << "\n";
+                        std::cout << "[" << i << "] Processed query: " << query << "\n";
+                        ++i;
+                    }catch (std::exception &e) {
+                        err_out << "Error processing query: " << query << " Exception: " << e.what() << "\n";
+                    }
+                }
+
+                out.close(); err_out.close();
+            }
+        };
+
+
+
+    }
+
+
+}
+
+
+#endif //TRANSFORM_HPP
