@@ -7,7 +7,7 @@ project(Ring-PG)
 set(CMAKE_PROJECT_NAME "Ring-PG")
 
 #Change to "Debug" when you need it
-set(CMAKE_BUILD_TYPE "Debug")
+set(CMAKE_BUILD_TYPE "Release")
 
 # C++11 compiler Check
 if(NOT CMAKE_CXX_COMPILER_VERSION) # work around for cmake versions smaller than 2.8.10
@@ -118,6 +118,12 @@ target_link_libraries(cypher2ids sdsl divsufsort divsufsort64)
 add_executable(tsv2ids src/tsv2ids.cpp)
 target_link_libraries(tsv2ids sdsl divsufsort divsufsort64)
 
+add_executable(tsvclean src/tsvclean.cpp)
+target_link_libraries(tsvclean sdsl divsufsort divsufsort64)
+
+add_executable(tsv2cypher src/tsv2cypher.cpp)
+target_link_libraries(tsv2cypher sdsl divsufsort divsufsort64)
+
 add_executable(test_expr_parser test/label_expr_parser.cpp)
 target_link_libraries(test_expr_parser sdsl divsufsort divsufsort64)
 
@@ -135,7 +141,6 @@ target_link_libraries(interactive-query sdsl divsufsort divsufsort64)
 
 add_executable(mapping-types test/mapping-types.cpp)
 target_link_libraries(mapping-types sdsl divsufsort divsufsort64)
-
 
 add_executable(query-filter query-filter/query-filter.cpp)
 target_link_libraries(query-filter sdsl divsufsort divsufsort64)

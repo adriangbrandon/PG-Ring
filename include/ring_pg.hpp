@@ -1320,7 +1320,7 @@ namespace ring {
 
         std::pair<id_type, value_type> next_node_property(const value_type prop_id, const value_type node_id, const prop_value_type value,
                                      const query::enum_comp_where_type op) {
-            std::cout << "Next node property called: prop_id=" << prop_id << " node_id=" << node_id << " value=" << value << " op=" << op << std::endl;
+            //std::cout << "Next node property called: prop_id=" << prop_id << " node_id=" << node_id << " value=" << value << " op=" << op << std::endl;
             switch (op) {
                 case query::EQ:
                     return m_node_properties[prop_id-1].next_eq(node_id, value);

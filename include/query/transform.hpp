@@ -491,6 +491,59 @@ namespace ring {
                 return result;
             }
 
+            std::string cypher_pattern(const edge_type& edge) {
+                std::string result;
+                result += "(";
+                if (edge.from.is_variable)
+                    result += edge.from.value;
+                else
+                    result += "{ qid: \"" + edge.from.value + "\"}";
+                if (edge.from.expr_label.type != EMPTY) {
+                    result += ":";
+                    // print label expression
+                    result += str_expr(edge.from.expr_label);
+                }
+                result += ")-[";
+                if (!edge.value.empty())
+                    result += edge.value;
+                if (edge.expr_label.type != EMPTY) {
+                    result += ":";
+                    // print label expression
+                    result += str_expr(edge.expr_label);
+                }
+                result += "]->(";
+                if (edge.to.is_variable)
+                    result += edge.to.value;
+                else
+                    result += "{ qid: \"" + edge.to.value + "\"}";
+                if (edge.to.expr_label.type != EMPTY) {
+                    result += ":";
+                    // print label expression
+                    result += str_expr(edge.to.expr_label);
+                }
+                result += ")";
+                return result;
+            }
+
+            std::string cypher_value(const std::string &value) {
+                const std::string from = "ZONED_DATETIME";
+                const std::string to   = "datetime";
+                if (startswith(from, 0, value)) {
+                    std::string r = value;
+                    r.replace(0, from.length(), to);
+                    auto month = r.find_first_of('-')+1;
+                    if (r[month] == '0' && r[month+1] == '0') {
+                        r[month+1] = '1';
+                    }
+                    auto day = month+3;
+                    if (r[day] == '0' && r[day+1] == '0') {
+                        r[day+1] = '1';
+                    }
+                    return r;
+                }
+                return value;
+            }
+
             std::string to_string(query_type &q) {
                 std::string result;
                 for (size_t i = 0; i < q.patterns.size(); ++i) {
@@ -518,6 +571,55 @@ namespace ring {
                         if (i < q.where_exprs.size() - 1) result += " AND ";
                     }
                 }
+                return result;
+            }
+
+            std::string to_cypher(query_type &q) {
+                std::string result = "MATCH ";
+                for (size_t i = 0; i < q.patterns.size(); ++i) {
+                    result += cypher_pattern(q.patterns[i]);
+                    if (i < q.patterns.size() - 1) result += ", ";
+                }
+                if (!q.where_exprs.empty()) {
+                    result += " WHERE ";
+                    for (size_t i = 0; i < q.where_exprs.size(); ++i) {
+                        auto &op = q.where_exprs[i];
+                        result += "(";
+                        result += cypher_value(op.args[0].value);
+                        if (op.args[0].has_property) result += "." + op.args[0].property;
+
+                        if (op.comp != "IS NULL" && op.comp != "IS NOT NULL") {
+                            if (op.comp == "!=") result += " <> ";
+                            else result += " " + op.comp + " ";
+                            result += cypher_value(op.args[1].value);
+                            if (op.args[1].has_property) result += "." + op.args[1].property;
+                        }else {
+                            result += " " + op.comp;
+                        }
+                        result += ")";
+                        if (i < q.where_exprs.size() - 1) result += " AND ";
+                    }
+                }
+                result += " RETURN ";
+                std::vector<std::pair<std::string, bool>> vars;
+                std::set<std::string> var_set;
+                for (size_t i = 0; i < q.patterns.size(); ++i) {
+                    if (q.patterns[i].from.is_variable && var_set.find(q.patterns[i].from.value) == var_set.end()) {
+                        vars.emplace_back(q.patterns[i].from.value, true);
+                        var_set.insert(q.patterns[i].from.value);
+                    }
+                    vars.emplace_back(q.patterns[i].value, false);
+                    if (q.patterns[i].to.is_variable && var_set.find(q.patterns[i].to.value) == var_set.end()) {
+                        vars.emplace_back(q.patterns[i].to.value, true);
+                        var_set.insert(q.patterns[i].to.value);
+                    }
+                }
+                for (size_t i = 0; i < vars.size(); ++i) {
+                    if (vars[i].second) result += vars[i].first + ".qid";
+                    else result += "id(" + vars[i].first + ")";
+                    if (i < vars.size() - 1) result += ", ";
+                }
+
                 return result;
             }
 
@@ -621,8 +723,10 @@ namespace ring {
                 std::string name = queries.substr(0, p);
 
                 std::string ok = name + ".ok.tsv";
+                std::string ok_cypher = name + ".ok.cypher";
                 std::string err = name + ".err.tsv";
                 std::ofstream out(ok);
+                std::ofstream out_cypher(ok_cypher);
                 std::ofstream err_out(err);
 
                 read_nodes_dict(prefix);
@@ -638,6 +742,7 @@ namespace ring {
                     try {
                         std::set<std::string> node_vars, edge_vars;
                         auto q = parse_query(query);
+                        std::string cypher = to_cypher(q);
                         for (auto &edge: q.patterns) {
                             if (edge.from.is_variable) node_vars.insert(edge.from.value);
                             if (edge.to.is_variable) node_vars.insert(edge.to.value);
@@ -650,6 +755,7 @@ namespace ring {
                             transform_op_where(op, node_vars, edge_vars);
                         }
                         out << to_string(q) << "\n";
+                        out_cypher << cypher << "\n";
                         std::cout << "[" << i << "] Processed query: " << query << "\n";
                         ++i;
                     }catch (std::exception &e) {
@@ -657,7 +763,7 @@ namespace ring {
                     }
                 }
 
-                out.close(); err_out.close();
+                out.close(); err_out.close(); out_cypher.close();
             }
         };
 

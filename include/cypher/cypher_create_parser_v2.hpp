@@ -36,6 +36,12 @@ private:
         return id;
     };
 
+    int get(const std::string& name, std::unordered_map<std::string, uint32_t>& set) {
+        auto it = set.find(name);
+        if (it != set.end()) return it->second;
+        return 0;
+    };
+
 public:
 
     void parse_file(const std::string& filename) {
@@ -73,9 +79,11 @@ public:
             }else {
                 auto edge = cypher_create_helper::parse_edge(line);
                 //print_edge(edge);
-                uint32_t subj_id = get_or_add(edge.from, m_set_nodes);
+                uint32_t subj_id = get(edge.from, m_set_nodes);
+                uint32_t obj_id = get(edge.to, m_set_nodes);
+                if (!subj_id || !obj_id) continue;
+
                 uint32_t pred_id = get_or_add(edge.type, m_set_label_edges);
-                uint32_t obj_id = get_or_add(edge.to, m_set_nodes);
                 m_triples.emplace_back(subj_id, pred_id, obj_id);
                 for (auto & prop : edge.properties) {
                     std::string key = prop.key;

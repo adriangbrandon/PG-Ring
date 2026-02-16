@@ -380,24 +380,19 @@ namespace ring {
 
 
         void up(var_type var) {
-            std::cout << "Up" << std::endl;
-            std::cout << "{" << m_fixed_values[0] << ", " << m_fixed_values[1] << "} ";
             //Go up in the trie
             if (m_expr->is_var[0] && var == m_expr->values[0] && m_state[0]) {
                 m_fixed_values[0] = 0;
                 m_id_values[0] = {0, 0};
                 m_state[0] = false;
                 --m_nfixed;
-                std::cout << "1-> ";
             }
             if (m_expr->is_var[1] && var == m_expr->values[1] && m_state[1]) {
                 m_fixed_values[1] = 0;
                 m_id_values[1] = {0, 0};
                 m_state[1] = false;
                 --m_nfixed;
-                std::cout << "2-> ";
             }
-            std::cout << "{" << m_fixed_values[0] << ", " << m_fixed_values[1] << "}" << std::endl;
         };
 
         id_type leap(var_type var) {

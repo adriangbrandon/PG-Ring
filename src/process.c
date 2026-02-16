@@ -93,19 +93,79 @@ void readlabel(char *label) {
     label[-1] = 0;
 }
 
+int fits_int64(const char *s) {
+    // skip sign
+    if (*s == '+' || *s == '-') s++;
+
+    // skip leading zeros
+    while (*s == '0') s++;
+
+    int len = strlen(s);
+
+    // empty or just zeros → fits
+    if (len == 0) return 1;
+
+    // max int64 = 9223372036854775807 (19 digits)
+    if (len < 19) return 1;
+    if (len > 19) return 0;
+
+    // length == 19 → compare lexicographically
+    return strcmp(s, "9223372036854775807") <= 0;
+}
+
+int is_plain_integer(const char *s) {
+    if (*s == '+' || *s == '-') s++;
+
+    if (!isdigit(*s)) return 0;
+
+    while (*s) {
+        if (!isdigit(*s)) return 0;
+        s++;
+    }
+    return 1;
+}
+
 // similar to readlabel but ignores a leading '+' and keeps '-'
-void readamount(char *label) {
+int readamount(char *label) {
+    char* start = label;
     char c = readchar();
     if (c == '+') {
-        // skip plus sign, read the rest until closing quote
         while ((*(label++) = readchar()) != '"');
         label[-1] = 0;
-        return;
+    } else {
+        while ((*(label++) = c) != '"')
+            c = readchar();
+        label[-1] = 0;
     }
-    // first char is part of the quantity (could be '-' or a digit)
-    while ((*(label++) = c) != '"')
-        c = readchar();
+
+    // label now contains the raw amount string
+    return (is_plain_integer(start) && fits_int64(start));
+}
+
+int year_out_of_range(const char *t) {
+    fprintf(stderr, "Year out of range: %s\n", t);
+    // expects format: +YYYY-MM-DD... or -YYYY-MM-DD...
+    long long year = atoll(t);
+    return (year > 999999999LL || year < -999999999LL);
+}
+
+int readtime(char* label) {
+    char* start = label;
+    while ((*(label++) = readchar()) != '"');
     label[-1] = 0;
+
+    char year[20];
+    year[0] = start[0]; // copy the sign
+    int i = 1;
+    while (start[i] && start[i] != '-' && i < 20) {
+        year[i] = start[i];
+        i++;
+    }
+    if (i >= 20) return 0; //year too long, not a valid time
+    year[i] = 0;
+    int ok = (year_out_of_range(year) != 1);
+    //fprintf(stderr, "Read time: %s, year: %s, ok: %i\n", start, year, ok);
+    return ok;
 }
 
 // reads a string and returns it between quotes
@@ -132,12 +192,16 @@ void readstring2(char *label) {
     *label = 0;
 }
 
-void readcoord(char* label) {
+int readcoord(char* label) {
     char c = skipblanks();
+    int ok = 0;
     while (c != ',' && c != '}') {
         *(label++) = c;
         c = readchar();
+        if (c == '.') ok = 1;
+        if (ok && c == '.') return 0; // more than one dot, not a valid coordinate
     }
+    return ok;
 }
 
 // passes the value of an undesired label. the value can be numeric,
@@ -232,7 +296,7 @@ void main(int argc, char **argv) {
                 while (skipblanks() == '{') // another property item
                 {
                     good1 = good2 = 0;
-                    time[0] = rank[0] = 0;
+                    time[0] = rank[0] = lat[0] = lon[0] = value[0] = rentity[0] = 0;
 
                     if (!first_item) {
                         close('{', '}');
@@ -260,7 +324,8 @@ void main(int argc, char **argv) {
                                                 matchar(':');
                                                 matchar('"');
                                                 readlabel(rentity);
-                                                good1 = 1;
+                                                if (rentity[0] == 'Q') good1 = 1;
+                                                else good1 = 0; // avoid creating an edge with a non-entity (LEXEMES)
                                                 break;
                                             }
                                         }
@@ -275,22 +340,23 @@ void main(int argc, char **argv) {
                                     } else if (!strcmp(label1, "amount")) { //quantity
                                         matchar(':');
                                         matchar('"');
-                                        readamount(value);
-                                        good1 = 2; // Literal
+                                        if (readamount(value)) good1 = 2; // Literal
+                                        else good1 = 0;
                                     } else if (!strcmp(label1, "latitude")) { // coordinates
                                         matchar(':');
-                                        readcoord(lat);
+                                        int okcoord = readcoord(lat);
                                         //matchar(',');
-                                        if (findlabel("longitude")) {
+                                        if (okcoord && findlabel("longitude")) {
                                             matchar(':');
-                                            readcoord(lon);
+                                            okcoord = readcoord(lon);
                                         }
-                                        good1 = 3; // Literal with coords
+                                        if (!okcoord) good1 = 0; // avoid creating an edge with an incorrect coord
+                                        else good1 = 3; // Literal with coords
                                     } else if (!strcmp(label1, "time")) { // time
                                         matchar(':');
                                         matchar('"');
-                                        readlabel(value);
-                                        good1 = 2; // Literal
+                                        if (readtime(value)) good1 = 2; // Literal
+                                        else good1 = 0; // avoid creating an edge with an incorrect time
                                     }
                                     close('{', '}'); // of value
                                 } else if (c == '"') { //String
@@ -338,22 +404,22 @@ void main(int argc, char **argv) {
                                                         if (!strcmp(label1, "time")) {
                                                             matchar(':');
                                                             matchar('"');
-                                                            readlabel(time);
-                                                            fprintf(edges, "\t%s:%s", label, time);
+                                                            int oktime = readtime(time);
+                                                            if (oktime) fprintf(edges, "\t%s:%s", label, time);
                                                         }else if (!strcmp(label1, "amount")) {
                                                                 matchar(':');
                                                                 matchar('"');
-                                                                readamount(value);
-                                                                fprintf(edges, "\t%s:%s", label, value);
+                                                                int okamount = readamount(value);
+                                                                if (okamount) fprintf(edges, "\t%s:%s", label, value);
                                                         } else if (!strcmp(label1, "latitude")) {
                                                             // coordinates
                                                             matchar(':');
-                                                            readcoord(lat);
+                                                            int okcoord = readcoord(lat);
                                                             //matchar(',');
-                                                            if (findlabel("longitude")) {
+                                                            if (okcoord && findlabel("longitude")) {
                                                                 matchar(':');
-                                                                readcoord(lon);
-                                                                fprintf(edges, "\t%slat:%s\t%slon:%s", label, lat, label, lon);
+                                                                okcoord = readcoord(lon);
+                                                                if (okcoord) fprintf(edges, "\t%slat:%s\t%slon:%s", label, lat, label, lon);
                                                             }
                                                         }
                                                     } else if (c == '"') skipstring();
@@ -366,7 +432,7 @@ void main(int argc, char **argv) {
                                 } else if (!strcmp(label0, "rank")) {
                                     matchar(':');
                                     matchar('"');
-                                    readlabel(rank);
+                                    readstring2(rank);
                                 } else // another label0
                                     passvalue();
                             }

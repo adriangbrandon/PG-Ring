@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <fstream>
+#include <set>
 #include <unordered_map>
 #include <sdsl/util.hpp>
 
@@ -42,6 +43,72 @@ private:
         set[name] = id;
         return id;
     };
+
+    int get(const std::string& name, std::unordered_map<std::string, uint32_t>& set) {
+        auto it = set.find(name);
+        if (it != set.end()) return it->second;
+        return 0;
+    };
+
+
+    void get_nodes(const std::string &filename, std::set<std::string> &nodes) {
+        std::ifstream file(filename);
+        std::string line;
+        size_t pos = 0;
+        while (std::getline(file, line)) {
+            auto node = tsv_helper::parse_node(line);
+            //print_node(node);
+            if (pos % 10000 == 0) {
+                std::cout << "Parsed nodes: " << pos << "\r";
+                std::cout.flush();
+            }
+            nodes.insert(node.variable);
+            ++pos;
+        }
+        std::cout << "Parsed nodes: " << pos << std::endl;
+    }
+
+    void get_invalid_triples(const std::string &filename, const std::string &output,
+                             std::set<std::string> &nodes, std::set<std::string> &used_nodes) {
+        std::ifstream file(filename);
+        std::ofstream out(output);
+        std::string line;
+        size_t pos = 0;
+        while (std::getline(file, line)) {
+            auto edge = tsv_helper::parse_edge(line);
+            if (pos % 10000 == 0) {
+                std::cout << "Parsed edges: " << pos << "\r";
+                std::cout.flush();
+            }
+            if (nodes.find(edge.to) != nodes.end()) {
+                used_nodes.insert(edge.from);
+                used_nodes.insert(edge.to);
+                out << line << "\n";
+            }
+            ++pos;
+        }
+    }
+
+    void clean_nodes(const std::string &input, const std::string &output, const std::set<std::string> &used_nodes) {
+        std::ifstream file(input);
+        std::ofstream out(output);
+        std::string line;
+        size_t pos = 0;
+        while (std::getline(file, line)) {
+            auto node = tsv_helper::parse_node(line);
+            //print_node(node);
+            if (pos % 10000 == 0) {
+                std::cout << "Parsed nodes: " << pos << "\r";
+                std::cout.flush();
+            }
+            if (used_nodes.find(node.variable) != used_nodes.end()) {
+                out << line << "\n";
+            }
+            ++pos;
+        }
+        std::cout << "Parsed nodes: " << pos << std::endl;
+    }
+
 
 
     void parse_file_nodes(const std::string& filename) {
@@ -86,9 +153,12 @@ private:
                 std::cout.flush();
             }
 
-            uint32_t subj_id = get_or_add(edge.from, m_set_nodes);
+            uint32_t subj_id = get(edge.from, m_set_nodes);
+            uint32_t obj_id = get(edge.to, m_set_nodes);
+
+            if (!subj_id || !obj_id) continue;
+
             uint32_t pred_id = get_or_add(edge.type, m_set_label_edges);
-            uint32_t obj_id = get_or_add(edge.to, m_set_nodes);
             m_triples.emplace_back(subj_id, pred_id, obj_id);
             for (auto & prop : edge.properties) {
                 std::string key = prop.key;
@@ -237,9 +307,23 @@ private:
 
 public:
 
-    void parse(const std::string& filename) {
+    void clean(const std::string &filename) {
         std::string node_file = filename + "-nodes.tsv";
         std::string edge_file = filename + "-edges.tsv";
+
+        std::string node_file_clean = filename + "-nodes-clean.tsv";
+        std::string edge_file_clean = filename + "-edges-clean.tsv";
+
+        std::set<std::string> nodes, used_nodes;
+        get_nodes(node_file, nodes);
+        get_invalid_triples(edge_file, edge_file_clean, nodes, used_nodes);
+        clean_nodes(node_file, node_file_clean, used_nodes);
+    }
+
+    void parse(const std::string& filename) {
+        std::string node_file = filename + "-nodes-clean.tsv";
+        std::string edge_file = filename + "-edges-clean.tsv";
+
         std::string data = filename + ".data";
         parse_file_nodes(node_file);
         write_file_nodes(data);

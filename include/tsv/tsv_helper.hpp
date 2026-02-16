@@ -10,6 +10,7 @@
 #include <sstream>
 
 #include "cypher/cypher_create_helper.hpp"
+#include "query/constant_utils.hpp"
 
 namespace tsv_helper {
 
@@ -92,6 +93,81 @@ namespace tsv_helper {
             edge.properties.push_back(parse_property(prop_str));
         }
         return edge;
+    }
+
+
+    static std::string fix_date_cypher(const std::string &value) {
+        //avoid months 00 and days 00
+        std::string fixed = value;
+        uint64_t beg = value.find('-', 1);
+        if (value[beg + 1] == '0' && value[beg + 2] == '0') {
+            fixed[beg + 2] = '1';
+        }
+        if (value[beg + 4] == '0' && value[beg + 5] == '0') {
+            fixed[beg + 5] = '1';
+        }
+        return fixed;
+    }
+
+    static std::string node_to_cypher(const node_tsv_type &node) {
+        std::string res;
+        res += "CREATE (" + node.variable;
+        for (const auto &label: node.labels) {
+            res += ":" + label;
+        }
+        if (!node.properties.empty()) {
+            res += " { qid: \"" + node.variable + "\"";
+            if (!node.properties.empty()) res += ", ";
+            for (size_t i = 0; i < node.properties.size(); ++i) {
+                int64_t value;
+                if (ring::query::constant::is_date(node.properties[i].value, value)) {
+                    res += node.properties[i].key + ": datetime('" + fix_date_cypher(node.properties[i].value) + "')";
+                }else {
+                    res += node.properties[i].key + ": " + node.properties[i].value;
+                }
+
+                if (i < node.properties.size() - 1) res += ", ";
+            }
+            res += "}";
+        }
+        res += ")";
+        return res;
+    }
+
+
+    static std::string node_cypher(const std::string &name) {
+        bool fix = false;
+        for (size_t i = 0; i < name.size(); ++i) {
+            if (!std::isalpha(name[i])) {
+                fix = true;
+            }
+        }
+        if (!fix) return name;
+        std::string res = "`" + name + "`";
+        return res;
+    }
+
+
+
+    static std::string edge_to_cypher(const edge_tsv_type &edge) {
+        std::string res;
+        res += "MATCH (a {qid:\"" + edge.from + "\"}), (b {qid:\"" + edge.to + "\"}) ";
+        res += "CREATE (a)-[:" + edge.type;
+        if (!edge.properties.empty()) {
+            res += " {";
+            for (size_t i = 0; i < edge.properties.size(); ++i) {
+                int64_t value;
+                if (ring::query::constant::is_date(edge.properties[i].value, value)) {
+                    res += edge.properties[i].key + ": datetime('" + fix_date_cypher(edge.properties[i].value) + "')";
+                }else {
+                    res += edge.properties[i].key + ": " + edge.properties[i].value;
+                }
+                if (i < edge.properties.size() - 1) res += ", ";
+            }
+            res += "}";
+        }
+        res += "]->(b)";
+        return res;
     }
 
 

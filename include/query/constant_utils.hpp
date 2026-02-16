@@ -130,10 +130,9 @@ namespace ring {
                     s = s.substr(ZONED_TIME_PREFIX.size(), s.size() - ZONED_TIME_PREFIX.size() - ZONED_TIME_SUFFIX.size());
                 }
 
-                if (s.size() > 21 || s.size() < 20) return false;
-                if (s.size() == 20) s = "+" + s; // add default sign
-                if (s[0] != '+' && s[0] != '-') return false;
-                if (s[5] != '-' || s[8] != '-' || s[11] != 'T' || s[14] != ':' || s[17] != ':' || s[20] != 'Z') return false;
+                if (s[0] != '+' && s[0] != '-') s = "+" + s; // add default sign
+                auto month = s.find('-', 1);
+                if (s[month+3] != '-' ||  s[month+6] != 'T' || s[month+9] != ':' || s[month+12] != ':' || s[month+15] != 'Z') return false;
                 result = date_to_int64(s);
                 return true;
             }

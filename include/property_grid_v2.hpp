@@ -86,7 +86,7 @@ namespace ring {
             sdsl::int_vector<> grid_y(values.size()+1);
             for (size_type i = 1; i < grid_y.size(); i++) {
                 grid_y[i] = aux_y[i] - (min_val-1); //shift to start from 1
-                std::cout << grid_y[i] << std::endl;
+                //std::cout << grid_y[i] << std::endl;
             }
             grid_y[0] = 0; //dummy
             m_min_val = min_val;
