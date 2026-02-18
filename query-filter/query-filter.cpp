@@ -69,15 +69,19 @@ int main(int argc, char* argv[]) {
     std::string q = "(?v0)-[?e0:P131]->(Q801) WHERE ( ?v0.P625lat IS NOT NULL ) AND ( ?v0.P625long IS NOT NULL )";
 
     if (argc < 3) {
-        std::cerr << "Usage: " << argv[0] << "<prefix> <query>" << std::endl;
+        std::cerr << "Usage: " << argv[0] << "<prefix> <query> [distinct]" << std::endl;
         return 1;
+    }
+    bool distinct = false;
+    if (argc == 4) {
+        distinct = std::stoi(argv[3]);
     }
 
     std::string prefix = argv[1];
     std::string query_file = argv[2];
 
     ring::query::transform t;
-    t.run(query_file, prefix);
+    t.run(query_file, prefix, distinct);
 
      return 0;
 }

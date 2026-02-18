@@ -541,6 +541,12 @@ namespace ring {
                     }
                     return r;
                 }
+                int64_t d;
+                if (constant::is_double(value, d)) {
+                    if (value.back() == '.') {
+                        return value + "0";
+                    }
+                }
                 return value;
             }
 
@@ -716,7 +722,7 @@ namespace ring {
                 }
             }
 
-            void run(const std::string &queries, const std::string &prefix) {
+            void run(const std::string &queries, const std::string &prefix, bool distinct) {
 
                 //extract extension
                 auto p = queries.rfind('.');
@@ -742,19 +748,51 @@ namespace ring {
                     try {
                         std::set<std::string> node_vars, edge_vars;
                         auto q = parse_query(query);
-                        std::string cypher = to_cypher(q);
+                        std::string cypher = to_cypher(q); //before transforming the values
                         for (auto &edge: q.patterns) {
                             if (edge.from.is_variable) node_vars.insert(edge.from.value);
                             if (edge.to.is_variable) node_vars.insert(edge.to.value);
                             if (!edge.value.empty()) edge_vars.insert(edge.value);
                         }
+
+                        for (auto &ev : edge_vars) {
+                            if (node_vars.find(ev) != node_vars.end()) {
+                                throw std::runtime_error("Conflicting type with node: " + ev);
+                            }
+                        }
+
+                        for (auto &nv : node_vars) {
+                            if (edge_vars.find(nv) != edge_vars.end()) {
+                                throw std::runtime_error("Conflicting type with edge: " + nv);
+                            }
+                        }
+
                         for (auto &edge: q.patterns) {
                             transform_edge(edge);
                         }
                         for (auto &op: q.where_exprs) {
                             transform_op_where(op, node_vars, edge_vars);
                         }
+                        if (distinct && edge_vars.size() > 1) {
+                            std::vector<std::string> vars;
+                            vars.insert(vars.end(), edge_vars.begin(), edge_vars.end());
+                            for (uint b = 0; b < vars.size()-1; ++b) {
+                                for (uint k = b+1; k < vars.size(); ++k) {
+                                    op_where_type op_where;
+                                    op_where.comp = "!=";
+                                    op_where.args[0].is_var = true;
+                                    op_where.args[0].value = vars[b];
+                                    op_where.args[0].has_property = false;
+                                    op_where.args[1].is_var = true;
+                                    op_where.args[1].value = vars[k];
+                                    op_where.args[1].has_property = false;
+                                    q.where_exprs.push_back(op_where);
+                                }
+                            }
+                        }
                         out << to_string(q) << "\n";
+
+
                         out_cypher << cypher << "\n";
                         std::cout << "[" << i << "] Processed query: " << query << "\n";
                         ++i;

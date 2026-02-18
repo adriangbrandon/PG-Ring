@@ -311,8 +311,8 @@ public:
         std::string node_file = filename + "-nodes.tsv";
         std::string edge_file = filename + "-edges.tsv";
 
-        std::string node_file_clean = filename + "-nodes-clean.tsv";
-        std::string edge_file_clean = filename + "-edges-clean.tsv";
+        std::string node_file_clean = filename + "-clean-nodes.tsv";
+        std::string edge_file_clean = filename + "-clean-edges.tsv";
 
         std::set<std::string> nodes, used_nodes;
         get_nodes(node_file, nodes);
@@ -321,8 +321,8 @@ public:
     }
 
     void parse(const std::string& filename) {
-        std::string node_file = filename + "-nodes-clean.tsv";
-        std::string edge_file = filename + "-edges-clean.tsv";
+        std::string node_file = filename + "-clean-nodes.tsv";
+        std::string edge_file = filename + "-clean-edges.tsv";
 
         std::string data = filename + ".data";
         parse_file_nodes(node_file);
