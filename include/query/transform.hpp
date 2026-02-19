@@ -753,6 +753,9 @@ namespace ring {
                             if (edge.from.is_variable) node_vars.insert(edge.from.value);
                             if (edge.to.is_variable) node_vars.insert(edge.to.value);
                             if (!edge.value.empty()) edge_vars.insert(edge.value);
+                            if (edge.from.is_variable && edge.to.is_variable && edge.from.value == edge.to.value) {
+                                throw std::runtime_error("Variable " + edge.from.value + " cannot be both source and target of the same edge.");
+                            }
                         }
 
                         for (auto &ev : edge_vars) {

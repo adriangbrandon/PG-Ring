@@ -7,7 +7,7 @@ project(Ring-PG)
 set(CMAKE_PROJECT_NAME "Ring-PG")
 
 #Change to "Debug" when you need it
-set(CMAKE_BUILD_TYPE "Release")
+set(CMAKE_BUILD_TYPE "Debug")
 
 # C++11 compiler Check
 if(NOT CMAKE_CXX_COMPILER_VERSION) # work around for cmake versions smaller than 2.8.10
@@ -138,6 +138,9 @@ target_link_libraries(query_gtest gtest gtest_main sdsl divsufsort divsufsort64)
 
 add_executable(interactive-query src/interactive-query.cpp)
 target_link_libraries(interactive-query sdsl divsufsort divsufsort64)
+
+add_executable(query src/query.cpp)
+target_link_libraries(query sdsl divsufsort divsufsort64)
 
 add_executable(mapping-types test/mapping-types.cpp)
 target_link_libraries(mapping-types sdsl divsufsort divsufsort64)

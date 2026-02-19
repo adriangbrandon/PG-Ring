@@ -39,6 +39,14 @@ namespace util {
             delete [] m_results;
         }
 
+        value_type operator[](size_type i) const {
+            return m_results[i];
+        }
+
+        void clear() {
+            m_cnt = 0;
+        }
+
         inline void add(const value_type &val){
             m_results[(m_cnt & (buckets-1))] = val;
             ++m_cnt;
