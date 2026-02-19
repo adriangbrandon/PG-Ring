@@ -161,7 +161,7 @@ namespace ring {
                 }
                 m_state[0] = s;
                 m_consts[0] = s_aux;
-                m_intervals[1] = m_ptr_ring->down_S(s_aux);
+                m_intervals[1] = m_ptr_ring->down_P_S(m_intervals[0], s_aux);
                 m_level = 1;
             } else {
                 //Both are variables
