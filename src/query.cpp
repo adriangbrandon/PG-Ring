@@ -132,6 +132,9 @@ int main(int argc, char **argv)
     }
 
     // Process each query
+    typedef ring::ltj_algorithm_pg<> algorithm_type;
+    typedef algorithm_type::tuple_type tuple_type;
+    ::util::results_collector<tuple_type> res;
     for (size_t query_id = 0; query_id < queries.size(); ++query_id) {
         const std::string& query_string = queries[query_id];
 
@@ -154,10 +157,6 @@ int main(int argc, char **argv)
 
             std::vector<uint64_t> execution_times;
             uint64_t num_results = 0;
-
-            typedef ring::ltj_algorithm_pg<> algorithm_type;
-            typedef algorithm_type::tuple_type tuple_type;
-            ::util::results_collector<tuple_type> res;
             // Execute the query REPEAT times
             for (uint64_t run = 0; run < repeat; ++run) {
                 res.clear();
