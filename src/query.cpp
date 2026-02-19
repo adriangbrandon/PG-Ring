@@ -181,7 +181,7 @@ int main(int argc, char **argv)
                 total_time_ns += t;
             }
             double avg_time_ns = static_cast<double>(total_time_ns) / repeat;
-            double avg_time_sec = avg_time_ns / 1e9;
+            double avg_time_ms = avg_time_ns / 1e6;
 
             num_results = res.size();
             // Write results (from last execution)
@@ -200,9 +200,9 @@ int main(int argc, char **argv)
             // Write to summary
             summary_stream << (query_id + 1) << "\t"
                           << res.size() << "\t"
-                          << std::fixed << std::setprecision(6) << avg_time_sec << std::endl;
+                          << std::fixed << std::setprecision(6) << avg_time_ms << std::endl;
 
-            std::cout << "  Average time: " << std::fixed << std::setprecision(6) << avg_time_sec << " seconds" << std::endl;
+            std::cout << "  Average time: " << std::fixed << std::setprecision(6) << avg_time_ms << " ms." << std::endl;
             std::cout << "  Results: " << res.size() << std::endl;
 
         } catch (const std::exception& e) {
