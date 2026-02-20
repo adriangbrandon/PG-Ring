@@ -115,9 +115,9 @@ namespace tsv_helper {
         for (const auto &label: node.labels) {
             res += ":" + label;
         }
+        res += " { qid: \"" + node.variable + "\"";
         if (!node.properties.empty()) {
-            res += " { qid: \"" + node.variable + "\"";
-            if (!node.properties.empty()) res += ", ";
+            res += ", ";
             for (size_t i = 0; i < node.properties.size(); ++i) {
                 int64_t value;
                 if (ring::query::constant::is_date(node.properties[i].value, value)) {
@@ -128,8 +128,8 @@ namespace tsv_helper {
 
                 if (i < node.properties.size() - 1) res += ", ";
             }
-            res += "}";
         }
+        res += "}";
         res += ")";
         return res;
     }

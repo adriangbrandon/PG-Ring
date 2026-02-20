@@ -88,12 +88,16 @@ private:
             }
             ++pos;
         }
+        std::cout << "Nodes: " << (nodes.find("Q12406") == nodes.end()) << std::endl;
+        std::cout << "Nodes: " << (nodes.find("Q686") == nodes.end()) << std::endl;
     }
 
     void clean_nodes(const std::string &input, const std::string &output, const std::set<std::string> &used_nodes) {
         std::ifstream file(input);
         std::ofstream out(output);
         std::string line;
+        std::cout << "Used nodes: " << (used_nodes.find("Q12406") == used_nodes.end()) << std::endl;
+        std::cout << "Used nodes: " << (used_nodes.find("Q686") == used_nodes.end()) << std::endl;
         size_t pos = 0;
         while (std::getline(file, line)) {
             auto node = tsv_helper::parse_node(line);
@@ -167,8 +171,8 @@ private:
         std::cout << "Sorting edges..." << std::flush;
         std::sort(m_triples.begin(), m_triples.end(), [](const triple_type& a, const triple_type& b) {
             if (std::get<1>(a) != std::get<1>(b)) return std::get<1>(a) < std::get<1>(b);
-            if (std::get<0>(a) != std::get<0>(b)) return std::get<0>(a) < std::get<0>(b);
-            return std::get<2>(a) < std::get<2>(b);
+            if (std::get<2>(a) != std::get<2>(b)) return std::get<2>(a) < std::get<2>(b);
+            return std::get<0>(a) < std::get<0>(b);
         });
         std::cout << " done." << std::endl;
 

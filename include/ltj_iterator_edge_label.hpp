@@ -391,13 +391,29 @@ namespace ring {
                 }
                 if (is_variable_predicate(var)) {
                     if (m_state[1] == s) {
-                        auto v = m_ptr_ring->map_SPO_to_POS( m_intervals[2].left(), m_consts[0]);
-                        if (v >= c) return v;
-                        return 0;
+                        if (m_intervals[2].size() > 1) {
+                            auto l = m_ptr_ring->map_SPO_to_POS( m_intervals[2].left(), m_consts[0]);
+                            auto r = m_ptr_ring->map_SPO_to_POS( m_intervals[2].right(), m_consts[0]);
+                            if (r < c) return 0;
+                            if (l >= c) return l;
+                            return c;
+                        }else {
+                            auto v = m_ptr_ring->map_SPO_to_POS( m_intervals[2].left(), m_consts[0]);
+                            if (v >= c) return v;
+                            return 0;
+                        }
                     }else {
-                        auto v = m_ptr_ring->map_OSP_to_POS( m_intervals[2].left());
-                        if (v >= c) return v;
-                        return 0;
+                        if (m_intervals[2].size() > 1) {
+                            auto l = m_ptr_ring->map_OSP_to_POS( m_intervals[2].left());
+                            auto r = m_ptr_ring->map_OSP_to_POS( m_intervals[2].right());
+                            if (r < c) return 0;
+                            if (l >= c) return l;
+                            return c;
+                        }else {
+                            auto v = m_ptr_ring->map_OSP_to_POS( m_intervals[2].left());
+                            if (v >= c) return v;
+                            return 0;
+                        }
                     }
                 }
             }
