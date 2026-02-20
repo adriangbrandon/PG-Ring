@@ -29,7 +29,8 @@ private:
     std::unordered_map<std::string, uint32_t> m_properties_node;  // Properties de nodos
     std::unordered_map<std::string, uint32_t> m_properties_edge;  // Properties de aristas
     // Triples: (sujeto, predicado, objeto)
-    std::vector<std::tuple<int, int, int>> m_triples;
+    typedef std::tuple<int, int, int,  std::vector<tsv_helper::property_tsv_type>> triple_type;
+    std::vector<triple_type> m_triples;
     typedef std::map<uint32_t, std::vector<uint32_t>> label_nodes_map_type; //para que se mostren ordenados por id de label
     label_nodes_map_type m_label_nodes_map;
     typedef std::vector<std::map<uint32_t, std::string>> properties_values_type; //para que se mostren ordenados por id de label
@@ -159,19 +160,35 @@ private:
             if (!subj_id || !obj_id) continue;
 
             uint32_t pred_id = get_or_add(edge.type, m_set_label_edges);
-            m_triples.emplace_back(subj_id, pred_id, obj_id);
-            for (auto & prop : edge.properties) {
+            m_triples.emplace_back(subj_id, pred_id, obj_id, edge.properties);
+            ++pos;
+        }
+        std::cout << "Parsed edges: " << pos << std::endl;
+        std::cout << "Sorting edges..." << std::flush;
+        std::sort(m_triples.begin(), m_triples.end(), [](const triple_type& a, const triple_type& b) {
+            if (std::get<1>(a) != std::get<1>(b)) return std::get<1>(a) < std::get<1>(b);
+            if (std::get<0>(a) != std::get<0>(b)) return std::get<0>(a) < std::get<0>(b);
+            return std::get<2>(a) < std::get<2>(b);
+        });
+        std::cout << " done." << std::endl;
+
+        std::cout << "Setting properties of edges..." << std::flush;
+        for (uint64_t i = 0; i < m_triples.size(); ++i) {
+            for (auto & prop : std::get<3>(m_triples[i])) {
                 std::string key = prop.key;
                 std::string value = prop.value;
                 uint32_t prop_id = get_or_add(key, m_properties_edge);
                 if (m_properties_edge_values.size() <= prop_id) {
                     m_properties_edge_values.resize(prop_id + 1);
                 }
-                m_properties_edge_values[prop_id][m_triples.size()] = value;
+                m_properties_edge_values[prop_id][i+1] = value;
             }
-            ++pos;
         }
-        std::cout << "Parsed edges: " << pos << std::endl;
+        std::cout << " done." << std::endl;
+
+
+
+
     }
 
     void write_file_nodes(const std::string& filename) {
