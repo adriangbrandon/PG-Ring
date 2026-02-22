@@ -143,7 +143,7 @@ int readamount(char *label) {
 }
 
 int year_out_of_range(const char *t) {
-    fprintf(stderr, "Year out of range: %s\n", t);
+    //fprintf(stderr, "Year out of range: %s\n", t);
     // expects format: +YYYY-MM-DD... or -YYYY-MM-DD...
     long long year = atoll(t);
     return (year > 999999999LL || year < -999999999LL);
@@ -198,8 +198,8 @@ int readcoord(char* label) {
     while (c != ',' && c != '}') {
         *(label++) = c;
         c = readchar();
-        if (c == '.') ok = 1;
         if (ok && c == '.') return 0; // more than one dot, not a valid coordinate
+        if (!ok && c == '.') ok = 1;
     }
     return ok;
 }
@@ -280,7 +280,7 @@ void main(int argc, char **argv) {
         matchar(':');
         matchar('"');
         readlabel(entity);
-        fprintf(stderr, "Entity name: %s\n", entity);
+        //fprintf(stderr, "Entity name: %s\n", entity);
         if (findlabel("claims")) {
             matchar(':');
             matchar('{');
