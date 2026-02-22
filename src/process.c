@@ -419,7 +419,7 @@ void main(int argc, char **argv) {
                                                             if (okcoord && findlabel("longitude")) {
                                                                 matchar(':');
                                                                 okcoord = readcoord(lon);
-                                                                if (okcoord) fprintf(edges, "\t%slat:%s\t%slon:%s", label, lat, label, lon);
+                                                                if (okcoord) fprintf(edges, "\t%slat:%s\t%slong:%s", label, lat, label, lon);
                                                             }
                                                         }
                                                     } else if (c == '"') skipstring();
