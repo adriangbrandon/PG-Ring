@@ -201,6 +201,7 @@ int readcoord(char* label) {
         if (ok && c == '.') return 0; // more than one dot, not a valid coordinate
         if (!ok && c == '.') ok = 1;
     }
+    *label = 0;
     return ok;
 }
 
@@ -280,14 +281,15 @@ void main(int argc, char **argv) {
         matchar(':');
         matchar('"');
         readlabel(entity);
-        //fprintf(stderr, "Entity name: %s\n", entity);
+       // fprintf(stderr, "Entity name: %s\n", entity);
         if (findlabel("claims")) {
             matchar(':');
             matchar('{');
             while (skipblanks() == '"') // there is another property (claim)
             {
                 readlabel(property);
-                //printf("Property name: %s\n", property);
+         //       printf("Property name: %s\n", property);
+         //       fflush(stdout);
                 // if (!strcmp(entity,"Q31") && !strcmp(property,"P85"))
                 //    prn = 1; // breakpoint
                 matchar(':');
@@ -346,12 +348,19 @@ void main(int argc, char **argv) {
                                         matchar(':');
                                         int okcoord = readcoord(lat);
                                         //matchar(',');
+                                        printf("Lat: %s\n", lat);
+                                        printf("OK: %i\n", okcoord);
+                                        fflush(stdout);
                                         if (okcoord && findlabel("longitude")) {
                                             matchar(':');
                                             okcoord = readcoord(lon);
-                                        }
-                                        if (!okcoord) good1 = 0; // avoid creating an edge with an incorrect coord
-                                        else good1 = 3; // Literal with coords
+                                            printf("Lon: %s\n", lon);
+                                            printf("OK: %i\n", okcoord);
+                                            fflush(stdout);
+                                            if (!okcoord) good1 = 0; // avoid creating an edge with an incorrect coord
+                                            else good1 = 3; // Literal with coords
+                                        }else good1 = 0;
+
                                     } else if (!strcmp(label1, "time")) { // time
                                         matchar(':');
                                         matchar('"');
@@ -419,7 +428,7 @@ void main(int argc, char **argv) {
                                                             if (okcoord && findlabel("longitude")) {
                                                                 matchar(':');
                                                                 okcoord = readcoord(lon);
-                                                                if (okcoord) fprintf(edges, "\t%slat:%s\t%slong:%s", label, lat, label, lon);
+                                                                if (okcoord) fprintf(edges, "\t%slat:%s\t%slon:%s", label, lat, label, lon);
                                                             }
                                                         }
                                                     } else if (c == '"') skipstring();
