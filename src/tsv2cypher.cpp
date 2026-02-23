@@ -18,7 +18,7 @@ int main(int argc, char* argv[]) {
 
     std::ifstream nodes(tsv_prfix + "-nodes.tsv");
     std::ifstream edges(tsv_prfix + "-edges.tsv");
-    std::ofstream ofs(out_file);
+    std::ofstream ofs(tsv_prfix+ "-nodes.cypher");
     std::string line;
     size_t pos = 0;
     tsv_parser tp;
@@ -28,6 +28,8 @@ int main(int argc, char* argv[]) {
         ofs  << cypher_node << ";\n";
     }
     nodes.close();
+    ofs.close();
+    ofs.open(tsv_prfix + "-edges.cypher");
     while (std::getline(edges, line)) {
         auto edge = tsv_helper::parse_edge(line);
         std::string cypher_edge = tsv_helper::edge_to_cypher(edge);
