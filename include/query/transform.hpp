@@ -491,7 +491,55 @@ namespace ring {
                 return result;
             }
 
-            std::string cypher_pattern(const edge_type& edge) {
+            std::string cypher_where_labels_expr(const std::string &var, const expr_label_type& expr) {
+                std::string result;
+                result += "(";
+                if (expr.type == LAB || expr.type == NEG) {
+                    if (expr.type == NEG) result += "(NOT ";
+                    result += var + ":" + expr.value;
+                    if (expr.type == NEG) result += ")";
+                } else {
+                    result += "(";
+                    for (size_t i = 0; i < expr.args.size(); ++i) {
+                        result += str_expr(expr.args[i]);
+                        if (i < expr.args.size() - 1) {
+                            if (expr.type == AND) result += " AND ";
+                            else if (expr.type == OR) result += " OR ";
+                        }
+                    }
+                    result += ")";
+                }
+                result += ")";
+                return result;
+            }
+
+            std::string cypher_str_expr(const std::string &var, const expr_label_type& expr, std::string &where_str) {
+                std::string result;
+                if (expr.type == LAB) {
+                    return ":" + expr.value;
+                }else if (expr.type == AND) {
+                    // check if all children are LAB, then we can print them as :L1:L2:...
+                    bool all_lab = true;
+                    for (const auto& arg: expr.args) {
+                        if (arg.type != LAB) {
+                            all_lab = false;
+                            break;
+                        }
+                    }
+                    if (all_lab) {
+                        for (const auto& arg: expr.args) {
+                            result += ":" + arg.value;
+                        }
+                        return result;
+                    }else {
+                        if (!where_str.empty()) where_str += " AND ";
+                        where_str += cypher_where_labels_expr(var, expr);
+                    }
+                }
+                return result;
+            }
+
+            std::string cypher_pattern(const edge_type& edge, std::string &where_str) {
                 std::string result;
                 result += "(";
                 if (edge.from.is_variable)
@@ -499,17 +547,15 @@ namespace ring {
                 else
                     result += "{ qid: \"" + edge.from.value + "\"}";
                 if (edge.from.expr_label.type != EMPTY) {
-                    result += ":";
                     // print label expression
-                    result += str_expr(edge.from.expr_label);
+                    result += cypher_str_expr(edge.from.value, edge.from.expr_label, where_str);
                 }
                 result += ")-[";
                 if (!edge.value.empty())
                     result += edge.value;
                 if (edge.expr_label.type != EMPTY) {
-                    result += ":";
                     // print label expression
-                    result += str_expr(edge.expr_label);
+                    result += cypher_str_expr(edge.value, edge.expr_label, where_str);
                 }
                 result += "]->(";
                 if (edge.to.is_variable)
@@ -517,9 +563,8 @@ namespace ring {
                 else
                     result += "{ qid: \"" + edge.to.value + "\"}";
                 if (edge.to.expr_label.type != EMPTY) {
-                    result += ":";
                     // print label expression
-                    result += str_expr(edge.to.expr_label);
+                    result += cypher_str_expr(edge.to.value, edge.to.expr_label, where_str);
                 }
                 result += ")";
                 return result;
@@ -582,12 +627,17 @@ namespace ring {
 
             std::string to_cypher(query_type &q) {
                 std::string result = "MATCH ";
+                std::string where_str = "";
                 for (size_t i = 0; i < q.patterns.size(); ++i) {
-                    result += cypher_pattern(q.patterns[i]);
+                    result += cypher_pattern(q.patterns[i], where_str);
                     if (i < q.patterns.size() - 1) result += ", ";
                 }
                 if (!q.where_exprs.empty()) {
                     result += " WHERE ";
+                    result += where_str;
+                    if (!where_str.empty() && !q.where_exprs.empty()) {
+                        result += " AND ";
+                    }
                     for (size_t i = 0; i < q.where_exprs.size(); ++i) {
                         auto &op = q.where_exprs[i];
                         result += "(";
