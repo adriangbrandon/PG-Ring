@@ -150,7 +150,7 @@ int year_out_of_range(const char *t) {
     return (year > 999999999LL || year < -999999999LL);
 }
 
-int is_leap(int year) {
+int is_leap(long long year) {
     return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
 }
 
@@ -170,7 +170,6 @@ int is_valid_date(long long year, int month, int day) {
 
     return day <= days_month[month - 1];
 }
-
 
 int readtime(char* label) {
     char* start = label;
