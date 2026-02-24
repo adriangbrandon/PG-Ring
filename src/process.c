@@ -9,6 +9,7 @@
 #include <string.h>
 
 int prn = 0;
+static int days_month[] = {31,28,31,30,31,30,31,31,30,31,30,31};
 
 char readchar(void) {
     char c = getchar();
@@ -149,12 +150,34 @@ int year_out_of_range(const char *t) {
     return (year > 999999999LL || year < -999999999LL);
 }
 
+int is_leap(int year) {
+    return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+}
+
+int is_valid_date(long long year, int month, int day) {
+    if (month == 0 && day == 0) return 1; // allow just a year
+    if (day == 0) return 1; // allow just a year and month
+
+    if (month < 1 || month > 12) return 0;
+    if (day < 1) return 0;
+
+
+
+    // Ajustar febrero si es bisiesto
+    if (month == 2 && is_leap(year)) {
+        return day <= 29;
+    }
+
+    return day <= days_month[month - 1];
+}
+
+
 int readtime(char* label) {
     char* start = label;
     while ((*(label++) = readchar()) != '"');
     label[-1] = 0;
 
-    char year[20];
+    char year[21], month[3], day[3];
     year[0] = start[0]; // copy the sign
     int i = 1;
     while (start[i] && start[i] != '-' && i < 20) {
@@ -163,9 +186,16 @@ int readtime(char* label) {
     }
     if (i >= 20) return 0; //year too long, not a valid time
     year[i] = 0;
-    int ok = (year_out_of_range(year) != 1);
+    if (year_out_of_range(year)) return 0;
+    ++i; // skip '-'
+    month[0] = start[i]; month[1] = start[i+1]; month[2] = 0;
+    i += 3; // skip month and '-'
+    day[0] = start[i]; day[1] = start[i+1]; day[2] = 0;
+    long long y = atoll(year);
+    int m = atoi(month);
+    int d = atoi(day);
     //fprintf(stderr, "Read time: %s, year: %s, ok: %i\n", start, year, ok);
-    return ok;
+    return is_valid_date(y, m, d);
 }
 
 // reads a string and returns it between quotes
@@ -348,15 +378,15 @@ void main(int argc, char **argv) {
                                         matchar(':');
                                         int okcoord = readcoord(lat);
                                         //matchar(',');
-                                        printf("Lat: %s\n", lat);
-                                        printf("OK: %i\n", okcoord);
-                                        fflush(stdout);
+                                        //printf("Lat: %s\n", lat);
+                                        //printf("OK: %i\n", okcoord);
+                                        //fflush(stdout);
                                         if (okcoord && findlabel("longitude")) {
                                             matchar(':');
                                             okcoord = readcoord(lon);
-                                            printf("Lon: %s\n", lon);
-                                            printf("OK: %i\n", okcoord);
-                                            fflush(stdout);
+                                            //printf("Lon: %s\n", lon);
+                                            //printf("OK: %i\n", okcoord);
+                                            //fflush(stdout);
                                             if (!okcoord) good1 = 0; // avoid creating an edge with an incorrect coord
                                             else good1 = 3; // Literal with coords
                                         }else good1 = 0;
