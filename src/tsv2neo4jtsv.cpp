@@ -141,13 +141,15 @@ void write_nodes_tsv(const std::string& nodes_file,
                             } else {
                                 ofs << prop.value;
                             }
-                        } if (it->second == "string") {
+                        } else if (it->second == "string") {
                             if (prop.value[0] == '"' && prop.value.back() == '"') {
                                 //remove existing quotes to avoid double quoting
                                 ofs << prop.value.substr(1, prop.value.length() - 2);
                             } else {
                                 ofs << prop.value;
                             }
+                        }else {
+                            ofs << prop.value;
                         }
 
                     } else {
