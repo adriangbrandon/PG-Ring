@@ -147,7 +147,7 @@ int year_out_of_range(const char *t) {
     //fprintf(stderr, "Year out of range: %s\n", t);
     // expects format: +YYYY-MM-DD... or -YYYY-MM-DD...
     long long year = atoll(t);
-    return (year > 999999999LL || year < -999999999LL);
+    return (year > 9999LL || year < -9999LL);
 }
 
 int is_leap(long long year) {
