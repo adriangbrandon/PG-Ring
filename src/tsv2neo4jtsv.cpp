@@ -8,6 +8,55 @@
 #include <sstream>
 #include <map>
 
+// Función para limpiar comillas del formato TSV
+std::string clean_tsv_value(const std::string& value) {
+    std::string cleaned = value;
+
+    // Eliminar comillas triples: """valor""" -> valor
+    if (cleaned.size() >= 6 &&
+        cleaned.substr(0, 3) == "\"\"\"" &&
+        cleaned.substr(cleaned.size() - 3) == "\"\"\"") {
+        cleaned = cleaned.substr(3, cleaned.size() - 6);
+    }
+    // Eliminar comillas dobles: ""valor"" -> valor
+    else if (cleaned.size() >= 4 &&
+        cleaned.substr(0, 2) == "\"\"" &&
+        cleaned.substr(cleaned.size() - 2) == "\"\"") {
+        cleaned = cleaned.substr(2, cleaned.size() - 4);
+    }
+    // Eliminar comillas simples: "valor" -> valor
+    else if (cleaned.size() >= 2 &&
+        cleaned[0] == '"' &&
+        cleaned[cleaned.size() - 1] == '"') {
+        cleaned = cleaned.substr(1, cleaned.size() - 2);
+    }
+
+    return cleaned;
+}
+
+// Función para escapar strings para Cypher/JSON
+std::string escape_cypher_string(const std::string& str) {
+    std::string escaped;
+    for (char c : str) {
+        if (c == '\'') {
+            escaped += "\\'";
+        } else if (c == '"') {
+            escaped += "\\\"";
+        } else if (c == '\\') {
+            escaped += "\\\\";
+        } else if (c == '\n') {
+            escaped += "\\n";
+        } else if (c == '\r') {
+            escaped += "\\r";
+        } else if (c == '\t') {
+            escaped += "\\t";
+        } else {
+            escaped += c;
+        }
+    }
+    return escaped;
+}
+
 // Función para formatear fechas para Neo4j
 std::string format_datetime_for_neo4j(const std::string& date_str) {
     // Neo4j acepta formato ISO 8601: YYYY-MM-DDTHH:MM:SS[.sss][Z|±HH:MM]
@@ -134,6 +183,8 @@ void write_nodes_cypher(const std::string& nodes_file,
 
         // Agregar todas las propiedades
         for (const auto& prop : node.properties) {
+            std::string clean_value = clean_tsv_value(prop.value);
+            if (clean_value.empty()) continue;
 
             props << ", " << prop.key << ": ";
 
@@ -141,11 +192,23 @@ void write_nodes_cypher(const std::string& nodes_file,
             auto it = types.find(prop.key);
             if (it != types.end()) {
                 if (it->second == "datetime") {
-                    std::string formatted = format_datetime_for_neo4j(prop.value);
-                    props << "datetime('" << formatted << "')";
-                }else {
-                    props << prop.value;
+                    int64_t date_val;
+                    if (ring::query::constant::is_date(prop.value, date_val)) {
+                        std::string formatted = format_datetime_for_neo4j(prop.value);
+                        props << "datetime('" << escape_cypher_string(formatted) << "')";
+                    } else {
+                        props << "'" << escape_cypher_string(clean_value) << "'";
+                    }
+                } else if (it->second == "double" || it->second == "long") {
+                    // Números sin comillas
+                    props << clean_value;
+                } else {
+                    // Strings con comillas
+                    props << "'" << escape_cypher_string(clean_value) << "'";
                 }
+            } else {
+                // Sin tipo detectado, asumir string
+                props << "'" << escape_cypher_string(clean_value) << "'";
             }
         }
         props << "}";
@@ -232,6 +295,8 @@ void write_edges_cypher(const std::string& edges_file,
             rel << ", props: {";
             bool first = true;
             for (const auto& prop : edge.properties) {
+                std::string clean_value = clean_tsv_value(prop.value);
+                if (clean_value.empty()) continue;
 
                 if (!first) rel << ", ";
                 first = false;
@@ -241,11 +306,22 @@ void write_edges_cypher(const std::string& edges_file,
                 auto it = types.find(prop.key);
                 if (it != types.end()) {
                     if (it->second == "datetime") {
-                        std::string formatted = format_datetime_for_neo4j(prop.value);
-                        rel << "datetime('" << formatted << "')";
-                    }else {
-                        rel << prop.value;
+                        int64_t date_val;
+                        if (ring::query::constant::is_date(prop.value, date_val)) {
+                            std::string formatted = format_datetime_for_neo4j(prop.value);
+                            rel << "datetime('" << escape_cypher_string(formatted) << "')";
+                        } else {
+                            rel << "'" << escape_cypher_string(clean_value) << "'";
+                        }
+                    } else if (it->second == "double" || it->second == "long") {
+                        // Números sin comillas
+                        rel << clean_value;
+                    } else {
+                        // Strings con comillas
+                        rel << "'" << escape_cypher_string(clean_value) << "'";
                     }
+                } else {
+                    rel << "'" << escape_cypher_string(clean_value) << "'";
                 }
             }
             rel << "}";
@@ -287,6 +363,182 @@ void write_edges_cypher(const std::string& edges_file,
     }
 
     std::cout << "  Generated " << total << " relationships total.\n";
+}
+
+// Función para escribir TSV compacto con propiedades como JSON (nodos)
+// Extrae propiedades tipadas (datetime, long, double) como columnas separadas
+void write_nodes_tsv_compact(const std::string& nodes_file,
+                              const std::string& output_file,
+                              const std::map<std::string, std::string>& types) {
+    std::ifstream nodes(nodes_file);
+    std::ofstream ofs(output_file);
+    std::string line;
+
+    // Recopilar propiedades tipadas (datetime, long, double) para columnas separadas
+    std::vector<std::string> typed_properties;
+    for (const auto& [prop, type] : types) {
+        if (type == "datetime" || type == "long" || type == "double") {
+            typed_properties.push_back(prop);
+        }
+    }
+
+    // Header: qid:ID, :LABEL, propiedades tipadas, properties:string
+    ofs << "qid:ID\t:LABEL";
+    for (const auto& prop : typed_properties) {
+        ofs << "\t" << prop << ":" << types.at(prop);
+    }
+    ofs << "\tproperties:string\n";
+
+    int total = 0;
+    while (std::getline(nodes, line)) {
+        auto node = tsv_helper::parse_node(line);
+
+        // qid
+        ofs << clean_tsv_value(node.variable) << "\t";
+
+        // Labels (separados por ;)
+        if (!node.labels.empty()) {
+            for (size_t i = 0; i < node.labels.size(); ++i) {
+                ofs << node.labels[i];
+                if (i < node.labels.size() - 1) ofs << ";";
+            }
+        }
+
+        // Propiedades tipadas como columnas separadas
+        for (const auto& typed_prop : typed_properties) {
+            ofs << "\t";
+            for (const auto& prop : node.properties) {
+                if (prop.key == typed_prop) {
+                    std::string clean_value = clean_tsv_value(prop.value);
+
+                    if (types.at(typed_prop) == "datetime") {
+                        int64_t date_val;
+                        if (ring::query::constant::is_date(prop.value, date_val)) {
+                            ofs << format_datetime_for_neo4j(prop.value);
+                        } else {
+                            ofs << clean_value;
+                        }
+                    } else {
+                        // long o double: escribir sin comillas
+                        ofs << clean_value;
+                    }
+                    break;
+                }
+            }
+        }
+
+        // Resto de propiedades (strings) como JSON
+        ofs << "\t{";
+        bool first = true;
+        for (const auto& prop : node.properties) {
+            // Saltar propiedades ya incluidas en columnas tipadas
+            if (std::find(typed_properties.begin(), typed_properties.end(), prop.key) != typed_properties.end()) {
+                continue;
+            }
+
+            if (prop.value.empty()) continue;
+
+            if (!first) ofs << ",";
+            first = false;
+
+            // Las strings ya vienen bien formateadas para JSON
+            ofs << "\"" << prop.key << "\":" << prop.value;
+        }
+        ofs << "}\n";
+
+        total++;
+        if (total % 10000 == 0) {
+            std::cout << "  Processed " << total << " nodes...\r" << std::flush;
+        }
+    }
+
+    std::cout << "\n  Generated " << total << " nodes total.\n";
+    std::cout << "  Extracted " << typed_properties.size() << " typed properties as separate columns.\n";
+}
+
+// Función para escribir TSV compacto con propiedades como JSON (edges)
+// Extrae propiedades tipadas (datetime, long, double) como columnas separadas
+void write_edges_tsv_compact(const std::string& edges_file,
+                             const std::string& output_file,
+                             const std::map<std::string, std::string>& types) {
+    std::ifstream edges(edges_file);
+    std::ofstream ofs(output_file);
+    std::string line;
+
+    // Recopilar propiedades tipadas para columnas separadas
+    std::vector<std::string> typed_properties;
+    for (const auto& [prop, type] : types) {
+        if (type == "datetime" || type == "long" || type == "double") {
+            typed_properties.push_back(prop);
+        }
+    }
+
+    // Header: :START_ID, :END_ID, :TYPE, propiedades tipadas, properties:string
+    ofs << ":START_ID\t:END_ID\t:TYPE";
+    for (const auto& prop : typed_properties) {
+        ofs << "\t" << prop << ":" << types.at(prop);
+    }
+    ofs << "\tproperties:string\n";
+
+    int total = 0;
+    while (std::getline(edges, line)) {
+        auto edge = tsv_helper::parse_edge(line);
+
+        // START_ID, END_ID, TYPE
+        ofs << clean_tsv_value(edge.from) << "\t";
+        ofs << clean_tsv_value(edge.to) << "\t";
+        ofs << clean_tsv_value(edge.type);
+
+        // Propiedades tipadas como columnas separadas
+        for (const auto& typed_prop : typed_properties) {
+            ofs << "\t";
+            for (const auto& prop : edge.properties) {
+                if (prop.key == typed_prop) {
+                    std::string clean_value = clean_tsv_value(prop.value);
+
+                    if (types.at(typed_prop) == "datetime") {
+                        int64_t date_val;
+                        if (ring::query::constant::is_date(prop.value, date_val)) {
+                            ofs << format_datetime_for_neo4j(prop.value);
+                        } else {
+                            ofs << clean_value;
+                        }
+                    } else {
+                        // long o double
+                        ofs << clean_value;
+                    }
+                    break;
+                }
+            }
+        }
+
+        // Resto de propiedades (strings) como JSON
+        ofs << "\t{";
+        bool first = true;
+        for (const auto& prop : edge.properties) {
+            // Saltar propiedades ya incluidas en columnas tipadas
+            if (std::find(typed_properties.begin(), typed_properties.end(), prop.key) != typed_properties.end()) {
+                continue;
+            }
+
+            if (prop.value.empty()) continue;
+
+            if (!first) ofs << ",";
+            first = false;
+
+            // Las strings ya vienen bien formateadas para JSON
+            ofs << "\"" << prop.key << "\":" << prop.value;
+        }
+        ofs << "}\n";
+
+        total++;
+        if (total % 10000 == 0) {
+            std::cout << "  Processed " << total << " edges...\r" << std::flush;
+        }
+    }
+
+    std::cout << "\n  Generated " << total << " edges total.\n";
+    std::cout << "  Extracted " << typed_properties.size() << " typed properties as separate columns.\n";
 }
 
 // Función para escribir el archivo TSV de nodos (formato Neo4j)
@@ -333,7 +585,9 @@ void write_nodes_tsv(const std::string& nodes_file,
             // Buscar si el nodo tiene esta propiedad
             for (const auto& prop : node.properties) {
                 if (prop.key == prop_name) {
-                    // Verificar si es datetime y formatear apropiadamente
+                    std::string clean_value = clean_tsv_value(prop.value);
+
+                    // Verificar el tipo y formatear apropiadamente
                     auto it = types.find(prop_name);
                     if (it != types.end()) {
                         if (it->second == "datetime") {
@@ -341,21 +595,17 @@ void write_nodes_tsv(const std::string& nodes_file,
                             if (ring::query::constant::is_date(prop.value, date_val)) {
                                 ofs << format_datetime_for_neo4j(prop.value);
                             } else {
-                                ofs << prop.value;
+                                ofs << clean_value;
                             }
-                        } else if (it->second == "string") {
-                            if (prop.value[0] == '"' && prop.value.back() == '"') {
-                                //remove existing quotes to avoid double quoting
-                                ofs << prop.value.substr(1, prop.value.length() - 2);
-                            } else {
-                                ofs << prop.value;
-                            }
-                        }else {
-                            ofs << prop.value;
+                        } else if (it->second == "double" || it->second == "long") {
+                            // Números se escriben sin comillas
+                            ofs << clean_value;
+                        } else {
+                            // Strings
+                            ofs << clean_value;
                         }
-
                     } else {
-                        ofs << prop.value;
+                        ofs << clean_value;
                     }
                     break;
                 }
@@ -407,15 +657,27 @@ void write_edges_tsv(const std::string& edges_file,
             // Buscar si la arista tiene esta propiedad
             for (const auto& prop : edge.properties) {
                 if (prop.key == prop_name) {
-                    // Verificar si es datetime y formatear apropiadamente
+                    std::string clean_value = clean_tsv_value(prop.value);
+
+                    // Verificar el tipo y formatear apropiadamente
                     auto it = types.find(prop_name);
                     if (it != types.end()) {
                         if (it->second == "datetime") {
-                            std::string formatted = format_datetime_for_neo4j(prop.value);
-                            ofs << "datetime('" << formatted << "')";
-                        }else {
-                            ofs  << prop.value;
+                            int64_t date_val;
+                            if (ring::query::constant::is_date(prop.value, date_val)) {
+                                ofs << format_datetime_for_neo4j(prop.value);
+                            } else {
+                                ofs << clean_value;
+                            }
+                        } else if (it->second == "double" || it->second == "long") {
+                            // Números se escriben sin comillas
+                            ofs << clean_value;
+                        } else {
+                            // Strings
+                            ofs << clean_value;
                         }
+                    } else {
+                        ofs << clean_value;
                     }
                     break;
                 }
@@ -429,23 +691,37 @@ void write_edges_tsv(const std::string& edges_file,
 int main(int argc, char* argv[]) {
 
     if (argc < 2 || argc > 3) {
-        std::cout << "Usage: " << argv[0] << " <tsv_prefix> [--cypher]" << std::endl;
+        std::cout << "Usage: " << argv[0] << " <tsv_prefix> [--cypher|--compact]" << std::endl;
         std::cout << "Reads <tsv_prefix>-nodes.tsv and <tsv_prefix>-edges.tsv" << std::endl;
         std::cout << std::endl;
         std::cout << "Output modes:" << std::endl;
-        std::cout << "  Default: Generates TSV files for neo4j-admin import" << std::endl;
-        std::cout << "    - <tsv_prefix>-neo4j-nodes.tsv" << std::endl;
+        std::cout << "  Default: Generates TSV files with " << std::endl;
+        std::cout << "           ALL properties as separate columns (3791+ columns)" << std::endl;
+        std::cout << "    - <tsv_prefix>-neo4j-nodes.tsv (HUGE: ~40GB)" << std::endl;
         std::cout << "    - <tsv_prefix>-neo4j-edges.tsv" << std::endl;
+        std::cout << std::endl;
+        std::cout << "  --compact: Generates TSV with properties as JSON" << std::endl;
+        std::cout << "             (5-8x smaller file size)" << std::endl;
+        std::cout << "    - <tsv_prefix>-compact-nodes.tsv (~5-8GB)" << std::endl;
+        std::cout << "    - <tsv_prefix>-compact-edges.tsv" << std::endl;
         std::cout << std::endl;
         std::cout << "  --cypher: Generates Cypher UNWIND statements" << std::endl;
         std::cout << "    - <tsv_prefix>-nodes.cypher" << std::endl;
         std::cout << "    - <tsv_prefix>-edges.cypher" << std::endl;
         std::cout << std::endl;
-        std::cout << "TSV import command:" << std::endl;
+        std::cout << "TSV import command (default):" << std::endl;
         std::cout << "  neo4j-admin database import full \\" << std::endl;
         std::cout << "    --delimiter=TAB \\" << std::endl;
         std::cout << "    --nodes=<tsv_prefix>-neo4j-nodes.tsv \\" << std::endl;
         std::cout << "    --relationships=<tsv_prefix>-neo4j-edges.tsv \\" << std::endl;
+        std::cout << "    neo4j" << std::endl;
+        std::cout << std::endl;
+        std::cout << "TSV compact import (RECOMMENDED for 3791 properties):" << std::endl;
+        std::cout << "  neo4j-admin database import full \\" << std::endl;
+        std::cout << "    --delimiter=TAB \\" << std::endl;
+        std::cout << "    --nodes=<tsv_prefix>-compact-nodes.tsv \\" << std::endl;
+        std::cout << "    --relationships=<tsv_prefix>-compact-edges.tsv \\" << std::endl;
+        std::cout << "    --array-delimiter='|' \\" << std::endl;
         std::cout << "    neo4j" << std::endl;
         std::cout << std::endl;
         std::cout << "Cypher import command:" << std::endl;
@@ -456,6 +732,7 @@ int main(int argc, char* argv[]) {
 
     std::string tsv_prefix = argv[1];
     bool use_cypher = (argc == 3 && std::string(argv[2]) == "--cypher");
+    bool use_compact = (argc == 3 && std::string(argv[2]) == "--compact");
 
     std::string nodes_file = tsv_prefix + "-nodes.tsv";
     std::string edges_file = tsv_prefix + "-edges.tsv";
@@ -465,6 +742,10 @@ int main(int argc, char* argv[]) {
         nodes_output = tsv_prefix + "-nodes.cypher";
         edges_output = tsv_prefix + "-edges.cypher";
         std::cout << "Converting TSV to Cypher UNWIND format..." << std::endl;
+    } else if (use_compact) {
+        nodes_output = tsv_prefix + "-compact-nodes.tsv";
+        edges_output = tsv_prefix + "-compact-edges.tsv";
+        std::cout << "Converting TSV to Neo4j TSV format (COMPACT with JSON properties)..." << std::endl;
     } else {
         nodes_output = tsv_prefix + "-neo4j-nodes.tsv";
         edges_output = tsv_prefix + "-neo4j-edges.tsv";
@@ -482,6 +763,9 @@ int main(int argc, char* argv[]) {
     if (use_cypher) {
         std::cout << "Writing nodes Cypher to " << nodes_output << "..." << std::endl;
         write_nodes_cypher(nodes_file, nodes_output, node_types);
+    } else if (use_compact) {
+        std::cout << "Writing nodes TSV (compact) to " << nodes_output << "..." << std::endl;
+        write_nodes_tsv_compact(nodes_file, nodes_output, node_types);
     } else {
         std::cout << "Writing nodes TSV to " << nodes_output << "..." << std::endl;
         write_nodes_tsv(nodes_file, nodes_output, node_properties, node_types);
@@ -498,6 +782,9 @@ int main(int argc, char* argv[]) {
     if (use_cypher) {
         std::cout << "Writing edges Cypher to " << edges_output << "..." << std::endl;
         write_edges_cypher(edges_file, edges_output, edge_types);
+    } else if (use_compact) {
+        std::cout << "Writing edges TSV (compact) to " << edges_output << "..." << std::endl;
+        write_edges_tsv_compact(edges_file, edges_output, edge_types);
     } else {
         std::cout << "Writing edges TSV to " << edges_output << "..." << std::endl;
         write_edges_tsv(edges_file, edges_output, edge_properties, edge_types);
