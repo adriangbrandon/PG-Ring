@@ -40,11 +40,12 @@ using timer = std::chrono::high_resolution_clock;
 typedef ring::ring_pg<> ring_type;
 
 void print_usage(const char* program_name) {
-    std::cout << "Usage: " << program_name << " <index_file> <queries_file> <max_results> <repeat>" << std::endl;
+    std::cout << "Usage: " << program_name << " <index_file> <queries_file> <max_results> <repeat> <timeout>" << std::endl;
     std::cout << "  <index_file>   : Path to the .ring.pg index file" << std::endl;
     std::cout << "  <queries_file> : File containing queries (one per line)" << std::endl;
     std::cout << "  <max_results>  : Maximum number of results to return (0 = unlimited)" << std::endl;
     std::cout << "  <repeat>       : Number of times to execute each query" << std::endl;
+    std::cout << "  <timeout>      : Timeout limit" << std::endl;
 }
 
 bool create_directory(const std::string& path) {
@@ -57,7 +58,7 @@ bool create_directory(const std::string& path) {
 
 int main(int argc, char **argv)
 {
-    if(argc >= 5) {
+    if(argc < 5) {
         print_usage(argv[0]);
         return 1;
     }
