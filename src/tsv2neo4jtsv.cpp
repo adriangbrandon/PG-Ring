@@ -8,55 +8,6 @@
 #include <sstream>
 #include <map>
 
-// Función para limpiar comillas del formato TSV
-std::string clean_tsv_value(const std::string& value) {
-    std::string cleaned = value;
-
-    // Eliminar comillas triples: """valor""" -> valor
-    if (cleaned.size() >= 6 &&
-        cleaned.substr(0, 3) == "\"\"\"" &&
-        cleaned.substr(cleaned.size() - 3) == "\"\"\"") {
-        cleaned = cleaned.substr(3, cleaned.size() - 6);
-    }
-    // Eliminar comillas dobles: ""valor"" -> valor
-    else if (cleaned.size() >= 4 &&
-        cleaned.substr(0, 2) == "\"\"" &&
-        cleaned.substr(cleaned.size() - 2) == "\"\"") {
-        cleaned = cleaned.substr(2, cleaned.size() - 4);
-    }
-    // Eliminar comillas simples: "valor" -> valor
-    else if (cleaned.size() >= 2 &&
-        cleaned[0] == '"' &&
-        cleaned[cleaned.size() - 1] == '"') {
-        cleaned = cleaned.substr(1, cleaned.size() - 2);
-    }
-
-    return cleaned;
-}
-
-// Función para escapar strings para Cypher/JSON
-std::string escape_cypher_string(const std::string& str) {
-    std::string escaped;
-    for (char c : str) {
-        if (c == '\'') {
-            escaped += "\\'";
-        } else if (c == '"') {
-            escaped += "\\\"";
-        } else if (c == '\\') {
-            escaped += "\\\\";
-        } else if (c == '\n') {
-            escaped += "\\n";
-        } else if (c == '\r') {
-            escaped += "\\r";
-        } else if (c == '\t') {
-            escaped += "\\t";
-        } else {
-            escaped += c;
-        }
-    }
-    return escaped;
-}
-
 // Función para formatear fechas para Neo4j
 std::string format_datetime_for_neo4j(const std::string& date_str) {
     // Neo4j acepta formato ISO 8601: YYYY-MM-DDTHH:MM:SS[.sss][Z|±HH:MM]
@@ -183,8 +134,7 @@ void write_nodes_cypher(const std::string& nodes_file,
 
         // Agregar todas las propiedades
         for (const auto& prop : node.properties) {
-            std::string clean_value = clean_tsv_value(prop.value);
-            if (clean_value.empty()) continue;
+            if (prop.value.empty()) continue;
 
             props << ", " << prop.key << ": ";
 
@@ -195,20 +145,20 @@ void write_nodes_cypher(const std::string& nodes_file,
                     int64_t date_val;
                     if (ring::query::constant::is_date(prop.value, date_val)) {
                         std::string formatted = format_datetime_for_neo4j(prop.value);
-                        props << "datetime('" << escape_cypher_string(formatted) << "')";
+                        props << "datetime('" << formatted << "')";
                     } else {
-                        props << "'" << escape_cypher_string(clean_value) << "'";
+                        props << prop.value;
                     }
                 } else if (it->second == "double" || it->second == "long") {
                     // Números sin comillas
-                    props << clean_value;
+                    props << prop.value;
                 } else {
-                    // Strings con comillas
-                    props << "'" << escape_cypher_string(clean_value) << "'";
+                    // Strings ya vienen formateadas
+                    props << prop.value;
                 }
             } else {
-                // Sin tipo detectado, asumir string
-                props << "'" << escape_cypher_string(clean_value) << "'";
+                // Sin tipo detectado, usar valor directo
+                props << prop.value;
             }
         }
         props << "}";
@@ -295,8 +245,7 @@ void write_edges_cypher(const std::string& edges_file,
             rel << ", props: {";
             bool first = true;
             for (const auto& prop : edge.properties) {
-                std::string clean_value = clean_tsv_value(prop.value);
-                if (clean_value.empty()) continue;
+                if (prop.value.empty()) continue;
 
                 if (!first) rel << ", ";
                 first = false;
@@ -309,19 +258,19 @@ void write_edges_cypher(const std::string& edges_file,
                         int64_t date_val;
                         if (ring::query::constant::is_date(prop.value, date_val)) {
                             std::string formatted = format_datetime_for_neo4j(prop.value);
-                            rel << "datetime('" << escape_cypher_string(formatted) << "')";
+                            rel << "datetime('" << formatted << "')";
                         } else {
-                            rel << "'" << escape_cypher_string(clean_value) << "'";
+                            rel << prop.value;
                         }
                     } else if (it->second == "double" || it->second == "long") {
                         // Números sin comillas
-                        rel << clean_value;
+                        rel << prop.value;
                     } else {
-                        // Strings con comillas
-                        rel << "'" << escape_cypher_string(clean_value) << "'";
+                        // Strings ya vienen formateadas
+                        rel << prop.value;
                     }
                 } else {
-                    rel << "'" << escape_cypher_string(clean_value) << "'";
+                    rel << prop.value;
                 }
             }
             rel << "}";
@@ -394,7 +343,7 @@ void write_nodes_tsv_compact(const std::string& nodes_file,
         auto node = tsv_helper::parse_node(line);
 
         // qid
-        ofs << clean_tsv_value(node.variable) << "\t";
+        ofs << node.variable << "\t";
 
         // Labels (separados por ;)
         if (!node.labels.empty()) {
@@ -409,18 +358,16 @@ void write_nodes_tsv_compact(const std::string& nodes_file,
             ofs << "\t";
             for (const auto& prop : node.properties) {
                 if (prop.key == typed_prop) {
-                    std::string clean_value = clean_tsv_value(prop.value);
-
                     if (types.at(typed_prop) == "datetime") {
                         int64_t date_val;
                         if (ring::query::constant::is_date(prop.value, date_val)) {
                             ofs << format_datetime_for_neo4j(prop.value);
                         } else {
-                            ofs << clean_value;
+                            ofs << prop.value;
                         }
                     } else {
                         // long o double: escribir sin comillas
-                        ofs << clean_value;
+                        ofs << prop.value;
                     }
                     break;
                 }
@@ -485,27 +432,25 @@ void write_edges_tsv_compact(const std::string& edges_file,
         auto edge = tsv_helper::parse_edge(line);
 
         // START_ID, END_ID, TYPE
-        ofs << clean_tsv_value(edge.from) << "\t";
-        ofs << clean_tsv_value(edge.to) << "\t";
-        ofs << clean_tsv_value(edge.type);
+        ofs << edge.from << "\t";
+        ofs << edge.to << "\t";
+        ofs << edge.type;
 
         // Propiedades tipadas como columnas separadas
         for (const auto& typed_prop : typed_properties) {
             ofs << "\t";
             for (const auto& prop : edge.properties) {
                 if (prop.key == typed_prop) {
-                    std::string clean_value = clean_tsv_value(prop.value);
-
                     if (types.at(typed_prop) == "datetime") {
                         int64_t date_val;
                         if (ring::query::constant::is_date(prop.value, date_val)) {
                             ofs << format_datetime_for_neo4j(prop.value);
                         } else {
-                            ofs << clean_value;
+                            ofs << prop.value;
                         }
                     } else {
                         // long o double
-                        ofs << clean_value;
+                        ofs << prop.value;
                     }
                     break;
                 }
@@ -585,8 +530,6 @@ void write_nodes_tsv(const std::string& nodes_file,
             // Buscar si el nodo tiene esta propiedad
             for (const auto& prop : node.properties) {
                 if (prop.key == prop_name) {
-                    std::string clean_value = clean_tsv_value(prop.value);
-
                     // Verificar el tipo y formatear apropiadamente
                     auto it = types.find(prop_name);
                     if (it != types.end()) {
@@ -595,17 +538,17 @@ void write_nodes_tsv(const std::string& nodes_file,
                             if (ring::query::constant::is_date(prop.value, date_val)) {
                                 ofs << format_datetime_for_neo4j(prop.value);
                             } else {
-                                ofs << clean_value;
+                                ofs << prop.value;
                             }
                         } else if (it->second == "double" || it->second == "long") {
                             // Números se escriben sin comillas
-                            ofs << clean_value;
+                            ofs << prop.value;
                         } else {
                             // Strings
-                            ofs << clean_value;
+                            ofs << prop.value;
                         }
                     } else {
-                        ofs << clean_value;
+                        ofs << prop.value;
                     }
                     break;
                 }
@@ -657,8 +600,6 @@ void write_edges_tsv(const std::string& edges_file,
             // Buscar si la arista tiene esta propiedad
             for (const auto& prop : edge.properties) {
                 if (prop.key == prop_name) {
-                    std::string clean_value = clean_tsv_value(prop.value);
-
                     // Verificar el tipo y formatear apropiadamente
                     auto it = types.find(prop_name);
                     if (it != types.end()) {
@@ -667,17 +608,17 @@ void write_edges_tsv(const std::string& edges_file,
                             if (ring::query::constant::is_date(prop.value, date_val)) {
                                 ofs << format_datetime_for_neo4j(prop.value);
                             } else {
-                                ofs << clean_value;
+                                ofs << prop.value;
                             }
                         } else if (it->second == "double" || it->second == "long") {
                             // Números se escriben sin comillas
-                            ofs << clean_value;
+                            ofs << prop.value;
                         } else {
                             // Strings
-                            ofs << clean_value;
+                            ofs << prop.value;
                         }
                     } else {
-                        ofs << clean_value;
+                        ofs << prop.value;
                     }
                     break;
                 }

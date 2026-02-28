@@ -57,7 +57,7 @@ bool create_directory(const std::string& path) {
 
 int main(int argc, char **argv)
 {
-    if(argc != 5) {
+    if(argc >= 5) {
         print_usage(argv[0]);
         return 1;
     }
@@ -66,6 +66,8 @@ int main(int argc, char **argv)
     std::string queries_file = argv[2];
     uint64_t max_results = std::stoull(argv[3]);
     uint64_t repeat = std::stoull(argv[4]);
+    uint64_t timeout_sec = 600;
+    if (argc > 5) timeout_sec = std::stoull(argv[5]);
 
     if (repeat == 0) {
         std::cerr << "Error: REPEAT must be at least 1" << std::endl;
@@ -162,7 +164,7 @@ int main(int argc, char **argv)
                 res.clear();
                 auto start = timer::now();
                 algorithm_type ltj(&query, &graph);
-                ltj.join_v3(res, max_results, 600);
+                ltj.join_v3(res, max_results, timeout_sec);
                 auto stop = timer::now();
 
                 auto time_ns = duration_cast<nanoseconds>(stop - start).count();
