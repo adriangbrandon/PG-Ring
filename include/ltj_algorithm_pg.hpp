@@ -263,6 +263,7 @@ namespace ring {
 
            // m_veo = veo_type(&(m_ptr_query->patterns), &m_iterators, &m_var_to_iterators, m_ptr_ring);
             m_veo = veo_type(m_ptr_query, &m_iterators, &m_var_to_iterators, m_ptr_ring);
+            m_veo.print();
         }
 
         //! Copy constructor

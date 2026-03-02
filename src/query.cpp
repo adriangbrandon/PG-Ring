@@ -118,6 +118,7 @@ int main(int argc, char **argv)
     std::cout << "Loaded " << queries.size() << " queries" << std::endl;
     std::cout << "Results limit: " << (max_results == 0 ? "unlimited" : std::to_string(max_results)) << std::endl;
     std::cout << "Repeat count: " << repeat << std::endl;
+    std::cout << "Timeout: " << timeout_sec << " seconds" << std::endl;
 
     // Create results directory
     std::string results_dir = "results";

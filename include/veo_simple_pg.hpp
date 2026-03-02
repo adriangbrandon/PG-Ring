@@ -269,6 +269,13 @@ namespace ring {
                     return m_order[m_index-1];
                 }
 
+                void print() {
+                    std::cout << "VEO: ";
+                    for (const auto &v : m_order) {
+                        std::cout << "?" << (uint64_t) v << " ";
+                    }
+                    std::cout << std::endl;
+                }
 
 
                 inline void down() {

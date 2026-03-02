@@ -118,10 +118,10 @@ int main(int argc, char **argv)
             typedef ring::ltj_algorithm_pg<::util::results_collector_test<std::vector<uint64_t>>> algorithm_type;
             typedef algorithm_type::tuple_type tuple_type;
 
-            algorithm_type ltj(&query, &graph);
             ::util::results_collector_test<tuple_type> res;
 
             auto start = timer::now();
+            algorithm_type ltj(&query, &graph);
             ltj.join_v3(res, max_results, 600);
             auto stop = timer::now();
 
