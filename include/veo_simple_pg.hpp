@@ -59,7 +59,7 @@ namespace ring {
                     var_type name;
                     std::unordered_set<var_type> related;
                     double_t weight; //triples * selectivity
-                    uint8_t lonely_type; //0=no, 1=node, 2=edge
+                    uint8_t var_type; //0=node, 1=edge, 2=lonely-node, 3=lonely-edge
                 } info_var_type;
 
 
@@ -81,7 +81,7 @@ namespace ring {
                     auto pos_var = hash_table[var];
                     for (const auto &e : vec[pos_var].related) {
                         auto pos_rel = hash_table[e];
-                        if (!checked[pos_rel] && vec[pos_rel].lonely_type == 0) {
+                        if (!checked[pos_rel] && vec[pos_rel].var_type < 2) { //Not lonely
                             heap.push({vec[pos_rel].weight, e});
                             checked[pos_rel] = true;
                         }
@@ -90,10 +90,10 @@ namespace ring {
 
                 struct compare_var_info {
                     inline bool operator()(const info_var_type &linfo, const info_var_type &rinfo) {
-                        if (linfo.lonely_type == rinfo.lonely_type) {
+                        if (linfo.var_type == rinfo.var_type) {
                             return linfo.weight < rinfo.weight;
                         }
-                        return linfo.lonely_type < rinfo.lonely_type;
+                        return linfo.var_type < rinfo.var_type;
                     }
                 };
 
@@ -140,9 +140,9 @@ namespace ring {
                         const auto &iters = m_ptr_var_iterators->at(v);
                         if(iters.size() == 1){
                             if (m_ptr_query->vnodes[v]) {
-                                aux[v].lonely_type = 1;
+                                aux[v].var_type = 3;
                             }else {
-                                aux[v].lonely_type = 2;
+                                aux[v].var_type = 4;
                             }
                         } else {
                             double_t selectivity = 1.0;
@@ -152,7 +152,7 @@ namespace ring {
                                 triples = std::min(triples, iter->interval_length());
                             }
                             aux[v].weight = triples * selectivity;
-                            aux[v].lonely_type = 0;
+                            aux[v].var_type = !m_ptr_query->vnodes[v];
                             ++m_nolonely_size;
                         }
                         aux[v].name = v;
@@ -160,8 +160,8 @@ namespace ring {
 
                     //related field
                     for (const auto &pattern : m_ptr_query->patterns) {
-                        if (pattern.subj.is_var() && !aux[pattern.subj.var_value].lonely_type
-                            && pattern.obj.is_var() && !aux[pattern.obj.var_value].lonely_type) {
+                        if (pattern.subj.is_var() &&  aux[pattern.subj.var_value].var_type < 2
+                            && pattern.obj.is_var() && aux[pattern.obj.var_value].var_type < 2) {
                             aux[pattern.subj.var_value].related.insert(pattern.obj.var_value);
                             aux[pattern.obj.var_value].related.insert(pattern.subj.var_value);
                             }
@@ -183,7 +183,7 @@ namespace ring {
                     }
 
                     //insert lonely edges at the end
-                    std::sort(aux.begin(), aux.end(), compare_var_info());
+                    std::sort(aux.begin()+1, aux.end(), compare_var_info());
 
 
                     //mapping to positions
