@@ -36,22 +36,24 @@ using timer = std::chrono::high_resolution_clock;
 typedef ring::ring_pg<> ring_type;
 
 void print_usage(const char* program_name) {
-    std::cout << "Usage: " << program_name << " <index_file> <max_results> <output_file>" << std::endl;
+    std::cout << "Usage: " << program_name << " <index_file> <max_results> <timeout> <output_file>" << std::endl;
     std::cout << "  <index_file>   : Path to the .ring.pg index file" << std::endl;
     std::cout << "  <max_results>  : Maximum number of results to return (0 = unlimited)" << std::endl;
+    std::cout << "  <timeout>      : Timeout in seconds" << std::endl;
     std::cout << "  <output_file>  : File to save query results" << std::endl;
 }
 
 int main(int argc, char **argv)
 {
-    if(argc != 4) {
+    if(argc != 5) {
         print_usage(argv[0]);
         return 1;
     }
 
     std::string index_file = argv[1];
     uint64_t max_results = std::stoull(argv[2]);
-    std::string output_file = argv[3];
+    uint64_t timeout = std::stoull(argv[3]);
+    std::string output_file = argv[4];
 
     // Load the index
     ring_type graph;
@@ -89,14 +91,14 @@ int main(int argc, char **argv)
         }
 
         // Remove leading and trailing whitespace
-        size_t start = query_string.find_first_not_of(" \t\r\n");
+        size_t beg = query_string.find_first_not_of(" \t\r\n");
         size_t end = query_string.find_last_not_of(" \t\r\n");
 
-        if (start == std::string::npos) {
+        if (beg == std::string::npos) {
             continue; // Empty line
         }
 
-        query_string = query_string.substr(start, end - start + 1);
+        query_string = query_string.substr(beg, end - beg + 1);
 
         // Check exit commands
         if (query_string == "exit" || query_string == "quit") {
@@ -122,7 +124,7 @@ int main(int argc, char **argv)
 
             auto start = timer::now();
             algorithm_type ltj(&query, &graph);
-            ltj.join_v3(res, max_results, 600);
+            ltj.join_v3(res, max_results, timeout);
             auto stop = timer::now();
 
             auto time_ns = duration_cast<nanoseconds>(stop - start).count();
