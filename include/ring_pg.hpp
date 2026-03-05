@@ -1302,23 +1302,23 @@ namespace ring {
             return m_max_s - m_label_nodes[label-1].size;
         }
 
-        std::pair<id_type, value_type> next_node_in_property(const value_type prop_id, const value_type node_id) {
+        std::pair<id_type, prop_value_type> next_node_in_property(const value_type prop_id, const value_type node_id) {
             return m_node_properties[prop_id-1].next_exists(node_id);
         }
 
-        std::pair<id_type, value_type> next_edge_in_property(const value_type prop_id, const value_type node_id) {
+        std::pair<id_type, prop_value_type> next_edge_in_property(const value_type prop_id, const value_type node_id) {
             return m_edge_properties[prop_id-1].next_exists(node_id);
         }
 
-        std::pair<value_type, value_type> get_node_property_range(const value_type prop_id) {
+        std::pair<value_type, prop_value_type> get_node_property_range(const value_type prop_id) {
             return {m_node_properties[prop_id-1].min_val, m_node_properties[prop_id-1].max_val};
         }
 
-        std::pair<value_type, value_type> get_edge_property_range(const value_type prop_id) {
+        std::pair<value_type, prop_value_type> get_edge_property_range(const value_type prop_id) {
             return {m_edge_properties[prop_id-1].min_val, m_edge_properties[prop_id-1].max_val};
         }
 
-        std::pair<id_type, value_type> next_node_property(const value_type prop_id, const value_type node_id, const prop_value_type value,
+        std::pair<id_type, prop_value_type> next_node_property(const value_type prop_id, const value_type node_id, const prop_value_type value,
                                      const query::enum_comp_where_type op) {
             //std::cout << "Next node property called: prop_id=" << prop_id << " node_id=" << node_id << " value=" << value << " op=" << op << std::endl;
             switch (op) {
@@ -1345,7 +1345,7 @@ namespace ring {
             }
          }
  
-         std::pair<id_type, value_type> next_edge_property(const value_type prop_id, const value_type node_id, const prop_value_type value,
+         std::pair<id_type, prop_value_type> next_edge_property(const value_type prop_id, const value_type node_id, const prop_value_type value,
                                       const query::enum_comp_where_type op) {
             switch (op) {
                 case query::EQ:

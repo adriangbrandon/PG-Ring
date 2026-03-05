@@ -350,7 +350,6 @@ namespace ring {
                 }
                 if (is_variable_predicate(var)) {
                     auto v = m_ptr_ring->next_E_in_OS(m_intervals[2], c);
-                    std::cout << "value: " << v << std::endl;
                     return v;
                     //return m_ptr_ring->next_E_in_OS(m_intervals[2], c);
                 }
