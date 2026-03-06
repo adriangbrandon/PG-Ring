@@ -51,12 +51,14 @@ namespace ring {
         std::array<bool, 2> m_is_edge = {false, false};
         size_type m_nfixed = 0;
         bool m_is_empty = false;
+        bool m_same_var = false; //if compares properties of the same variable
 
         double_t m_selectivity_no_fixed;
 
 
         void copy(const ltj_iterator_comp &o) {
             m_is_empty = o.m_is_empty;
+            m_same_var = o.m_same_var;
             m_fixed_values = o.m_fixed_values;
             m_id_values = o.m_id_values;
             m_state = o.m_state;
@@ -255,6 +257,7 @@ namespace ring {
                 m_state[1] = true; //fixed the second element
             }else {
                 m_selectivity_no_fixed = compute_selectivity_no_fixed();
+                m_same_var = (m_expr->values[0] == m_expr->values[1]);
             }
         }
 
@@ -323,7 +326,13 @@ namespace ring {
             return m_is_empty;
         }
 
-        void down(var_type var, size_type c) {
+        void down_same_var() {
+                m_state[0] = true;
+                m_fixed_values[0] = m_id_values[0].second;
+                ++m_nfixed;
+        };
+
+        void down_old(var_type var, size_type c) {
             //Go down in the trie
             if (m_expr->is_var[0] && var == m_expr->values[0]) {
                 m_state[0] = true;
@@ -333,6 +342,20 @@ namespace ring {
                 m_fixed_values[1] = m_id_values[1].second;
             }
             ++m_nfixed;
+        };
+
+        void down(var_type var, size_type c) {
+            //Go down in the trie (if same_var => goes down two levels)
+            if (m_expr->is_var[0] && var == m_expr->values[0]) {
+                m_state[0] = true;
+                m_fixed_values[0] = m_id_values[0].second;
+                ++m_nfixed;
+            }
+            if (m_expr->is_var[1] && var == m_expr->values[1]) {
+                m_state[1] = true;
+                m_fixed_values[1] = m_id_values[1].second;
+                ++m_nfixed;
+            }
         };
 
         void down(var_type var, size_type c, size_type k) {
@@ -401,7 +424,7 @@ namespace ring {
 
         id_type leap(var_type var, size_type c) {
             if (!m_nfixed) {
-                if (m_expr->is_var[0] && var == m_expr->values[0]) {
+                if (m_same_var || (m_expr->is_var[0] && var == m_expr->values[0])) { //if same_var, I choose the first operand
                     if (m_is_edge[0]) {
                         m_id_values[0] = m_ptr_ring->next_edge_in_property(m_expr->property_values[0], c);
                     }else {
@@ -417,20 +440,27 @@ namespace ring {
                     return m_id_values[1].first;
                 }
             }else {
-                if (m_expr->is_var[0] && var == m_expr->values[0]) {
-                    if (m_is_edge[0]) {
-                        m_id_values[0] = m_ptr_ring->next_edge_property(m_expr->property_values[0], c, m_fixed_values[1], m_expr->type);
+                if (m_same_var) { //if same_var, use the value of the other operand (there is no fixed value)
+                    if (m_is_edge[1]) {
+                        m_id_values[1] = m_ptr_ring->next_edge_property(m_expr->property_values[1], c, m_id_values[0].second, query::opposite_comp_where[m_expr->type]);
                     }else {
-                        m_id_values[0] = m_ptr_ring->next_node_property(m_expr->property_values[0], c, m_fixed_values[1], m_expr->type);
+                        m_id_values[1] = m_ptr_ring->next_node_property(m_expr->property_values[1], c, m_id_values[0].second, query::opposite_comp_where[m_expr->type]);
                     }
-                    return m_id_values[0].first;
-                }else if (m_expr->is_var[1] && var == m_expr->values[1]) {
+                    return m_id_values[1].first;
+                } else if (m_expr->is_var[1] && var == m_expr->values[1]) {
                     if (m_is_edge[1]) {
                         m_id_values[1] = m_ptr_ring->next_edge_property(m_expr->property_values[1], c, m_fixed_values[0], query::opposite_comp_where[m_expr->type]);
                     }else {
                         m_id_values[1] = m_ptr_ring->next_node_property(m_expr->property_values[1], c, m_fixed_values[0], query::opposite_comp_where[m_expr->type]);
                     }
                     return m_id_values[1].first;
+                }else if ( m_expr->is_var[0] && var == m_expr->values[0]) {
+                    if (m_is_edge[0]) {
+                        m_id_values[0] = m_ptr_ring->next_edge_property(m_expr->property_values[0], c, m_fixed_values[1], m_expr->type);
+                    }else {
+                        m_id_values[0] = m_ptr_ring->next_node_property(m_expr->property_values[0], c, m_fixed_values[1], m_expr->type);
+                    }
+                    return m_id_values[0].first;
                 }
             }
             return 0;
