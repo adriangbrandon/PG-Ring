@@ -226,6 +226,19 @@ namespace ring {
             }
         }
 
+        template<class T>
+        bool compare (const T &a, const T &b) const {
+            switch (m_expr->type) {
+                case query::EQ: return a == b;
+                case query::NEQ: return a != b;
+                case query::ST: return a < b;
+                case query::GT: return a > b;
+                case query::SE: return a <= b;
+                case query::GE: return a >= b;
+                default: return false;
+            }
+        };
+
     public:
         //const bool &is_empty = m_is_empty;
 
@@ -423,8 +436,31 @@ namespace ring {
         };
 
         id_type leap(var_type var, size_type c) {
+
+            if (m_same_var) { //comparing two properties of the same variable
+                if (m_is_edge[0]) {
+                    m_id_values[0] = m_ptr_ring->next_edge_in_property(m_expr->property_values[0], c); //get next id and value of the first property
+                    auto v1 = m_ptr_ring->get_edge_property_value(m_expr->property_values[1], m_id_values[0].first); //get the value of the second property
+                    if (!v1.first || !compare(m_id_values[0].second, v1.second)) { // if there is no value or the values do not satisfy the condition, we need to try with the next id
+                        return (m_id_values[0].first < m_ptr_ring->max_p) ? m_id_values[0].first + 1 : 0; // try with next id
+                    }
+                    m_id_values[1].first = m_id_values[1].second;
+                    m_id_values[1].second = v1.second;
+                    return m_id_values[0].first; //the same id satisfies the condition for both properties
+                }else {
+                    m_id_values[0] = m_ptr_ring->next_node_in_property(m_expr->property_values[0], c);
+                    auto v1 = m_ptr_ring->get_node_property_value(m_expr->property_values[1], m_id_values[0].first);
+                    if (!v1.first || !compare(m_id_values[0].second, v1.second)) { // if there is no value or the values do not satisfy the condition, we need to try with the next id
+                        return (m_id_values[0].first < m_ptr_ring->max_s) ? m_id_values[0].first + 1 : 0; // try with next id
+                    }
+                    m_id_values[1].first = m_id_values[1].second;
+                    m_id_values[1].second = v1.second;
+                    return m_id_values[0].first; //the same id satisfies the condition for both properties
+                }
+            }
+
             if (!m_nfixed) {
-                if (m_same_var || (m_expr->is_var[0] && var == m_expr->values[0])) { //if same_var, I choose the first operand
+                if ((m_expr->is_var[0] && var == m_expr->values[0])) { //if same_var, I choose the first operand
                     if (m_is_edge[0]) {
                         m_id_values[0] = m_ptr_ring->next_edge_in_property(m_expr->property_values[0], c);
                     }else {
@@ -440,14 +476,7 @@ namespace ring {
                     return m_id_values[1].first;
                 }
             }else {
-                if (m_same_var) { //if same_var, use the value of the other operand (there is no fixed value)
-                    if (m_is_edge[1]) {
-                        m_id_values[1] = m_ptr_ring->next_edge_property(m_expr->property_values[1], c, m_id_values[0].second, query::opposite_comp_where[m_expr->type]);
-                    }else {
-                        m_id_values[1] = m_ptr_ring->next_node_property(m_expr->property_values[1], c, m_id_values[0].second, query::opposite_comp_where[m_expr->type]);
-                    }
-                    return m_id_values[1].first;
-                } else if (m_expr->is_var[1] && var == m_expr->values[1]) {
+                if (m_expr->is_var[1] && var == m_expr->values[1]) {
                     if (m_is_edge[1]) {
                         m_id_values[1] = m_ptr_ring->next_edge_property(m_expr->property_values[1], c, m_fixed_values[0], query::opposite_comp_where[m_expr->type]);
                     }else {

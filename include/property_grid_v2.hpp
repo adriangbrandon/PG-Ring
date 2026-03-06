@@ -191,9 +191,9 @@ namespace ring {
             return {m_select_exists(rank + 1), 0}; // the value is not needed
         }
 
-        value_type operator[](const value_type c_id) {
-            if (!m_exists[c_id]) return 0;
-            return m_grid[m_rank_exists(c_id+1)] + (m_min_val-1);
+        std::pair<bool, value_type> operator[](const value_type c_id) {
+            if (!m_exists[c_id]) return {false, 0};
+            return {true, m_grid[m_rank_exists(c_id+1)] + (m_min_val-1)};
         }
 
         std::pair<id_type, value_type> next_exists(const id_type c_id) {

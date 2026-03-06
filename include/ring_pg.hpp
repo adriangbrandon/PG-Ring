@@ -1371,11 +1371,11 @@ namespace ring {
             }
          }
 
-        prop_value_type get_node_property_value(const id_type prop_id, const id_type node_id) {
+        std::pair<bool, prop_value_type> get_node_property_value(const id_type prop_id, const id_type node_id) {
             return m_node_properties[prop_id-1][node_id];
         };
 
-        prop_value_type get_edge_property_value(const id_type prop_id, const id_type edge_id) {
+        std::pair<bool, prop_value_type> get_edge_property_value(const id_type prop_id, const id_type edge_id) {
             return m_edge_properties[prop_id-1][edge_id];
         };
 
