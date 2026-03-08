@@ -155,8 +155,8 @@ int is_leap(long long year) {
 }
 
 int is_valid_date(long long year, int month, int day) {
-    if (month == 0 && day == 0) return 1; // allow just a year
-    if (day == 0) return 1; // allow just a year and month
+    //if (month == 0 && day == 0) return 1; // allow just a year
+    //if (day == 0) return 1; // allow just a year and month
 
     if (month < 1 || month > 12) return 0;
     if (day < 1) return 0;
@@ -188,8 +188,16 @@ int readtime(char* label) {
     if (year_out_of_range(year)) return 0;
     ++i; // skip '-'
     month[0] = start[i]; month[1] = start[i+1]; month[2] = 0;
+    if (month[0] == '0' && month[1] == '0') { // avoid month 00, consider it as 01
+        month[1] = '1';
+        start[i+1] = '1';
+    }
     i += 3; // skip month and '-'
     day[0] = start[i]; day[1] = start[i+1]; day[2] = 0;
+    if (day[0] == '0' && day[1] == '0') { // avoid day 00, consider it as 01
+        day[1] = '1';
+        start[i+1] = '1';
+    }
     long long y = atoll(year);
     int m = atoi(month);
     int d = atoi(day);
