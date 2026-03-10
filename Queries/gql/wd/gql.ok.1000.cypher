@@ -875,7 +875,7 @@ MATCH (v1:Q5)-[e0:P734]->(v0), (v1)-[e1:P735]->(v2), (v3:Q5)-[e2:P734]->(v0), (v
 MATCH ({ qid: "Q51752"})-[e0:P22]->(v0), ({ qid: "Q51752"})-[e1:P25]->(v0) RETURN id(e0), v0.qid, id(e1)
 MATCH (v0:Q484170)-[e0:P131]->(v1:Q6465), (v0)-[e1:P131]->(v2:Q6465) WHERE (v2 <> v1) RETURN v0.qid, id(e0), v1.qid, id(e1), v2.qid
 MATCH (v0:Q4167836)-[e0:P971]->(v1:Q28640), (v0)-[e1:P971]->(v2:Q3624078) RETURN v0.qid, id(e0), v1.qid, id(e1), v2.qid
-MATCH (v0)-[e0:P106]->({ qid: "Q170790"}) WHERE (v0.P569 < "1900-01-01") AND (v0.P18 IS NOT NULL) RETURN v0.qid, id(e0)
+MATCH (v0)-[e0:P106]->({ qid: "Q170790"}) WHERE (v0.P569 < datetime('1900-01-01T00:00:00Z')) AND (v0.P18 IS NOT NULL) RETURN v0.qid, id(e0)
 MATCH (v3)-[e0:P161]->(v1:Q11424) WHERE (v3.P569 < v1.P577) RETURN v3.qid, id(e0), v1.qid
 MATCH (v0)-[e0:P37]->(v2), (v4:Q515)-[e1:P17]->(v0) WHERE (v2.P424 IS NOT NULL) RETURN v0.qid, id(e0), v2.qid, v4.qid, id(e1)
 MATCH (v1:Q125191:Q3305213)-[e0:P170]->({ qid: "Q250293"}) WHERE (v1.P18 IS NOT NULL) RETURN v1.qid, id(e0)
@@ -937,8 +937,8 @@ MATCH (v0)-[e0:P106]->({ qid: "Q639669"}), (v0)-[e1:P22]->(v1), (v1)-[e2:P106]->
 MATCH (v1)-[e0:P37]->(v3), (v4:Q515)-[e1:P17]->(v1) WHERE (v4.P1082 > 100000) RETURN v1.qid, id(e0), v3.qid, v4.qid, id(e1)
 MATCH (v3)-[e0:P131]->({ qid: "Q142"}), (v3)-[e1:P131]->(v0), (v3)-[e2:P131]->(v1), (v3)-[e3:P131]->(v2) RETURN v3.qid, id(e0), id(e1), v0.qid, id(e2), v1.qid, id(e3), v2.qid
 MATCH (v1:Q15642541)-[e0:P131]->(v0), (v1)-[e1:P131]->(v2), (v1)-[e2:P17]->({ qid: "Q142"}) WHERE (v2 <> v0) RETURN v1.qid, id(e0), v0.qid, id(e1), v2.qid, id(e2)
-MATCH (v0:Q5)-[e0:P106]->({ qid: "Q33999"}), (v0)-[e1:P21]->({ qid: "Q6581072"}), (v0)-[e2:P27]->(v1), (v1)-[e3:P361]->({ qid: "Q7204"}) WHERE (v0.P569 > "1988-01-01T00:00:00") AND (v0.P569 <> "2000-01-01T00:00:00") RETURN v0.qid, id(e0), id(e1), id(e2), v1.qid, id(e3)
-MATCH (v1)-[e0:P361]->({ qid: "Q7204"}), (v2:Q5)-[e1:P106]->({ qid: "Q33999"}), (v2)-[e2:P21]->({ qid: "Q6581072"}), (v2)-[e3:P27]->(v1) WHERE (v2.P569 > "1988-01-01T00:00:00") AND (v2.P569 <> "2000-01-01T00:00:00") RETURN v1.qid, id(e0), v2.qid, id(e1), id(e2), id(e3)
+MATCH (v0:Q5)-[e0:P106]->({ qid: "Q33999"}), (v0)-[e1:P21]->({ qid: "Q6581072"}), (v0)-[e2:P27]->(v1), (v1)-[e3:P361]->({ qid: "Q7204"}) WHERE (v0.P569 > datetime('1988-01-01T00:00:00Z')) AND (v0.P569 <> datetime('2000-01-01T00:00:00Z')) RETURN v0.qid, id(e0), id(e1), id(e2), v1.qid, id(e3)
+MATCH (v1)-[e0:P361]->({ qid: "Q7204"}), (v2:Q5)-[e1:P106]->({ qid: "Q33999"}), (v2)-[e2:P21]->({ qid: "Q6581072"}), (v2)-[e3:P27]->(v1) WHERE (v2.P569 > datetime('1988-01-01T00:00:00Z')) AND (v2.P569 <> datetime('2000-01-01T00:00:00Z')) RETURN v1.qid, id(e0), v2.qid, id(e1), id(e2), id(e3)
 MATCH (v0:Q5)-[e0:P106]->({ qid: "Q33999"}), (v0)-[e1:P21]->({ qid: "Q6581072"}), (v0)-[e2:P27]->({ qid: "Q142"}), (v0)-[e3:P27]->({ qid: "Q16"}) RETURN v0.qid, id(e0), id(e1), id(e2), id(e3)
 MATCH ({ qid: "Q5879"})-[e0:P19]->(v1), (v0)-[e1:P106]->({ qid: "Q49757"}), (v0)-[e2:P19]->(v1) RETURN id(e0), v1.qid, v0.qid, id(e1), id(e2)
 MATCH (v0)-[e0:P106]->({ qid: "Q488205"}), (v0)-[e1:P734]->(v2), (v0)-[e2:P735]->(v1) WHERE (v1 = "James") RETURN v0.qid, id(e0), id(e1), v2.qid, id(e2), v1.qid
