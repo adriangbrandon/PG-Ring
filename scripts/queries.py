@@ -68,7 +68,7 @@ def timed_run(session, query):
 
 def count_run(session, query):
     try:
-        result = session.run(query, timeout= TIMEOUT*2)  # Longer timeout for warmup
+        result = session.run(query, timeout= TIMEOUT)  # Longer timeout for warmup
         count = sum(1 for _ in result)
         return count
     except Exception as e:
@@ -114,7 +114,10 @@ def benchmark_and_export(queries):
             statuses = []
             for r in range(REPEAT):
                 elapsed, status = timed_run(session, query)
-                times.append(elapsed)
+                if status == "OK" and elapsed / 1000 >= TIMEOUT:
+                    status = "TIMEOUT"
+                    elapsed = TIMEOUT * 1000  # Cap time at timeout limit
+                times.append(elapsed
                 statuses.append(status)
 
                 if status == "OK":

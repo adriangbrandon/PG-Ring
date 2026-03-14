@@ -17,8 +17,8 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef RING_RING_PG
-#define RING_RING_PG
+#ifndef RING_RING_PG_V2
+#define RING_RING_PG_V2
 
 #include <cstdint>
 #include "bwt.hpp"
@@ -37,9 +37,11 @@
 #include "utils.hpp"
 #include "query/where_expr_parser.hpp"
 
+#include "dict/string_dictionary.hpp"
+
 namespace ring {
 
-    template <class bwt_so_t = bwt_plain, class bwt_p_t = bwt_plain>
+    template <class bwt_so_t = bwt_plain, class bwt_p_t = bwt_plain, class dict_t = string_dictionary >
     class ring_pg {
     public:
         typedef uint64_t size_type;
@@ -52,9 +54,17 @@ namespace ring {
         typedef sdsl::bit_vector bit_vector_type;
         typedef typename bit_vector_type::succ_0_type succ_0_type;
         typedef typename bit_vector_type::succ_1_type succ_1_type;
+        typedef dict_t string_dict_type;
 
 
     private:
+
+        string_dict_type m_dict_nodes;
+        string_dict_type m_dict_prop_nodes;
+        string_dict_type m_dict_prop_edges;
+        string_dict_type m_dict_label_nodes;
+        string_dict_type m_dict_label_edges;
+
         bwt_type m_bwt_s;   //POS
         bwt_p_type m_bwt_p; //OSP
         bwt_type m_bwt_o;   //SPO
@@ -80,6 +90,11 @@ namespace ring {
         string_mgr m_string_mgr;
 
         void copy(const ring_pg &o) {
+            m_dict_nodes = o.m_dict_nodes;
+            m_dict_prop_nodes = o.m_dict_prop_nodes;
+            m_dict_prop_edges = o.m_dict_prop_edges;
+            m_dict_label_nodes = o.m_dict_label_nodes;
+            m_dict_label_edges = o.m_dict_label_edges;
             m_bwt_s = o.m_bwt_s;
             m_bwt_p = o.m_bwt_p;
             m_bwt_o = o.m_bwt_o;
@@ -322,6 +337,19 @@ namespace ring {
             }
         }
 
+        void build_dict(const std::string file, string_dict_type &dict) {
+            std::ifstream ifs(file);
+            std::string key;
+            int value;
+            std::vector<std::string> input;
+            do {
+                ifs >> key >> value;
+                if(ifs.eof()) break;
+                input.emplace_back(key);
+            } while (true);
+            dict = string_dict_type(std::move(input), string_dict_type::dict_type::HASHRPF, 20, 32);
+        }
+
     public:
 
         const bwt_type &s_spo = m_bwt_s; //POS
@@ -341,6 +369,12 @@ namespace ring {
             std::string node_prop_base = file_base + ".nprop2values.";
             std::string edge_prop_base = file_base + ".eprop2values.";
 
+            std::string nodes_dict = file_base + ".nodes.dict";
+            std::string nlabels_dict = file_base + ".nlabels.dict";
+            std::string elabels_dict = file_base + ".elabels.dict";
+            std::string nprops_dict = file_base + ".nprops.dict";
+            std::string eprops_dict = file_base + ".eprops.dict";
+
             std::cout << "Building Ring-PG from files with base name: " << file_base << std::endl;
             std::cout << " - Building BWTs and loading triples" << std::endl;
             build_bwts(triples_file);
@@ -348,16 +382,35 @@ namespace ring {
             build_labelsmap(labels_file);
             std::cout << " - Collecting strings in properties" << std::endl;
             // First, we collect all strings in properties to build the string manager
-            std::set<std::string> strings_in_props;
-            get_strings(node_prop_base, strings_in_props);
-            get_strings(edge_prop_base, strings_in_props);
-            m_string_mgr = string_mgr(strings_in_props);
+            {
+                std::set<std::string> strings_in_props;
+                get_strings(node_prop_base, strings_in_props);
+                get_strings(edge_prop_base, strings_in_props);
+                m_string_mgr = string_mgr(strings_in_props);
+            }
             // Now we can build the property grids
             std::cout << " - Building node properties" << std::endl;
             build_props(node_prop_base, m_node_properties, m_max_s);
             std::cout << " - Building edge properties" << std::endl;
             build_props(edge_prop_base, m_edge_properties, m_n_triples);
             std::cout << " - Ring-PG construction completed" << std::endl;
+
+            std::cout << " - Building dictionaries" << std::endl;
+            std::cout << "   - Nodes dictionary" << std::endl;
+            build_dict(nodes_dict, m_dict_nodes);
+            std::cout << "   - Node labels dictionary" << std::endl;
+            build_dict(nlabels_dict, m_dict_label_nodes);
+            std::cout << "   - Edge labels dictionary" << std::endl;
+            build_dict(elabels_dict, m_dict_label_edges);
+            std::cout << "   - Node properties dictionary" << std::endl;
+            build_dict(nprops_dict, m_dict_prop_nodes);
+            std::cout << "   - Edge properties dictionary" << std::endl;
+            build_dict(eprops_dict, m_dict_prop_edges);
+            std::cout << " - All dictionaries built" << std::endl;
+
+
+
+
         }
 
         // Assumes the triples have been stored in a vector<spo_triple>

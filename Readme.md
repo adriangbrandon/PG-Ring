@@ -57,3 +57,77 @@ After running that command, you should see the number of the query, the number o
 ```Bash
 <query number>;<number of results>;<elapsed time>
 ```
+
+## Neo4j Integration
+
+### Converting TSV to Cypher and Loading to Neo4j
+
+The project includes tools to convert TSV files to Cypher format and load them into a Neo4j database for comparison and validation.
+
+#### Step 1: Convert TSV to Cypher
+
+After building the project, use the `tsv2cypher` executable:
+
+```bash
+cd build
+./tsv2cypher <tsv_prefix> <output>
+```
+
+Example:
+```bash
+./tsv2cypher ../proba/proba output
+```
+
+This reads:
+- `<tsv_prefix>-nodes.tsv`
+- `<tsv_prefix>-edges.tsv`
+
+And generates:
+- `<tsv_prefix>-nodes.cypher` (CREATE statements for nodes)
+- `<tsv_prefix>-edges.cypher` (CREATE statements for relationships)
+
+#### Step 2: Load to Neo4j
+
+Navigate to the scripts folder and use one of the Python loaders:
+
+```bash
+cd scripts
+pip install -r requirements.txt
+```
+
+**Option A: Standard parallel loader** (recommended for most cases):
+```bash
+python load_cypher_to_neo4j.py <prefix> --password <your_password>
+```
+
+**Option B: Ultra-fast UNWIND loader** (experimental, faster for large datasets):
+```bash
+python load_cypher_fast.py <prefix> --password <your_password>
+```
+
+Examples:
+```bash
+# Load with default settings
+python load_cypher_to_neo4j.py ../proba/proba --password mypassword
+
+# Load with custom batch size and workers
+python load_cypher_to_neo4j.py ../proba/proba \
+  --password mypassword \
+  --batch-size 10000 \
+  --workers 8
+
+# Clear database before loading
+python load_cypher_to_neo4j.py ../proba/proba \
+  --password mypassword \
+  --clear
+```
+
+For detailed documentation and performance tuning, see [scripts/README_LOAD_NEO4J.md](scripts/README_LOAD_NEO4J.md).
+
+**Key Features:**
+- ✅ Parallel processing with configurable workers
+- ✅ Batch transactions for maximum speed
+- ✅ Two-phase loading: nodes first, then relationships
+- ✅ Real-time progress tracking with ETA
+- ✅ Automatic index creation for optimal query performance
+- ✅ Error handling and recovery

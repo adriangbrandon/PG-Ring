@@ -68,4 +68,13 @@ int main() {
     std::cout << "Date1: " << ring::query::constant::int64_to_date(r_date1) << std::endl;
     std::cout << "Date2: " << ring::query::constant::int64_to_date(r_date2) << std::endl;
 
+    int64_t proba = 4632323920094800248;
+    double proba_d = ring::query::constant::int64_to_double(proba);
+    std::cout << "Proba: " << proba << " -> " << proba_d << std::endl;
+
+    proba_d = 120.656075;
+    proba = ring::query::constant::double_to_int64(proba_d);
+    std::cout << "Proba: " << proba_d << " -> " << proba << std::endl;
+     std::cout << "Proba: " << proba << " -> " << ring::query::constant::int64_to_double(proba) << std::endl;
+
 }

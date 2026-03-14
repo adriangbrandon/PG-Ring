@@ -43,14 +43,19 @@ else()
     message(STATUS "CPU does NOT support SSE4.2")
 endif()
 
+#SDSL installation directory
 include_directories(~/include
                     ${CMAKE_HOME_DIRECTORY}/include)
 
 link_directories(~/lib)
 
+#libCSD sources
+include_directories(${CMAKE_HOME_DIRECTORY}/libCSD)
+add_subdirectory(libCSD)
+
 
 add_executable(build-index src/build-index.cpp)
-target_link_libraries(build-index sdsl divsufsort divsufsort64)
+target_link_libraries(build-index sdsl divsufsort divsufsort64 libcsd)
 
 
 add_executable(query-index src/query-index.cpp)
@@ -118,6 +123,12 @@ target_link_libraries(cypher2ids sdsl divsufsort divsufsort64)
 add_executable(tsv2ids src/tsv2ids.cpp)
 target_link_libraries(tsv2ids sdsl divsufsort divsufsort64)
 
+add_executable(tsv2lexids src/tsv2lexids.cpp)
+target_link_libraries(tsv2lexids sdsl divsufsort divsufsort64)
+
+add_executable(tsv2dicts src/tsv2dicts.cpp)
+target_link_libraries(tsv2dicts sdsl divsufsort divsufsort64)
+
 add_executable(tsvclean src/tsvclean.cpp)
 target_link_libraries(tsvclean sdsl divsufsort divsufsort64)
 
@@ -147,6 +158,18 @@ target_link_libraries(query sdsl divsufsort divsufsort64)
 
 add_executable(mapping-types test/mapping-types.cpp)
 target_link_libraries(mapping-types sdsl divsufsort divsufsort64)
+
+add_executable(test-string-dictionary include/dict/test_string_dictionary.cpp)
+target_link_libraries(test-string-dictionary sdsl divsufsort divsufsort64 libcsd)
+
+add_executable(test-build-dictionary include/dict/test_build_dictionary.cpp)
+target_link_libraries(test-build-dictionary sdsl divsufsort divsufsort64 libcsd)
+
+add_executable(test-dict-with-codes include/dict/test_dict_with_codes.cpp)
+target_link_libraries(test-dict-with-codes sdsl divsufsort divsufsort64 libcsd)
+
+add_executable(dict-quick-start include/dict/quick_start.cpp)
+target_link_libraries(dict-quick-start sdsl divsufsort divsufsort64 libcsd)
 
 add_executable(query-filter query-filter/query-filter.cpp)
 target_link_libraries(query-filter sdsl divsufsort divsufsort64)
