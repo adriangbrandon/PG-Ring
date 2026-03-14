@@ -190,7 +190,8 @@ private:
         // Write label2nodes
         {
             std::ofstream out(output_prefix + ".label2nodes");
-            for (const auto& [label_id, node_ids] : m_label_nodes_map) {
+            for (auto& [label_id, node_ids] : m_label_nodes_map) {
+                std::sort(node_ids.begin(), node_ids.end());
                 out << label_id << " " << node_ids.size();
                 for (uint32_t node_id : node_ids) {
                     out << " " << node_id;
