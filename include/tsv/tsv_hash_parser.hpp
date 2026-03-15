@@ -66,9 +66,12 @@ private:
         // Create temporary LibCSD dictionary (uses HASHRPF with hash-based IDs)
         // This consumes the strings vector
         auto t0 = std::chrono::high_resolution_clock::now();
+        /*out = ring::string_dictionary(std::move(strings),
+                                          ring::string_dictionary::dict_type::HASHRPDAC,
+                                          100, 32);*/
         out = ring::string_dictionary(std::move(strings),
-                                          ring::string_dictionary::dict_type::HASHRPF,
-                                          20, 32);
+                                          ring::string_dictionary::dict_type::PFC,
+                                          100, 32);
         auto t1 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed = t1 - t0;
         std::cout << "    Created LibCSD dictionary with " << out.size() << " entries in " << elapsed.count() << " seconds." << std::endl;
