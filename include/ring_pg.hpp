@@ -343,7 +343,7 @@ namespace ring {
             int value;
             std::vector<std::string> input;
             do {
-                ifs >> key >> value;
+                ifs >> value >> key;
                 if(ifs.eof()) break;
                 input.emplace_back(key);
             } while (true);

@@ -21,7 +21,7 @@ void build_dict(const std::string &file, ring::string_dictionary &dict) {
     int value;
     std::vector<std::string> input;
     do {
-        ifs >> value >> key;
+        ifs >> key >> value;
         if(ifs.eof()) break;
         input.emplace_back(key);
     } while (true);

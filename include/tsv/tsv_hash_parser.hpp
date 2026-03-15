@@ -150,7 +150,7 @@ private:
     void write_dict(const std::string& filename, const std::map<std::string, uint32_t>& dict) {
         std::ofstream file(filename);
         for (const auto& [str, id] : dict) {
-            file << str << " " << id << "\n";
+            file << id << " " << str << "\n";
         }
     }
 
