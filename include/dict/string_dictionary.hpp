@@ -137,13 +137,13 @@ namespace ring {
 
         /**
          * @brief Build dictionary from vector of strings
-         * @param strings Vector of sorted strings to include
+         * @param strings Vector of strings to include
          * @param type Dictionary type to build
          * @param overhead Hash table overhead (for hash-based dicts, default 20%)
          * @param bucketsize Bucket size (for front-coding dicts, default 4)
          * @throws std::runtime_error if construction fails
          */
-        void build(std::vector<std::string> strings,
+        void build(std::vector<std::string> &&strings,
                    dict_type type = dict_type::HASHRPF,
                    uint overhead = 20,
                    uint bucketsize = 4) {
@@ -151,9 +151,8 @@ namespace ring {
                 throw std::runtime_error("Cannot build dictionary from empty string vector");
             }
 
-            // Assume is alra
             // Sort strings (required by most dictionary implementations)
-            //std::sort(strings.begin(), strings.end());
+            std::sort(strings.begin(), strings.end());
 
             // Convert to null-delimited format
             size_t total_len = 0;
@@ -169,6 +168,7 @@ namespace ring {
                 text[pos + s.length()] = '\0';
                 pos += s.length() + 1;
             }
+            sdsl::util::clear(strings); // Free original vector memory
 
             // Create iterator
             IteratorDictString* it = new IteratorDictStringPlain(text, total_len);

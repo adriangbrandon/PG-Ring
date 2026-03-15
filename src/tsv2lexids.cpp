@@ -20,7 +20,6 @@ int main(int argc, char* argv[]) {
 
     tsv_hash_parser parser;
     parser.parse(tsv_prefix, output_prefix);
-    parser.print_stats();
 
     std::cout << "\n✓ Dictionary creation complete!" << std::endl;
 

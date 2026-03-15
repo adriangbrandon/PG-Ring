@@ -24,19 +24,19 @@
  * IDs match LibCSD's HASHRPF dictionary behavior.
  *
  * Strategy:
- * 1. Process NODES first: collect, create LibCSD dict, extract IDs, write text dicts
+ * 1. Process NODES first: collect, create LibCSD dict, transform to IDs, store dicts
  * 2. Clear node-specific data to free memory
- * 3. Process EDGES: collect, create LibCSD dict, extract IDs, write text dicts
+ * 3. Process EDGES: collect, create LibCSD dict, transform to IDs, store dicts
  */
 class tsv_hash_parser {
 
 private:
-    // Maps for storing final IDs (extracted from LibCSD)
-    std::map<std::string, uint32_t> m_nodes;
-    std::map<std::string, uint32_t> m_nlabels;
-    std::map<std::string, uint32_t> m_elabels;
-    std::map<std::string, uint32_t> m_nprops;
-    std::map<std::string, uint32_t> m_eprops;
+    // Dictionaries
+    ring::string_dictionary m_nodes;
+    ring::string_dictionary m_nlabels;
+    ring::string_dictionary m_elabels;
+    ring::string_dictionary m_nprops;
+    ring::string_dictionary m_eprops;
 
     // Triples: (subject, predicate, object, properties)
     typedef std::tuple<int, int, int, std::vector<tsv_helper::property_tsv_type>> triple_type;
@@ -56,31 +56,22 @@ private:
     std::string m_edge_file;
 
     /**
-     * @brief Use LibCSD to generate hash-based IDs and populate the output map
-     * Creates a temporary LibCSD dictionary, extracts IDs via locate(), then destroys it
+     * @brief Creates a temporary LibCSD dictionary
      * @param strings Vector of strings (will be consumed/moved)
-     * @param output_map Output map to populate with string->ID mappings
+     * @param out Output dictionary to populate with string->ID mappings
      */
-    void assign_hash_ids(std::vector<std::string>& strings,
-                        std::map<std::string, uint32_t>& output_map) {
+    void create_dictionary(std::vector<std::string>& strings, ring::string_dictionary &out) {
         if (strings.empty()) return;
-
-        // Keep a copy of string keys before moving (only strings, lightweight)
-        std::vector<std::string> keys = strings;
 
         // Create temporary LibCSD dictionary (uses HASHRPF with hash-based IDs)
         // This consumes the strings vector
-        ring::string_dictionary temp_dict(std::move(strings),
+        auto t0 = std::chrono::high_resolution_clock::now();
+        out = ring::string_dictionary(std::move(strings),
                                           ring::string_dictionary::dict_type::HASHRPF,
                                           20, 32);
-
-        // Extract IDs from LibCSD dictionary using the keys
-        for (const auto& str : keys) {
-            uint32_t id = temp_dict.locate(str);
-            output_map[str] = id;
-        }
-
-        // temp_dict will be destroyed automatically, freeing memory
+        auto t1 = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = t1 - t0;
+        std::cout << "    Created LibCSD dictionary with " << out.size() << " entries in " << elapsed.count() << " seconds." << std::endl;
     }
 
     /**
@@ -135,11 +126,11 @@ private:
     void assign_node_ids(std::vector<std::string>& nodes,
                         std::vector<std::string>& nlabels,
                         std::vector<std::string>& nprops) {
-        std::cout << "Pass 2: Using LibCSD to assign hash-based node IDs..." << std::endl;
+        std::cout << "Pass 2: Using LibCSD to create the dictionaries of nodes..." << std::endl;
 
-        assign_hash_ids(nodes, m_nodes);
-        assign_hash_ids(nlabels, m_nlabels);
-        assign_hash_ids(nprops, m_nprops);
+        create_dictionary(nodes, m_nodes);
+        create_dictionary(nlabels, m_nlabels);
+        create_dictionary(nprops, m_nprops);
 
         std::cout << "  ✓ Node IDs assigned (LibCSD hash-based)" << std::endl;
     }
@@ -147,9 +138,10 @@ private:
     /**
      * @brief Write dictionary file from map
      */
-    void write_dict(const std::string& filename, const std::map<std::string, uint32_t>& dict) {
+    void write_dict(const std::string& filename, ring::string_dictionary &dict) {
         std::ofstream file(filename);
-        for (const auto& [str, id] : dict) {
+        for (uint32_t id = 1; id <= dict.size(); ++id) {
+            std::string str = dict.extract(id);
             file << id << " " << str << "\n";
         }
     }
@@ -161,12 +153,15 @@ private:
         std::cout << "Pass 3: Writing node dictionaries..." << std::endl;
 
         write_dict(output_prefix + ".nodes.dict", m_nodes);
+        sdsl::store_to_file(m_nodes, output_prefix + ".nodes.csd");
         std::cout << "  ✓ nodes.dict (" << m_nodes.size() << " entries)" << std::endl;
 
         write_dict(output_prefix + ".nlabels.dict", m_nlabels);
+        sdsl::store_to_file(m_nlabels, output_prefix + ".nlabels.csd");
         std::cout << "  ✓ nlabels.dict (" << m_nlabels.size() << " entries)" << std::endl;
 
         write_dict(output_prefix + ".nprops.dict", m_nprops);
+        sdsl::store_to_file(m_nprops, output_prefix + ".nprops.csd");
         std::cout << "  ✓ nprops.dict (" << m_nprops.size() << " entries)" << std::endl;
     }
 
@@ -187,30 +182,21 @@ private:
                 std::cout.flush();
             }
 
-            auto node_it = m_nodes.find(node.variable);
-            if (node_it == m_nodes.end()) continue;
-
-            uint32_t node_id = node_it->second;
+            uint32_t node_id = m_nodes.locate(node.variable);
 
             // Collect label->nodes
             for (const auto& label : node.labels) {
-                auto label_it = m_nlabels.find(label);
-                if (label_it != m_nlabels.end()) {
-                    uint32_t label_id = label_it->second;
-                    m_label_nodes_map[label_id].push_back(node_id);
-                }
+                uint32_t label_id = m_nlabels.locate(label);
+                m_label_nodes_map[label_id].push_back(node_id);
             }
 
             // Collect node properties
             for (const auto& prop : node.properties) {
-                auto prop_it = m_nprops.find(prop.key);
-                if (prop_it != m_nprops.end()) {
-                    uint32_t prop_id = prop_it->second;
-                    if (m_properties_node_values.size() <= prop_id) {
-                        m_properties_node_values.resize(prop_id + 1);
-                    }
-                    m_properties_node_values[prop_id][node_id] = prop.value;
+                uint32_t prop_id = m_nprops.locate(prop.key);
+                if (m_properties_node_values.size() <= prop_id) {
+                    m_properties_node_values.resize(prop_id + 1);
                 }
+                m_properties_node_values[prop_id][node_id] = prop.value;
             }
 
             ++pos;
@@ -248,8 +234,8 @@ private:
      */
     void clear_node_data() {
         std::cout << "  Clearing node-specific data from memory..." << std::endl;
-        m_nlabels.clear();
-        m_nprops.clear();
+        sdsl::util::clear(m_nlabels);
+        sdsl::util::clear(m_nprops);
         m_label_nodes_map.clear();
         m_properties_node_values.clear();
         std::cout << "  ✓ Memory freed" << std::endl;
@@ -295,14 +281,14 @@ private:
     }
 
     /**
-     * @brief Pass 5: Use LibCSD to assign hash-based IDs to edge-related strings
+     * @brief Pass 5: Use LibCSD to create the dictionaries
      */
     void assign_edge_ids(std::vector<std::string>& elabels,
                         std::vector<std::string>& eprops) {
-        std::cout << "Pass 5: Using LibCSD to assign hash-based edge IDs..." << std::endl;
+        std::cout << "Pass 5: Using LibCSD to create the dictionaries of edges..." << std::endl;
 
-        assign_hash_ids(elabels, m_elabels);
-        assign_hash_ids(eprops, m_eprops);
+        create_dictionary(elabels, m_elabels);
+        create_dictionary(eprops, m_eprops);
 
         std::cout << "  ✓ Edge IDs assigned (LibCSD hash-based)" << std::endl;
     }
@@ -314,9 +300,11 @@ private:
         std::cout << "Pass 6: Writing edge dictionaries..." << std::endl;
 
         write_dict(output_prefix + ".elabels.dict", m_elabels);
+        sdsl::store_to_file( m_elabels, output_prefix+".elabels.csd");
         std::cout << "  ✓ elabels.dict (" << m_elabels.size() << " entries)" << std::endl;
 
         write_dict(output_prefix + ".eprops.dict", m_eprops);
+        sdsl::store_to_file( m_eprops, output_prefix + ".eprops.csd");
         std::cout << "  ✓ eprops.dict (" << m_eprops.size() << " entries)" << std::endl;
     }
 
@@ -341,22 +329,13 @@ private:
                 std::cout.flush();
             }
 
-            auto from_it = m_nodes.find(edge.from);
-            auto to_it = m_nodes.find(edge.to);
-            auto type_it = m_elabels.find(edge.type);
-
-            if (from_it == m_nodes.end() || to_it == m_nodes.end() ||
-                type_it == m_elabels.end()) {
-                ++pos;
-                continue;
-            }
-
-            int subj_id = static_cast<int>(from_it->second);
-            int pred_id = static_cast<int>(type_it->second);
-            int obj_id = static_cast<int>(to_it->second);
+            auto from_id = m_nodes.locate(edge.from);
+            auto to_id = m_nodes.locate(edge.to);
+            auto type_id = m_elabels.locate(edge.type);
+            if (!from_id || !to_id || !type_id) continue;
 
             // Store triple
-            m_triples.emplace_back(subj_id, pred_id, obj_id, edge.properties);
+            m_triples.emplace_back(from_id, type_id, to_id, edge.properties);
 
             ++pos;
         }
@@ -388,14 +367,11 @@ private:
             for (const auto& prop : std::get<3>(m_triples[i])) {
                 std::string key = prop.key;
                 std::string value = prop.value;
-                auto prop_it = m_eprops.find(key);
-                if (prop_it != m_eprops.end()) {
-                    uint32_t prop_id = prop_it->second;
-                    if (m_properties_edge_values.size() <= prop_id) {
-                        m_properties_edge_values.resize(prop_id + 1);
-                    }
-                    m_properties_edge_values[prop_id][i + 1] = value;
+                uint32_t prop_id = m_eprops.locate(key);
+                if (m_properties_edge_values.size() <= prop_id) {
+                    m_properties_edge_values.resize(prop_id + 1);
                 }
+                m_properties_edge_values[prop_id][i + 1] = value;
             }
         }
         std::cout << " done." << std::endl;
@@ -467,18 +443,6 @@ public:
         std::cout << "\n✓ All dictionaries created successfully!" << std::endl;
     }
 
-    /**
-     * @brief Get statistics about collected data
-     */
-    void print_stats() const {
-        std::cout << "\n=== Statistics ===" << std::endl;
-        std::cout << "Unique nodes: " << m_nodes.size() << std::endl;
-        std::cout << "Unique node labels: " << m_nlabels.size() << std::endl;
-        std::cout << "Unique edge labels: " << m_elabels.size() << std::endl;
-        std::cout << "Unique node properties: " << m_nprops.size() << std::endl;
-        std::cout << "Unique edge properties: " << m_eprops.size() << std::endl;
-        std::cout << "==================" << std::endl;
-    }
 };
 
 #endif //TSV_HASH_PARSER_HPP
