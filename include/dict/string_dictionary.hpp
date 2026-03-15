@@ -9,11 +9,9 @@
 #include <string>
 #include <vector>
 #include <fstream>
-#include <sstream>
 #include <stdexcept>
 #include <algorithm>
 #include <cstring>
-#include <cstdlib>
 #include <sdsl/structure_tree.hpp>
 #include <sdsl/io.hpp>
 #include <StringDictionary.h>
@@ -648,30 +646,22 @@ namespace ring {
             uint not_empty_marker = 0;
             written_bytes += sdsl::write_member(not_empty_marker, out, v, name + "empty_mark");
 
-            // LibCSD requires ofstream, so we serialize to stringstream first
-            std::stringstream buffer(std::ios::binary | std::ios::in | std::ios::out);
+            // LibCSD requires ofstream - use simple temp file approach
+            std::string temp_file = "/tmp/ring_dict_" + std::to_string(reinterpret_cast<uintptr_t>(this)) + "_save";
 
-            // Trick: create a temporary file only for LibCSD (unavoidable)
-            std::string temp_file = std::tmpnam(nullptr);
-            std::ofstream temp_out(temp_file, std::ios::binary);
-            if (!temp_out.good()) {
-                throw std::runtime_error("Cannot create temporary file for serialization");
+            {
+                std::ofstream temp_out(temp_file, std::ios::binary);
+                m_dict->save(temp_out);
             }
 
-            m_dict->save(temp_out);
-            temp_out.close();
+            {
+                std::ifstream temp_in(temp_file, std::ios::binary);
+                out << temp_in.rdbuf();
+                temp_in.seekg(0, std::ios::end);
+                written_bytes += static_cast<size_type>(temp_in.tellg());
+            }
 
-            // Read back through stringstream for cleaner transfer
-            std::ifstream temp_in(temp_file, std::ios::binary);
-            buffer << temp_in.rdbuf();
-            temp_in.close();
             std::remove(temp_file.c_str());
-
-            // Transfer to output stream
-            buffer.seekg(0, std::ios::end);
-            written_bytes += static_cast<size_type>(buffer.tellg());
-            buffer.seekg(0, std::ios::beg);
-            out << buffer.rdbuf();
 
             if (v != nullptr) {
                 sdsl::structure_tree_node* child = sdsl::structure_tree::add_child(
@@ -700,26 +690,20 @@ namespace ring {
                 return;
             }
 
-            // LibCSD requires ifstream, use temporary file (unavoidable)
-            std::string temp_file = std::tmpnam(nullptr);
+            // LibCSD requires ifstream - use simple temp file approach
+            std::string temp_file = "/tmp/ring_dict_" + std::to_string(reinterpret_cast<uintptr_t>(this)) + "_load";
 
-            // Write input to temporary file
-            std::ofstream temp_out(temp_file, std::ios::binary);
-            if (!temp_out.good()) {
-                throw std::runtime_error("Cannot create temporary file for loading");
-            }
-            temp_out << in.rdbuf();
-            temp_out.close();
-
-            // Load from temporary file
-            std::ifstream temp_in(temp_file, std::ios::binary);
-            if (!temp_in.good()) {
-                std::remove(temp_file.c_str());
-                throw std::runtime_error("Cannot read temporary file");
+            {
+                std::ofstream temp_out(temp_file, std::ios::binary);
+                temp_out << in.rdbuf();
             }
 
-            StringDictionary* new_dict = StringDictionary::load(temp_in, 0);
-            temp_in.close();
+            StringDictionary* new_dict = nullptr;
+            {
+                std::ifstream temp_in(temp_file, std::ios::binary);
+                new_dict = StringDictionary::load(temp_in, 0);
+            }
+
             std::remove(temp_file.c_str());
 
             if (!new_dict) {
