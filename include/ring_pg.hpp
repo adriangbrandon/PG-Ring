@@ -337,7 +337,7 @@ namespace ring {
             }
         }
 
-        void build_dict(const std::string file, string_dict_type &dict) {
+        void build_dict(const std::string &file, string_dict_type &dict) {
             std::ifstream ifs(file);
             std::string key;
             int value;
@@ -697,6 +697,11 @@ namespace ring {
             sdsl::write_member(m_edge_properties.size(), out,  child, "edge_prop_size");
             written_bytes += sdsl::serialize_vector(m_edge_properties, out, child, "edge_properties");
             written_bytes += sdsl::serialize(m_string_mgr, out, child, "string_mgr");
+            written_bytes += sdsl::serialize(m_dict_nodes, out, child, "dict_nodes");
+            written_bytes += sdsl::serialize(m_dict_prop_nodes, out, child, "dict_prop_nodes");
+            written_bytes += sdsl::serialize(m_dict_prop_edges, out, child, "dict_prop_edges");
+            written_bytes += sdsl::serialize(m_dict_label_nodes, out, child, "dict_label_nodes");
+            written_bytes += sdsl::serialize(m_dict_label_edges, out, child, "dict_label_edges");
             sdsl::structure_tree::add_size(child, written_bytes);
             return written_bytes;
         }
@@ -722,7 +727,11 @@ namespace ring {
             m_edge_properties.resize(edge_prop_size);
             sdsl::load_vector(m_edge_properties, in);
             sdsl::load(m_string_mgr, in);
-
+            sdsl::load(m_dict_nodes, in);
+            sdsl::load(m_dict_prop_nodes, in);
+            sdsl::load(m_dict_prop_edges, in);
+            sdsl::load(m_dict_label_nodes, in);
+            sdsl::load(m_dict_label_edges, in);
 
             std::cout << "--- SPO ---" << std::endl;
             m_bwt_o.print_size();

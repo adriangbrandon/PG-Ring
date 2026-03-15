@@ -124,7 +124,7 @@ add_executable(tsv2ids src/tsv2ids.cpp)
 target_link_libraries(tsv2ids sdsl divsufsort divsufsort64)
 
 add_executable(tsv2lexids src/tsv2lexids.cpp)
-target_link_libraries(tsv2lexids sdsl divsufsort divsufsort64)
+target_link_libraries(tsv2lexids sdsl divsufsort divsufsort64 libcsd)
 
 add_executable(tsvclean src/tsvclean.cpp)
 target_link_libraries(tsvclean sdsl divsufsort divsufsort64)
@@ -160,3 +160,7 @@ add_executable(query-filter query-filter/query-filter.cpp)
 target_link_libraries(query-filter sdsl divsufsort divsufsort64)
 
 add_executable(process src/process.c)
+
+add_executable(test-dict test/dict.cpp)
+target_link_libraries(test-dict sdsl divsufsort divsufsort64 libcsd)
+

@@ -9,9 +9,11 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <sstream>
 #include <stdexcept>
 #include <algorithm>
 #include <cstring>
+#include <cstdlib>
 #include <sdsl/structure_tree.hpp>
 #include <sdsl/io.hpp>
 #include <StringDictionary.h>
@@ -575,6 +577,14 @@ namespace ring {
         }
 
         /**
+         * @brief Get size in elements
+         */
+
+        size_t size() const {
+            return m_dict->numElements();
+        }
+
+        /**
          * @brief Swap contents with another dictionary
          */
         void swap(string_dictionary& o) noexcept {
@@ -606,43 +616,62 @@ namespace ring {
         }
 
         /**
+         * @brief Serialize dictionary to file (simpler and safer than stream version)
+         * @param filename Path to output file
+         * @return Number of bytes written
+         */
+        size_type serialize(const std::string& filename) const {
+            std::ofstream out(filename, std::ios::binary);
+            if (!out.good()) {
+                throw std::runtime_error("Cannot open file for serialization: " + filename);
+            }
+            return serialize(out, nullptr, "");
+        }
+
+        /**
          * @brief Serialize dictionary to output stream (SDSL-style)
          * @param out Output stream
          * @param v Dictionary to serialize
          * @param name Optional name for structure (unused but kept for SDSL compatibility)
          * @return Number of bytes written
          */
-        template<typename T>
-        friend size_type serialize(const string_dictionary& dict, std::ostream& out,
-                                   sdsl::structure_tree_node* v = nullptr, std::string name = "") {
-            if (!dict.m_dict) {
+        size_type serialize(std::ostream &out, sdsl::structure_tree_node *v = nullptr, std::string name = "") const {
+            if (!m_dict) {
                 // Write a marker indicating empty dictionary
                 size_type written_bytes = 0;
-                uint8_t empty_marker = 0;
-                out.write(reinterpret_cast<const char*>(&empty_marker), sizeof(empty_marker));
-                written_bytes += sizeof(empty_marker);
-
-                if (v != nullptr) {
-                    sdsl::structure_tree_node* child = sdsl::structure_tree::add_child(
-                        v, name, "string_dictionary");
-                    sdsl::structure_tree::add_size(child, written_bytes);
-                }
-
+                uint empty_marker = 1;
+                written_bytes += sdsl::write_member(empty_marker, out, v, name + "empty_mark");
                 return written_bytes;
             }
 
             size_type written_bytes = 0;
-            auto start_pos = out.tellp();
+            uint not_empty_marker = 0;
+            written_bytes += sdsl::write_member(not_empty_marker, out, v, name + "empty_mark");
 
-            // Write marker indicating non-empty dictionary
-            uint8_t empty_marker = 1;
-            out.write(reinterpret_cast<const char*>(&empty_marker), sizeof(empty_marker));
-            written_bytes += sizeof(empty_marker);
+            // LibCSD requires ofstream, so we serialize to stringstream first
+            std::stringstream buffer(std::ios::binary | std::ios::in | std::ios::out);
 
-            // Save dictionary using libCSD's save method
-            dict.m_dict->save(dynamic_cast<std::ofstream&>(out));
+            // Trick: create a temporary file only for LibCSD (unavoidable)
+            std::string temp_file = std::tmpnam(nullptr);
+            std::ofstream temp_out(temp_file, std::ios::binary);
+            if (!temp_out.good()) {
+                throw std::runtime_error("Cannot create temporary file for serialization");
+            }
 
-            written_bytes = static_cast<size_type>(out.tellp()) - start_pos;
+            m_dict->save(temp_out);
+            temp_out.close();
+
+            // Read back through stringstream for cleaner transfer
+            std::ifstream temp_in(temp_file, std::ios::binary);
+            buffer << temp_in.rdbuf();
+            temp_in.close();
+            std::remove(temp_file.c_str());
+
+            // Transfer to output stream
+            buffer.seekg(0, std::ios::end);
+            written_bytes += static_cast<size_type>(buffer.tellg());
+            buffer.seekg(0, std::ios::beg);
+            out << buffer.rdbuf();
 
             if (v != nullptr) {
                 sdsl::structure_tree_node* child = sdsl::structure_tree::add_child(
@@ -655,37 +684,53 @@ namespace ring {
 
         /**
          * @brief Load dictionary from input stream (SDSL-style)
-         * @param dict Dictionary to load into
          * @param in Input stream
          */
-        template<typename T>
-        friend void load(string_dictionary& dict, std::istream& in) {
+         void load(std::istream& in) {
             // Read empty marker
             uint8_t empty_marker = 0;
-            in.read(reinterpret_cast<char*>(&empty_marker), sizeof(empty_marker));
+            sdsl::read_member(empty_marker, in);
 
-            if (empty_marker == 0) {
+            if (empty_marker == 1) {
                 // Empty dictionary
-                if (dict.m_dict) {
-                    delete dict.m_dict;
-                    dict.m_dict = nullptr;
+                if (m_dict) {
+                    delete m_dict;
+                    m_dict = nullptr;
                 }
                 return;
             }
 
-            // Load dictionary using libCSD's load method
-            StringDictionary* new_dict = StringDictionary::load(dynamic_cast<std::ifstream&>(in), 0);
+            // LibCSD requires ifstream, use temporary file (unavoidable)
+            std::string temp_file = std::tmpnam(nullptr);
+
+            // Write input to temporary file
+            std::ofstream temp_out(temp_file, std::ios::binary);
+            if (!temp_out.good()) {
+                throw std::runtime_error("Cannot create temporary file for loading");
+            }
+            temp_out << in.rdbuf();
+            temp_out.close();
+
+            // Load from temporary file
+            std::ifstream temp_in(temp_file, std::ios::binary);
+            if (!temp_in.good()) {
+                std::remove(temp_file.c_str());
+                throw std::runtime_error("Cannot read temporary file");
+            }
+
+            StringDictionary* new_dict = StringDictionary::load(temp_in, 0);
+            temp_in.close();
+            std::remove(temp_file.c_str());
 
             if (!new_dict) {
                 throw std::runtime_error("Failed to load dictionary from stream");
             }
 
-            // Clean up old dictionary if exists
-            if (dict.m_dict) {
-                delete dict.m_dict;
+            if (m_dict) {
+                delete m_dict;
             }
 
-            dict.m_dict = new_dict;
+            m_dict = new_dict;
         }
 
     };
