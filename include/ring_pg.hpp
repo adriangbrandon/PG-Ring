@@ -347,7 +347,7 @@ namespace ring {
                 if(ifs.eof()) break;
                 input.emplace_back(key);
             } while (true);
-            dict = string_dict_type(std::move(input), string_dict_type::dict_type::HASHRPF, 20, 32);
+            dict = string_dict_type(input, string_dict_type::dict_type::PFC, 100, 32);
         }
 
     public:
