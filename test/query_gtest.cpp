@@ -191,6 +191,7 @@ void run_queries_test(const std::vector<std::string>& queries) {
 
     for (const auto& s : queries) {
         auto query = ring::query::pg_query(s);
+        query.translate(&graph);
         algorithm_type ltj(&query, &graph);
         ::util::results_collector_test<tuple_type> res;
         ltj.join_v3(res, 0, 0);

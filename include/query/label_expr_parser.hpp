@@ -21,6 +21,7 @@ namespace ring {
                 enum_expr_label_type type = EMPTY;
                 std::vector<expr> args;
                 uint32_t label = 0; //only for LAB and NEG
+                std::string label_str; // temporal string before translation
 
                 void print() const {
                     switch (type) {
@@ -122,12 +123,13 @@ namespace ring {
             static expr_label_type parse_label(size_t& pos, const std::string& s, enum_expr_label_type t = LAB) {
                 skip_ws(pos, s);
                 size_t start = pos;
-                while (pos < s.size() && isdigit(s[pos])) ++pos;
-                if (start == pos) throw std::runtime_error("Expected number");
-                uint32_t lab = std::stoul(s.substr(start, pos - start));
+                while (pos < s.size() && (isalnum(s[pos]) || s[pos] == '_')) ++pos;
+                if (start == pos) throw std::runtime_error("Expected label");
+                std::string lab_str = s.substr(start, pos - start);
                 expr_label_type e;
                 e.type = t;
-                e.label = lab;
+                e.label_str = lab_str; // store string
+                e.label = 0; // will be translated later
                 return e;
             }
 

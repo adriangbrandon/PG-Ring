@@ -772,6 +772,90 @@ namespace ring {
                 }
             }
 
+            // Validation functions - check existence without transformation
+
+            void validate_expr(const expr_label_type &expr, bool is_node) const {
+                if (expr.type == LAB || expr.type == NEG) {
+                    if (is_node) {
+                        auto it = m_set_label_nodes.find(expr.value);
+                        if (it == m_set_label_nodes.end()) {
+                            throw std::runtime_error("Unknown node label: " + expr.value);
+                        }
+                    } else {
+                        auto it = m_set_label_edges.find(expr.value);
+                        if (it == m_set_label_edges.end()) {
+                            throw std::runtime_error("Unknown edge label: " + expr.value);
+                        }
+                    }
+                } else {
+                    for (const auto &arg: expr.args) {
+                        validate_expr(arg, is_node);
+                    }
+                }
+            }
+
+            void validate_node(const node_type &node) const {
+                if (!node.is_variable) {
+                    auto it = m_set_nodes.find(node.value);
+                    if (it == m_set_nodes.end()) {
+                        throw std::runtime_error("Unknown node: " + node.value);
+                    }
+                } else {
+                    validate_expr(node.expr_label, true);
+                }
+            }
+
+            void validate_edge(const edge_type &edge) const {
+                validate_node(edge.from);
+                validate_expr(edge.expr_label, false);
+                validate_node(edge.to);
+            }
+
+            void validate_op_where(const op_where_type &op, const std::set<std::string> &node_vars, const std::set<std::string> &edge_vars) const {
+                size_t args = 2;
+                if (op.comp == "IS NULL" || op.comp == "IS NOT NULL") args = 1;
+                for (size_t i = 0; i < args; ++i) {
+                    if (op.args[i].is_var) {
+                        if (op.args[i].has_property) {
+                            if (node_vars.find(op.args[i].value) != node_vars.end()) {
+                                auto it_prop = m_properties_node.find(op.args[i].property);
+                                if (it_prop == m_properties_node.end()) {
+                                    throw std::runtime_error("Unknown node property: " + op.args[i].property);
+                                }
+                            } else {
+                                if (edge_vars.find(op.args[i].value) != edge_vars.end()) {
+                                    auto it_prop = m_properties_edge.find(op.args[i].property);
+                                    if (it_prop == m_properties_edge.end()) {
+                                        throw std::runtime_error("Unknown edge property: " + op.args[i].property);
+                                    }
+                                } else {
+                                    throw std::runtime_error("Unknown variable: " + op.args[i].value);
+                                }
+                            }
+                        } else {
+                            if (node_vars.find(op.args[i].value) == node_vars.end() && edge_vars.find(op.args[i].value) == edge_vars.end()) {
+                                throw std::runtime_error("Unknown variable: " + op.args[i].value);
+                            }
+                        }
+                    } else {
+                        // constant can be a ID or any literal
+                        int64_t res;
+
+                        if (!(constant::is_date(op.args[i].value, res) || constant::is_integer(op.args[i].value, res) || constant::is_double(op.args[i].value, res) || constant::is_string(op.args[i].value))) {
+                            bool is_node = node_vars.find(op.args[(i+1) % 2].value) != node_vars.end();
+                            if (is_node) {
+                                auto it_node = m_set_nodes.find(op.args[i].value);
+                                if (it_node == m_set_nodes.end()) {
+                                    throw std::runtime_error("Unknown node: " + op.args[i].value);
+                                }
+                            } else {
+                                throw std::runtime_error("Edge shouldn't have an ID");
+                            }
+                        }
+                    }
+                }
+            }
+
             void run(const std::string &queries, const std::string &prefix, bool distinct) {
 
                 //extract extension
@@ -820,11 +904,12 @@ namespace ring {
                             }
                         }
 
+                        //Usado para transformar a ids (ahora no lo necesito, porque ya se encarga el sistema de hacer la traduccion)
                         for (auto &edge: q.patterns) {
-                            transform_edge(edge);
+                            validate_edge(edge);
                         }
                         for (auto &op: q.where_exprs) {
-                            transform_op_where(op, node_vars, edge_vars);
+                            validate_op_where(op, node_vars, edge_vars);
                         }
                         if (distinct && edge_vars.size() > 1) {
                             std::vector<std::string> vars;

@@ -38,6 +38,7 @@ namespace ring {
                 uint32_t const_value = 0;
                 uint32_t var_value = 0;
                 label_expr_parser::expr_label_type expr;
+                std::string const_str; // temporal string before translation
 
                 bool is_var() const {
                     return var_value != 0;
@@ -53,6 +54,7 @@ namespace ring {
                 uint32_t const_value = 0;
                 uint32_t var_value = 0;
                 label_expr_parser::expr_label_type expr;
+                std::string const_str; // temporal string before translation
 
                 bool is_var() const {
                     return var_value != 0;
@@ -86,12 +88,12 @@ namespace ring {
             static void skip_ws(size_t& p, const std::string& str) { while (p < str.size() && isspace(str[p])) ++p; }
 
 
-            static uint32_t parse_constant(size_t& p, const std::string& str) {
+            static std::string parse_constant(size_t& p, const std::string& str) {
                 skip_ws(p, str);
                 std::string val;
-                while (p < str.size() && isdigit(str[p])) val += str[p++];
-                if (val.empty()) throw std::runtime_error("Expected constant value (digits only)");
-                return static_cast<uint32_t>(std::stoul(val));
+                while (p < str.size() && (isalnum(str[p]) || str[p] == '_')) val += str[p++];
+                if (val.empty()) throw std::runtime_error("Expected constant value");
+                return val;
             }
 
             static uint8_t parse_variable(size_t& p, const std::string& str, std::unordered_map<std::string, uint8_t> &ht) {
@@ -121,7 +123,8 @@ namespace ring {
                     n.const_value = 0;
                 }else if (str[p] != ':') {
                     n.var_value = 0;
-                    n.const_value = parse_constant(p, str);
+                    n.const_str = parse_constant(p, str); // store string
+                    n.const_value = 0; // will be translated later
                 }
 
                 skip_ws(p, str);
@@ -168,7 +171,8 @@ namespace ring {
                     e.const_value = 0;
                 }else if (str[p] != ':') {
                     e.var_value = 0;
-                    e.const_value = parse_constant(p, str);
+                    e.const_str = parse_constant(p, str); // store string
+                    e.const_value = 0; // will be translated later
                 }
                 skip_ws(p, str);
                 // Etiqueta o expresión

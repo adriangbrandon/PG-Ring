@@ -113,8 +113,6 @@ int main(int argc, char **argv)
         query_counter++;
 
         try {
-            // Parse the query
-            auto query = ring::query::pg_query(query_string);
 
             // Execute the query
             typedef ring::ltj_algorithm_pg<::util::results_collector_test<std::vector<uint64_t>>> algorithm_type;
@@ -123,6 +121,10 @@ int main(int argc, char **argv)
             ::util::results_collector_test<tuple_type> res;
 
             auto start = timer::now();
+            // Parse the query
+            auto query = ring::query::pg_query(query_string);
+            // Translate string identifiers to uint32_t using dictionaries
+            query.translate(&graph);
             algorithm_type ltj(&query, &graph);
             ltj.join_v3(res, max_results, timeout);
             auto stop = timer::now();

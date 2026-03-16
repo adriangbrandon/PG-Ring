@@ -26,7 +26,7 @@ void build_dict(const std::string &file, ring::string_dictionary &dict) {
         input.emplace_back(key);
     } while (true);
     std::cout << "Building dictionary from " << file << " with " << input.size() << " entries" << std::endl;
-    dict = ring::string_dictionary(std::move(input), ring::string_dictionary::dict_type::HASHRPF, 20, 32);
+    dict = ring::string_dictionary(input, ring::string_dictionary::dict_type::PFC, 20, 32);
 }
 
 int main(int argc, char* argv[]) {

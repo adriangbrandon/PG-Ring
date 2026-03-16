@@ -17,6 +17,8 @@
 #include <StringDictionary.h>
 #include <iterators/IteratorDictStringPlain.h>
 
+#include "file_util.hpp"
+
 namespace ring {
 
     /**
@@ -53,6 +55,8 @@ namespace ring {
         StringDictionary* m_dict;
 
 
+
+
     public:
 
         // Constants for compatibility
@@ -86,17 +90,6 @@ namespace ring {
                          uint bucketsize = 4)
             : m_dict(nullptr) {
             build(strings, type, overhead, bucketsize);
-        }
-
-        /**
-         * @brief Load dictionary from file
-         * @param filename Path to dictionary file
-         * @param opt Optional parameter for some dictionary types
-         * @throws std::runtime_error if file cannot be opened or loaded
-         */
-        explicit string_dictionary(const std::string& filename, uint opt = 0)
-            : m_dict(nullptr) {
-            load(filename, opt);
         }
 
         /**
@@ -236,70 +229,6 @@ namespace ring {
                 delete it;
                 throw;
             }
-        }
-
-        /**
-         * @brief Load dictionary from file
-         * @param filename Path to dictionary file
-         * @param opt Optional parameter for some dictionary types
-         * @throws std::runtime_error if file cannot be opened or loaded
-         */
-        void load(const std::string& filename, uint opt = 0) {
-            std::ifstream in(filename, std::ios::binary);
-            if (!in.good()) {
-                throw std::runtime_error("Cannot open dictionary file: " + filename);
-            }
-            load(in, opt);
-            in.close();
-        }
-
-        /**
-         * @brief Load dictionary from input stream
-         * @param in Input stream
-         * @param opt Optional parameter for some dictionary types
-         * @throws std::runtime_error if loading fails
-         */
-        void load(std::istream& in, uint opt = 0) {
-            StringDictionary* dict = StringDictionary::load(dynamic_cast<std::ifstream&>(in), opt);
-            if (!dict) {
-                throw std::runtime_error("Failed to load dictionary from stream");
-            }
-
-            // Clean up old dictionary if exists
-            if (m_dict) {
-                delete m_dict;
-            }
-
-            m_dict = dict;
-        }
-
-        /**
-         * @brief Save dictionary to file
-         * @param filename Path to output file
-         * @throws std::runtime_error if file cannot be opened or save fails
-         */
-        void save(const std::string& filename) const {
-            if (!m_dict) {
-                throw std::runtime_error("Cannot save: dictionary is empty");
-            }
-            std::ofstream out(filename, std::ios::binary);
-            if (!out.good()) {
-                throw std::runtime_error("Cannot open output file: " + filename);
-            }
-            m_dict->save(out);
-            out.close();
-        }
-
-        /**
-         * @brief Save dictionary to output stream
-         * @param out Output stream
-         * @throws std::runtime_error if dictionary is empty
-         */
-        void save(std::ostream& out) const {
-            if (!m_dict) {
-                throw std::runtime_error("Cannot save: dictionary is empty");
-            }
-            m_dict->save(dynamic_cast<std::ofstream&>(out));
         }
 
         /**
@@ -616,19 +545,6 @@ namespace ring {
         }
 
         /**
-         * @brief Serialize dictionary to file (simpler and safer than stream version)
-         * @param filename Path to output file
-         * @return Number of bytes written
-         */
-        size_type serialize(const std::string& filename) const {
-            std::ofstream out(filename, std::ios::binary);
-            if (!out.good()) {
-                throw std::runtime_error("Cannot open file for serialization: " + filename);
-            }
-            return serialize(out, nullptr, "");
-        }
-
-        /**
          * @brief Serialize dictionary to output stream (SDSL-style)
          * @param out Output stream
          * @param v Dictionary to serialize
@@ -639,31 +555,20 @@ namespace ring {
             if (!m_dict) {
                 // Write a marker indicating empty dictionary
                 size_type written_bytes = 0;
-                uint empty_marker = 1;
+                uint8_t empty_marker = 1;
                 written_bytes += sdsl::write_member(empty_marker, out, v, name + "empty_mark");
                 return written_bytes;
             }
 
             size_type written_bytes = 0;
-            uint not_empty_marker = 0;
+            uint8_t not_empty_marker = 0;
             written_bytes += sdsl::write_member(not_empty_marker, out, v, name + "empty_mark");
 
-            // LibCSD requires ofstream - use simple temp file approach
-            std::string temp_file = "/tmp/ring_dict_" + std::to_string(reinterpret_cast<uintptr_t>(this)) + "_save";
-
-            {
-                std::ofstream temp_out(temp_file, std::ios::binary);
-                m_dict->save(temp_out);
-            }
-
-            {
-                std::ifstream temp_in(temp_file, std::ios::binary);
-                out << temp_in.rdbuf();
-                temp_in.seekg(0, std::ios::end);
-                written_bytes += static_cast<size_type>(temp_in.tellg());
-            }
-
-            std::remove(temp_file.c_str());
+            std::ofstream out_stream("temp.txt", std::ios::out | std::ios::binary);
+            m_dict->save(out_stream);
+            out_stream.flush(); out_stream.close();
+            written_bytes += ::util::file::file_to_ostream("temp.txt", out);
+            ::util::file::remove_file("temp.txt");
 
             if (v != nullptr) {
                 sdsl::structure_tree_node* child = sdsl::structure_tree::add_child(
@@ -692,21 +597,11 @@ namespace ring {
                 return;
             }
 
-            // LibCSD requires ifstream - use simple temp file approach
-            std::string temp_file = "/tmp/ring_dict_" + std::to_string(reinterpret_cast<uintptr_t>(this)) + "_load";
-
-            {
-                std::ofstream temp_out(temp_file, std::ios::binary);
-                temp_out << in.rdbuf();
-            }
-
             StringDictionary* new_dict = nullptr;
-            {
-                std::ifstream temp_in(temp_file, std::ios::binary);
-                new_dict = StringDictionary::load(temp_in, 0);
-            }
-
-            std::remove(temp_file.c_str());
+            ::util::file::istream_to_file("temp.txt", in);
+            std::ifstream temp_in("temp.txt", std::ios::in | std::ios::binary);
+            new_dict = StringDictionary::load(temp_in, 0);
+            ::util::file::remove_file("temp.txt");
 
             if (!new_dict) {
                 throw std::runtime_error("Failed to load dictionary from stream");
@@ -720,17 +615,6 @@ namespace ring {
         }
 
     };
-
-    /**
-     * @brief Load dictionary from file (factory function)
-     * @param filename Path to dictionary file
-     * @param opt Optional parameter for some dictionary types
-     * @return Loaded dictionary
-     * @throws std::runtime_error if loading fails
-     */
-    inline string_dictionary load_string_dictionary(const std::string& filename, uint opt = 0) {
-        return string_dictionary(filename, opt);
-    }
 
 } // namespace ring
 

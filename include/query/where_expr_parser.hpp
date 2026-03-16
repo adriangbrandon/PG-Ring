@@ -30,6 +30,7 @@ namespace ring {
                 std::array<value_type, 2> values;
                 std::array<std::string, 2> strs = {"", ""}; //strings to compare if any
                 std::array<property_type, 2> property_values = {0, 0};
+                std::array<std::string, 2> property_strs = {"", ""}; // temporal strings before translation
 
                 bool has_property() const {
                     return (is_var[0] && property_values[0]) || (is_var[1] && property_values[1]) ;
@@ -263,7 +264,7 @@ namespace ring {
                 // Extract the first operand (trim trailing spaces)
                 std::string op1_str = s.substr(pos, op_pos - pos);
                 op1_str.erase(op1_str.find_last_not_of(" \t\n\r") + 1);
-                parse_operand(op1_str, e.is_var[0], e.values[0], e.strs[0], e.property_values[0], ht);
+                parse_operand(op1_str, e.is_var[0], e.values[0], e.strs[0], e.property_values[0], e.property_strs[0], ht);
                 pos = op_pos + found_op.size();
                 // Extract the second operand (trim leading and trailing spaces)
                 if (e.type < ISNULL) {
@@ -274,7 +275,7 @@ namespace ring {
                     std::string op2_str = s.substr(op2_start, op2_end - op2_start);
                     op2_str.erase(0, op2_str.find_first_not_of(" \t\n\r"));
                     op2_str.erase(op2_str.find_last_not_of(" \t\n\r") + 1);
-                    parse_operand(op2_str, e.is_var[1], e.values[1], e.strs[1], e.property_values[1], ht);
+                    parse_operand(op2_str, e.is_var[1], e.values[1], e.strs[1], e.property_values[1], e.property_strs[1], ht);
                     pos = op2_end;
                 }else {
                     e.is_var[1] = false;
@@ -285,11 +286,12 @@ namespace ring {
 
             // parse_operand on exact string
             static void parse_operand(const std::string &s, bool &is_var, int64_t &value, std::string &str, uint32_t &prop,
-                                      std::unordered_map<std::string, std::uint8_t> &ht) {
+                                      std::string &prop_str, std::unordered_map<std::string, std::uint8_t> &ht) {
                 is_var = false;
                 value = 0;
                 prop = 0;
                 str.clear();
+                prop_str.clear();
                 size_t pos = 0;
                 while (pos < s.size() && isspace(s[pos])) ++pos;
                 if (pos < s.size() && s[pos] == '?') {
@@ -301,8 +303,8 @@ namespace ring {
                     if (pos < s.size() && s[pos] == '.') {
                         ++pos;
                         size_t pstart = pos;
-                        while (pos < s.size() && isdigit(s[pos])) ++pos;
-                        prop = std::stoul(s.substr(pstart, pos - pstart));
+                        while (pos < s.size() && !isspace(s[pos])) ++pos;
+                        prop_str = s.substr(pstart, pos - pstart); // store property string
                     }
                 } else if (pos < s.size() && (s[pos] == '"' || s[pos] == '\'')) {
                     char quote_char = s[pos];

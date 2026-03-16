@@ -114,10 +114,86 @@ namespace query {
             return *this;
         }
 
-    };
+        // Translate all string identifiers to uint32_t using ring dictionaries
+        template<typename ring_type>
+        void translate(const ring_type* ring_ptr) {
+            // Translate node constants
+            for (auto& pattern : m_patterns) {
+                // Subject node
+                if (!pattern.subj.const_str.empty()) {
+                    pattern.subj.const_value = ring_ptr->dict_nodes.locate(pattern.subj.const_str);
+                    if (pattern.subj.const_value == 0) {
+                        throw std::runtime_error("Node not found in dictionary: " + pattern.subj.const_str);
+                    }
+                }
+                // Object node
+                if (!pattern.obj.const_str.empty()) {
+                    pattern.obj.const_value = ring_ptr->dict_nodes.locate(pattern.obj.const_str);
+                    if (pattern.obj.const_value == 0) {
+                        throw std::runtime_error("Node not found in dictionary: " + pattern.obj.const_str);
+                    }
+                }
 
+                // Translate node label expressions
+                translate_label_expr(pattern.subj.expr, ring_ptr->dict_label_nodes);
+                translate_label_expr(pattern.obj.expr, ring_ptr->dict_label_nodes);
+                // Translate edge label expressions
+                translate_label_expr(pattern.edge.expr, ring_ptr->dict_label_edges);
+            }
 
-}
+            // Translate where clause properties
+            translate_where_expr(m_where, ring_ptr);
+        }
+
+    private:
+        template<typename dict_type>
+        void translate_label_expr(label_expr_parser::expr_label_type& expr, const dict_type& dict) {
+            if (expr.type == LAB || expr.type == NEG) {
+                if (!expr.label_str.empty()) {
+                    expr.label = dict.locate(expr.label_str);
+                    if (expr.label == 0) {
+                        throw std::runtime_error("Label not found in dictionary: " + expr.label_str);
+                    }
+                }
+            } else if (expr.type == AND || expr.type == OR) {
+                for (auto& arg : expr.args) {
+                    translate_label_expr(arg, dict);
+                }
+            }
+        }
+
+        template<typename ring_type>
+        void translate_where_expr(where_expr_parser::expr& expr, const ring_type* ring_ptr) {
+            if (expr.type == WAND || expr.type == WOR) {
+                for (auto& arg : expr.args) {
+                    translate_where_expr(arg, ring_ptr);
+                }
+            } else {
+                // Translate property names to IDs
+                for (int i = 0; i < 2; ++i) {
+                    if (!expr.property_strs[i].empty()) {
+                        // Determine if it's a node or edge property based on the variable
+                        bool is_node = (expr.is_var[i] && expr.values[i] > 0 &&
+                                       expr.values[i] <= m_vnodes.size() &&
+                                       m_vnodes[expr.values[i]]);
+
+                        if (is_node) {
+                            expr.property_values[i] = ring_ptr->dict_prop_nodes.locate(expr.property_strs[i]);
+                        } else {
+                            expr.property_values[i] = ring_ptr->dict_prop_edges.locate(expr.property_strs[i]);
+                        }
+
+                        if (expr.property_values[i] == 0) {
+                            throw std::runtime_error("Property not found in dictionary: " + expr.property_strs[i]);
+                        }
+                    }
+                }
+            }
+        }
+
+    public:
+
+    };}
 }
 
 #endif // RING_CYPHER_QUERY_PARSER_HPP

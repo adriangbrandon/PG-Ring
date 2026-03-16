@@ -158,6 +158,8 @@ int main(int argc, char **argv)
         try {
             // Parse the query once
             auto query = ring::query::pg_query(query_string);
+            // Translate string identifiers to uint32_t using dictionaries
+            query.translate(&graph);
 
             std::vector<uint64_t> execution_times;
             uint64_t num_results = 0;

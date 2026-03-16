@@ -733,11 +733,11 @@ namespace ring {
             m_edge_properties.resize(edge_prop_size);
             sdsl::load_vector(m_edge_properties, in);
             sdsl::load(m_string_mgr, in);
-            sdsl::load(m_dict_nodes, in);
-            sdsl::load(m_dict_prop_nodes, in);
-            sdsl::load(m_dict_prop_edges, in);
-            sdsl::load(m_dict_label_nodes, in);
-            sdsl::load(m_dict_label_edges, in);
+            m_dict_nodes.load(in);
+            m_dict_prop_nodes.load(in);
+            m_dict_prop_edges.load(in);
+            m_dict_label_nodes.load(in);
+            m_dict_label_edges.load(in);
 
             std::cout << "--- SPO ---" << std::endl;
             m_bwt_o.print_size();
