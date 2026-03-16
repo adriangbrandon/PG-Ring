@@ -80,12 +80,12 @@ namespace ring {
          * @param bucketsize Bucket size (for front-coding dicts)
          * @throws std::runtime_error if construction fails
          */
-        string_dictionary(std::vector<std::string>&& strings,
+        string_dictionary(std::vector<std::string>& strings,
                          dict_type type = dict_type::HASHRPF,
                          uint overhead = 20,
                          uint bucketsize = 4)
             : m_dict(nullptr) {
-            build(std::move(strings), type, overhead, bucketsize);
+            build(strings, type, overhead, bucketsize);
         }
 
         /**
@@ -143,7 +143,7 @@ namespace ring {
          * @param bucketsize Bucket size (for front-coding dicts, default 4)
          * @throws std::runtime_error if construction fails
          */
-        void build(std::vector<std::string> &&strings,
+        void build(std::vector<std::string> &strings,
                    dict_type type = dict_type::HASHRPF,
                    uint overhead = 20,
                    uint bucketsize = 4) {
@@ -168,10 +168,12 @@ namespace ring {
                 text[pos + s.length()] = '\0';
                 pos += s.length() + 1;
             }
+            std::cout << "Total length: " << total_len << std::endl;
             sdsl::util::clear(strings); // Free original vector memory
 
             // Create iterator
             IteratorDictString* it = new IteratorDictStringPlain(text, total_len);
+            std::cout << "Iterator created with " << it->size() << " strings" << std::endl;
 
             // Build appropriate dictionary type
             StringDictionary* dict = nullptr;
