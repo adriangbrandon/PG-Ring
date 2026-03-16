@@ -69,7 +69,7 @@ private:
         /*out = ring::string_dictionary(std::move(strings),
                                           ring::string_dictionary::dict_type::HASHRPDAC,
                                           100, 32);*/
-        out = ring::string_dictionary(std::move(strings),
+        out = ring::string_dictionary(strings,
                                           ring::string_dictionary::dict_type::PFC,
                                           100, 32);
         auto t1 = std::chrono::high_resolution_clock::now();
