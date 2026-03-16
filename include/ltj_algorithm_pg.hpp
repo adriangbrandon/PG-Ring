@@ -21,7 +21,7 @@
 #ifndef RING_LTJ_ALGORITHM_PG_HPP
 #define RING_LTJ_ALGORITHM_PG_HPP
 
-
+#include <type_traits>
 #include <triple_pattern.hpp>
 #include <ltj_iterator.hpp>
 #include <ltj_iterator_edge_expr.hpp>
@@ -37,7 +37,7 @@
 
 
 namespace ring {
-    template<class results_t = ::util::results_collector<std::vector<uint64_t> >, class veo_t = veo::veo_simple_pg<> >
+    template<class results_t = ::util::results_collector<std::vector<std::string> >, class veo_t = veo::veo_simple_pg<> >
     class ltj_algorithm_pg {
     public:
         typedef uint64_t value_type;
@@ -191,15 +191,36 @@ namespace ring {
             }
         }
 
-        /*void from_id_to_str(tuple_type &t, tuple_str_type &t_str) {
-            for(auto &p : t) {
-                if(m_ptr_query->vnodes[p]) {
-                    t_str[p.first] = m_ptr_ring->extract_node(p.second);
-                }else {
-                    t_str[p.first] = std::to_string(p);
+
+        void translate_tuple_to_strings(const tuple_type &tuple_ids, tuple_str_type &tuple_str) const {
+            tuple_str.resize(tuple_ids.size());
+            for (size_type i = 0; i < tuple_ids.size(); ++i) {
+                var_type var = i + 1; // Variables are 1-indexed
+                if (var < m_ptr_query->vnodes.size() && m_ptr_query->vnodes[var]) {
+                    // It's a node variable - extract string from dictionary
+                    tuple_str[i] = m_ptr_ring->dict_nodes.extract(tuple_ids[i]);
+                } else {
+                    // It's an edge variable - just convert ID to string
+                    tuple_str[i] = std::to_string(tuple_ids[i]);
                 }
             }
-        }*/
+        }
+
+        // translates to string (decision in compilation)
+        template<typename T>
+        typename std::enable_if<std::is_same<typename T::value_type, std::vector<std::string>>::value, void>::type
+        add_result_to_collector(T& res, const tuple_type& tuple) const {
+            tuple_str_type tuple_str;
+            translate_tuple_to_strings(tuple, tuple_str);
+            res.add(tuple_str);
+        }
+
+        // adds directly (decision in compilation)
+        template<typename T>
+        typename std::enable_if<std::is_same<typename T::value_type, std::vector<uint64_t>>::value, void>::type
+        add_result_to_collector(T& res, const tuple_type& tuple) const {
+            res.add(tuple);
+        }
 
 
 
@@ -366,8 +387,8 @@ namespace ring {
             if (limit_results > 0 && res.size() == limit_results) return false;
 
             if (j == m_veo.size()) {
-                //Report results
-                res.add(tuple);
+                //Report results - translate node IDs to strings if needed
+                add_result_to_collector(res, tuple);
                 /*std::cout << "Add result" << std::endl;
                 for(const auto &dat : tuple){
                     std::cout << "{" << (uint64_t) dat.first << "=" << dat.second << "} ";
@@ -445,8 +466,8 @@ namespace ring {
             if (limit_results > 0 && res.size() == limit_results) return false;
 
             if (j == m_veo.size()) {
-                //Report results
-                res.add(tuple);
+                //Report results - translate node IDs to strings if needed
+                add_result_to_collector(res, tuple);
                 /*std::cout << "Add result" << std::endl;
                 uint i = 1;
                 for (const auto &dat: tuple) {

@@ -137,8 +137,9 @@ int main(int argc, char **argv)
 
     // Process each query
     typedef ring::ltj_algorithm_pg<> algorithm_type;
-    typedef algorithm_type::tuple_type tuple_type;
-    ::util::results_collector<tuple_type> res;
+    typedef algorithm_type::results_type results_type;
+
+    results_type res;
     for (size_t query_id = 0; query_id < queries.size(); ++query_id) {
         const std::string& query_string = queries[query_id];
 

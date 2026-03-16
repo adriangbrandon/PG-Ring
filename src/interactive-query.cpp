@@ -115,10 +115,10 @@ int main(int argc, char **argv)
         try {
 
             // Execute the query
-            typedef ring::ltj_algorithm_pg<::util::results_collector_test<std::vector<uint64_t>>> algorithm_type;
-            typedef algorithm_type::tuple_type tuple_type;
+            typedef ring::ltj_algorithm_pg<::util::results_collector_test<std::vector<std::string>>> algorithm_type;
+            typedef algorithm_type::results_type results_type;
 
-            ::util::results_collector_test<tuple_type> res;
+            results_type res;
 
             auto start = timer::now();
             // Parse the query
