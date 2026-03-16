@@ -157,10 +157,7 @@ int main(int argc, char **argv)
         }
 
         try {
-            // Parse the query once
-            auto query = ring::query::pg_query(query_string);
-            // Translate string identifiers to uint32_t using dictionaries
-            query.translate(&graph);
+
 
             std::vector<uint64_t> execution_times;
             uint64_t num_results = 0;
@@ -168,6 +165,10 @@ int main(int argc, char **argv)
             for (uint64_t run = 0; run < repeat; ++run) {
                 res.clear();
                 auto start = timer::now();
+                // Parse the query once
+                auto query = ring::query::pg_query(query_string);
+                // Translate string identifiers to uint32_t using dictionaries
+                query.translate(&graph);
                 algorithm_type ltj(&query, &graph);
                 ltj.join_v3(res, max_results, timeout_sec);
                 auto stop = timer::now();
