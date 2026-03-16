@@ -54,6 +54,7 @@ namespace ring {
         var_to_prop_iterators_type;
         //typedef std::vector<std::pair<var_type, value_type>> tuple_type;
         typedef std::vector<value_type> tuple_type;
+        typedef std::vector<string> tuple_str_type;
         typedef std::chrono::high_resolution_clock::time_point time_point_type;
         typedef results_t results_type;
 
@@ -189,6 +190,16 @@ namespace ring {
                 add_var_to_iterator(expr.values[1], m_iterators.back());
             }
         }
+
+        /*void from_id_to_str(tuple_type &t, tuple_str_type &t_str) {
+            for(auto &p : t) {
+                if(m_ptr_query->vnodes[p]) {
+                    t_str[p.first] = m_ptr_ring->extract_node(p.second);
+                }else {
+                    t_str[p.first] = std::to_string(p);
+                }
+            }
+        }*/
 
 
 
