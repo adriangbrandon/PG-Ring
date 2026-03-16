@@ -352,6 +352,12 @@ namespace ring {
 
     public:
 
+        const string_dict_type &dict_nodes = m_dict_nodes;
+        const string_dict_type &dict_prop_nodes = m_dict_prop_nodes;
+        const string_dict_type &dict_prop_edges = m_dict_prop_edges;
+        const string_dict_type &dict_label_nodes = m_dict_label_nodes;
+        const string_dict_type &dict_label_edges = m_dict_label_edges;
+
         const bwt_type &s_spo = m_bwt_s; //POS
         const bwt_p_type &p_spo = m_bwt_p; //OSP
         const bwt_type &o_spo = m_bwt_o; //SPO
