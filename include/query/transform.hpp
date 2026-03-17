@@ -576,10 +576,6 @@ namespace ring {
             }
 
             void normalize_date(std::string &value) {
-                // Si ya está en formato ZONED_DATETIME, no hacer nada
-                if (startswith("ZONED_DATETIME", 0, value)) {
-                    return;
-                }
 
                 // Detectar si es una fecha en formato ISO (contiene dígitos y guiones)
                 // Formatos soportados:
@@ -588,12 +584,22 @@ namespace ring {
                 // "1988-01-01T"
                 // "1988-01-01"
 
+                // Verificar si el string tiene comillas al inicio y final
+                size_t start = 0;
+                size_t end = value.length();
+                bool has_quotes = false;
 
+                if (value.length() >= 2 && value[0] == '"' && value[value.length()-1] == '"') {
+                    has_quotes = true;
+                    start = 1;
+                    end = value.length() - 1;
+                }
 
-                if (value.length() >= 11 && value[5] == '-' && value[8] == '-') {
+                // Verificar formato de fecha: al menos 10 caracteres + los índices de guiones
+                if ((end - start) >= 10 && value[start + 4] == '-' && value[start + 7] == '-') {
                     // Verificar que los primeros 4 caracteres son dígitos (año)
                     bool is_date = true;
-                    for (int i = 1; i < 5; i++) {
+                    for (size_t i = start; i < start + 4; i++) {
                         if (!std::isdigit(value[i])) {
                             is_date = false;
                             break;
@@ -604,22 +610,24 @@ namespace ring {
                         std::string date_part;
                         std::string time_part = "00:00:00";
 
-                        // Extraer la parte de fecha (YYYY-MM-DD)
-                        size_t t_pos = value.find('T');
+                        // Extraer la parte de fecha (YYYY-MM-DD) sin comillas
+                        std::string date_str = value.substr(start, end - start);
+                        size_t t_pos = date_str.find('T');
+
                         if (t_pos != std::string::npos) {
-                            date_part = value.substr(1, 11);
+                            date_part = date_str.substr(0, t_pos);
                             // Si hay parte de tiempo después de T
-                            if (t_pos + 1 < value.length()) {
-                                size_t z_pos = value.find('Z', t_pos);
+                            if (t_pos + 1 < date_str.length()) {
+                                size_t z_pos = date_str.find('Z', t_pos);
                                 if (z_pos != std::string::npos) {
-                                    time_part = value.substr(t_pos + 1, z_pos - t_pos - 1);
+                                    time_part = date_str.substr(t_pos + 1, z_pos - t_pos - 1);
                                 } else {
-                                    time_part = value.substr(t_pos + 1);
+                                    time_part = date_str.substr(t_pos + 1);
                                 }
                             }
                         } else {
                             // Solo fecha, sin parte de tiempo
-                            date_part = value.substr(1, 11);
+                            date_part = date_str.substr(0, 10);
                         }
 
                         // Construir fecha normalizada y actualizar el valor
