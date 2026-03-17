@@ -588,10 +588,12 @@ namespace ring {
                 // "1988-01-01T"
                 // "1988-01-01"
 
-                if (value.length() >= 10 && value[4] == '-' && value[7] == '-') {
+
+
+                if (value.length() >= 11 && value[5] == '-' && value[8] == '-') {
                     // Verificar que los primeros 4 caracteres son dígitos (año)
                     bool is_date = true;
-                    for (int i = 0; i < 4; i++) {
+                    for (int i = 1; i < 5; i++) {
                         if (!std::isdigit(value[i])) {
                             is_date = false;
                             break;
@@ -605,7 +607,7 @@ namespace ring {
                         // Extraer la parte de fecha (YYYY-MM-DD)
                         size_t t_pos = value.find('T');
                         if (t_pos != std::string::npos) {
-                            date_part = value.substr(0, t_pos);
+                            date_part = value.substr(1, 11);
                             // Si hay parte de tiempo después de T
                             if (t_pos + 1 < value.length()) {
                                 size_t z_pos = value.find('Z', t_pos);
@@ -617,7 +619,7 @@ namespace ring {
                             }
                         } else {
                             // Solo fecha, sin parte de tiempo
-                            date_part = value.substr(0, 10);
+                            date_part = value.substr(1, 11);
                         }
 
                         // Construir fecha normalizada y actualizar el valor
