@@ -341,10 +341,11 @@ namespace ring {
                     }else if (str[pos] == '"') {
                         end_string('"', '"', pos, str);
                         op.args[arg_i].value = str.substr(pos, end-pos);
+                        normalize_date(op.args[arg_i].value); // normalize date format if it's a date
                     }else if (str[pos] == '\'') {
                         end_string('\'', '\'', pos, str);
                         op.args[arg_i].value = str.substr(pos, end-pos);
-                    }else { // number/date
+                    }else { // number
                         while (pos < end && !isspace(str[pos])) {
                             op.args[arg_i].value += str[pos++];
                         }
@@ -539,13 +540,15 @@ namespace ring {
                 return result;
             }
 
-            std::string cypher_pattern(const edge_type& edge, std::string &where_str) {
+            std::string cypher_pattern(const edge_type& edge, std::string &where_str, uint &ids) {
                 std::string result;
                 result += "(";
-                if (edge.from.is_variable)
-                    result += edge.from.value;
-                else
-                    result += "{ qid: \"" + edge.from.value + "\"}";
+                if (edge.from.is_variable) {
+                    result += edge.from.value + ":Entity";
+                } else {
+                    result += "cid" + std::to_string(ids) + ":Entity { qid: \"" + edge.from.value + "\"}";
+                    ids++;
+                }
                 if (edge.from.expr_label.type != EMPTY) {
                     // print label expression
                     result += cypher_str_expr(edge.from.value, edge.from.expr_label, where_str);
@@ -558,16 +561,69 @@ namespace ring {
                     result += cypher_str_expr(edge.value, edge.expr_label, where_str);
                 }
                 result += "]->(";
-                if (edge.to.is_variable)
-                    result += edge.to.value;
-                else
-                    result += "{ qid: \"" + edge.to.value + "\"}";
+                if (edge.to.is_variable) {
+                    result += edge.to.value + ":Entity";
+                } else {
+                    result += "cid" + std::to_string(ids) + ":Entity { qid: \"" + edge.to.value + "\"}";
+                    ids++;
+                }
                 if (edge.to.expr_label.type != EMPTY) {
                     // print label expression
                     result += cypher_str_expr(edge.to.value, edge.to.expr_label, where_str);
                 }
                 result += ")";
                 return result;
+            }
+
+            void normalize_date(std::string &value) {
+                // Si ya está en formato ZONED_DATETIME, no hacer nada
+                if (startswith("ZONED_DATETIME", 0, value)) {
+                    return;
+                }
+
+                // Detectar si es una fecha en formato ISO (contiene dígitos y guiones)
+                // Formatos soportados:
+                // "1988-01-01T00:00:00Z"
+                // "1988-01-01T00:00:00"
+                // "1988-01-01T"
+                // "1988-01-01"
+
+                if (value.length() >= 10 && value[4] == '-' && value[7] == '-') {
+                    // Verificar que los primeros 4 caracteres son dígitos (año)
+                    bool is_date = true;
+                    for (int i = 0; i < 4; i++) {
+                        if (!std::isdigit(value[i])) {
+                            is_date = false;
+                            break;
+                        }
+                    }
+
+                    if (is_date) {
+                        std::string date_part;
+                        std::string time_part = "00:00:00";
+
+                        // Extraer la parte de fecha (YYYY-MM-DD)
+                        size_t t_pos = value.find('T');
+                        if (t_pos != std::string::npos) {
+                            date_part = value.substr(0, t_pos);
+                            // Si hay parte de tiempo después de T
+                            if (t_pos + 1 < value.length()) {
+                                size_t z_pos = value.find('Z', t_pos);
+                                if (z_pos != std::string::npos) {
+                                    time_part = value.substr(t_pos + 1, z_pos - t_pos - 1);
+                                } else {
+                                    time_part = value.substr(t_pos + 1);
+                                }
+                            }
+                        } else {
+                            // Solo fecha, sin parte de tiempo
+                            date_part = value.substr(0, 10);
+                        }
+
+                        // Construir fecha normalizada y actualizar el valor
+                        value = "ZONED_DATETIME('" + date_part + "T" + time_part + "Z')";
+                    }
+                }
             }
 
             std::string cypher_value(const std::string &value) {
@@ -592,6 +648,7 @@ namespace ring {
                         return value + "0";
                     }
                 }
+
                 return value;
             }
 
@@ -628,8 +685,9 @@ namespace ring {
             std::string to_cypher(query_type &q) {
                 std::string result = "MATCH ";
                 std::string where_str = "";
+                uint ids = 1;
                 for (size_t i = 0; i < q.patterns.size(); ++i) {
-                    result += cypher_pattern(q.patterns[i], where_str);
+                    result += cypher_pattern(q.patterns[i], where_str, ids);
                     if (i < q.patterns.size() - 1) result += ", ";
                 }
                 if (!q.where_exprs.empty()) {
