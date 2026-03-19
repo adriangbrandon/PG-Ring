@@ -235,7 +235,8 @@ namespace ring {
                         for (size_type i = 1; i < m_var_info.size(); ++i) {
                             const auto &v = m_var_info[i];
                             if (v.is_lonely || v.is_bound) continue;
-                            if (min > v.weight) {
+                            // prefer node variables
+                            if (min > v.weight || (min == v.weight && !m_ptr_query->vnodes[min_pos] && m_ptr_query->vnodes[i])) {
                                 min = v.weight;
                                 min_pos = i;
                             }
@@ -314,7 +315,14 @@ namespace ring {
                 inline size_type nolonely_size() {
                     return m_var_info.size() - m_lonely.size()-1;
                 }
+
+                void print() {
+                    std::cout << "VEO: adaptive";
+                    std::cout << std::endl;
+                }
             };
+
+
         };
 }
 
