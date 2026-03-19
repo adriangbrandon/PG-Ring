@@ -29,6 +29,7 @@
 #include <utils.hpp>
 
 #include "ring_pg.hpp"
+#include "veo_adaptive_pg2.hpp"
 #include "ltj_algorithm_pg.hpp"
 #include "results_collector_test.hpp"
 #include "query/query_parser.hpp"
@@ -136,7 +137,7 @@ int main(int argc, char **argv)
     }
 
     // Process each query
-    typedef ring::ltj_algorithm_pg<> algorithm_type;
+    typedef ring::ltj_algorithm_pg<::util::results_collector<std::vector<std::string> >, ring::veo::veo_adaptive_pg_v2<>> algorithm_type;
     typedef algorithm_type::results_type results_type;
 
     results_type res;
