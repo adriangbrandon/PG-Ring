@@ -62,6 +62,7 @@ namespace ring {
                     std::unordered_set<var_type> related;
                     bool is_bound;
                     bool is_lonely;
+                    bool is_node;
                 } info_var_type;
 
 
@@ -90,6 +91,7 @@ namespace ring {
                 std::vector<info_var_type> m_var_info;
                 std::vector<var_type> m_lonely; //stores the lonely variables
                 size_type m_index;
+                size_type m_nolonely_nodes_count; //number of no-lonely node variables
 
                 bound_type m_bound;
                 versions_type m_versions;
@@ -103,6 +105,7 @@ namespace ring {
                     m_ptr_ring = o.m_ptr_ring;
                     m_lonely = o.m_lonely;
                     m_index = o.m_index;
+                    m_nolonely_nodes_count = o.m_nolonely_nodes_count;
                     m_bound = o.m_bound;
                     m_versions = o.m_versions;
                     m_var_info = o.m_var_info;
@@ -123,20 +126,29 @@ namespace ring {
                     m_ptr_ring = r;
 
                     std::vector<var_type> lonely_edges;
+                    std::vector<var_type> lonely_nodes;
                     auto nvars = m_ptr_query->ht.size();
                     m_var_info.resize(nvars+1);
+                    m_nolonely_nodes_count = 0;
 
                     for (var_type v = 1; v < m_var_info.size(); ++v) {
                         const auto &iters = m_ptr_var_iterators->at(v);
+                        bool is_node = m_ptr_query->vnodes[v];
+                        m_var_info[v].is_node = is_node;
+
                         if(iters.size() == 1){
-                            if (m_ptr_query->vnodes[v]) {
-                                m_lonely.emplace_back(v);
+                            if (is_node) {
+                                lonely_nodes.emplace_back(v);
                             }else {
                                 lonely_edges.emplace_back(v);
                             }
                             m_var_info[v].is_bound = false;
                             m_var_info[v].is_lonely = true;
                         }else {
+                            // Count no-lonely nodes
+                            if (is_node) {
+                                ++m_nolonely_nodes_count;
+                            }
                             for (const auto &iter : iters) {
                                 m_var_info[v].selectivity *= iter->selectivity();
                                 m_var_info[v].triples = std::min(m_var_info[v].triples, iter->interval_length());
@@ -171,7 +183,8 @@ namespace ring {
                         }
                     }
 
-                    //insert lonely edges at the end
+                    //insert lonely in order: lonely nodes first, then lonely edges
+                    m_lonely.insert(m_lonely.end(), lonely_nodes.begin(), lonely_nodes.end());
                     m_lonely.insert(m_lonely.end(), lonely_edges.begin(), lonely_edges.end());
                     m_index = 0;
                     /*for(const auto & v : m_var_info){
@@ -208,6 +221,7 @@ namespace ring {
                         m_ptr_ring = std::move(o.m_ptr_ring);
                         m_lonely = std::move(o.m_lonely);
                         m_index = o.m_index;
+                        m_nolonely_nodes_count = o.m_nolonely_nodes_count;
                         m_bound = std::move(o.m_bound);
                         m_versions = std::move(o.m_versions);
                         m_var_info = std::move(o.m_var_info);
@@ -222,6 +236,7 @@ namespace ring {
                     std::swap(m_ptr_ring, o.m_ptr_ring);
                     std::swap(m_lonely, o.m_lonely);
                     std::swap(m_index, o.m_index);
+                    std::swap(m_nolonely_nodes_count, o.m_nolonely_nodes_count);
                     std::swap(m_bound, o.m_bound);
                     std::swap(m_versions, o.m_versions);
                     std::swap(m_var_info, o.m_var_info);
@@ -232,21 +247,31 @@ namespace ring {
                     if(m_index < nolonely_size()){ //No lonely
                         auto min = std::numeric_limits<weight_type>::max();
                         size_type min_pos = 0;
+
+                        // If we still have no-lonely nodes to process, search for nodes
+                        // Otherwise, search for edges
+                        bool search_nodes = (m_index < m_nolonely_nodes_count);
+
                         for (size_type i = 1; i < m_var_info.size(); ++i) {
                             const auto &v = m_var_info[i];
                             if (v.is_lonely || v.is_bound) continue;
-                            // prefer node variables
-                            if (min > v.weight || (min == v.weight && !m_ptr_query->vnodes[min_pos] && m_ptr_query->vnodes[i])) {
+
+                            // Match the type we're searching for
+                            if (search_nodes && !v.is_node) continue;
+                            if (!search_nodes && v.is_node) continue;
+
+                            if (min > v.weight) {
                                 min = v.weight;
                                 min_pos = i;
                             }
                         }
+
                         m_var_info[min_pos].is_bound = true;
                         m_bound.emplace(min_pos);
                         ++m_index;
                         return min_pos;
                     }else{
-                        //Return the next lonely variable
+                        //Return the next lonely variable (nodes first, then edges)
                         ++m_index;
                         return m_lonely[m_index-1-nolonely_size()];
                     }
