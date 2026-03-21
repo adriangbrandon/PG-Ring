@@ -106,14 +106,35 @@ namespace ring {
                 }
                 return ans;
             }else if (expr->type == query::AND) {
-                size_type ans = UINT64_MAX, aux;
+                size_type ans = m_ptr_ring->max_s, aux;
                 for (size_type i = 0; i < expr->args.size(); ++i) {
                     aux = node_cnt_rec(&expr->args[i]);
                     ans = std::min(ans, aux);
                 }
                 return ans;
             }
-            return UINT64_MAX;
+            return m_ptr_ring->max_s;
+        }
+
+        double selectivity(const expr_type* expr) {
+            if (expr->type == query::LAB) {
+                return m_ptr_ring->node_label_cnt(expr->label) / static_cast<double_t>(m_ptr_ring->max_s);
+            }else if (expr->type == query::NEG) {
+                return 1 - (m_ptr_ring->node_label_cnt(expr->label) / static_cast<double_t>(m_ptr_ring->max_s));
+            }else if (expr->type == query::OR) {
+                double ans = 1;
+                for (size_type i = 0; i < expr->args.size(); ++i) {
+                    ans *= (1-selectivity(&expr->args[i]));
+                }
+                return 1 - ans;
+            }else if (expr->type == query::AND) {
+                double ans = 1;
+                for (size_type i = 0; i < expr->args.size(); ++i) {
+                    ans *= selectivity(&expr->args[i]);
+                }
+                return ans;
+            }
+            return 1;
         }
 
 
@@ -126,7 +147,8 @@ namespace ring {
             m_is_subject = is_subject;
             m_expr = expr;
             m_ptr_ring = ring;
-            m_selectivity = node_cnt_rec(m_expr) / static_cast<double_t>(m_ptr_ring->max_s);
+            //m_selectivity = node_cnt_rec(m_expr) / static_cast<double_t>(m_ptr_ring->max_s);
+            m_selectivity = selectivity(expr);
         }
 
         //! Copy constructor
