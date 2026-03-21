@@ -159,68 +159,95 @@ namespace ring {
             }
         }
 
-        double_t compute_opt_selectivity(value_type c, size_type p) {
+        double_t compute_opt_selectivity(value_type c, size_type p) const {
             auto prop_id = m_expr->property_values[p];
             auto type = (p == 0) ? m_expr->type : query::opposite_comp_where[m_expr->type];
             auto fixed_value = (p == 0) ? m_fixed_values[1] : m_fixed_values[0];
-            switch (type) {
-                case query::EQ:
-                    if (m_is_edge[p])
-                        return m_ptr_ring->cnt_edge_property_value(prop_id, fixed_value, fixed_value) / (double_t) m_ptr_ring->cnt_edge_property_value(prop_id);
-                    else
-                        return m_ptr_ring->cnt_node_property_value(prop_id, fixed_value, fixed_value) / (double_t) m_ptr_ring->cnt_node_property_value(prop_id);
-                case query::NEQ:
-                    if (m_is_edge[p])
-                        return 1.0 - m_ptr_ring->cnt_edge_property_value(prop_id, fixed_value, fixed_value) / (double_t) m_ptr_ring->cnt_edge_property_value(prop_id);
-                    else
-                        return 1.0 - m_ptr_ring->cnt_node_property_value(prop_id, fixed_value, fixed_value) / (double_t) m_ptr_ring->cnt_node_property_value(prop_id);
-                case query::ST:
-                    if (m_is_edge[p])
-                        return m_ptr_ring->cnt_edge_property_value(prop_id, 1, fixed_value-1) / (double_t) m_ptr_ring->cnt_edge_property_value(prop_id);
-                    else
-                        return m_ptr_ring->cnt_node_property_value(prop_id, 1, fixed_value-1) / (double_t) m_ptr_ring->cnt_node_property_value(prop_id);
-                case query::GT:
-                    if (m_is_edge[p])
-                        return 1 - m_ptr_ring->cnt_edge_property_value(prop_id, 1, fixed_value) / (double_t) m_ptr_ring->cnt_edge_property_value(prop_id);
-                    else
-                        return 1 - m_ptr_ring->cnt_node_property_value(prop_id, 1, fixed_value) / (double_t) m_ptr_ring->cnt_node_property_value(prop_id);
-                case query::SE:
-                    if (m_is_edge[p])
-                        return m_ptr_ring->cnt_edge_property_value(prop_id, 1, fixed_value) / (double_t) m_ptr_ring->cnt_edge_property_value(prop_id);
-                    else
-                        return m_ptr_ring->cnt_node_property_value(prop_id, 1, fixed_value) / (double_t) m_ptr_ring->cnt_node_property_value(prop_id);
-                case query::GE:
-                    if (m_is_edge[p])
-                        return 1 - m_ptr_ring->cnt_edge_property_value(prop_id, 1, fixed_value-1) / (double_t) m_ptr_ring->cnt_edge_property_value(prop_id);
-                    else
-                        return 1 - m_ptr_ring->cnt_node_property_value(prop_id, 1, fixed_value-1) / (double_t) m_ptr_ring->cnt_node_property_value(prop_id);
-                default:
-                    return 1.0;
+
+            if (m_is_edge[p]) {
+                // Edge properties
+                double_t total_prop_count = m_ptr_ring->cnt_edge_property_value(prop_id);
+                double_t base_selectivity = total_prop_count / (double_t) m_ptr_ring->n_triples;
+                double_t range_prop_count;
+
+                switch (type) {
+                    case query::EQ:
+                        range_prop_count = m_ptr_ring->cnt_edge_property_value(prop_id, fixed_value, fixed_value);
+                        return base_selectivity * (range_prop_count / total_prop_count);
+                    case query::NEQ:
+                        range_prop_count = m_ptr_ring->cnt_edge_property_value(prop_id, fixed_value, fixed_value);
+                        return base_selectivity * (1.0 - range_prop_count / total_prop_count);
+                    case query::ST:
+                        range_prop_count = m_ptr_ring->cnt_edge_property_value(prop_id, 1, fixed_value - 1);
+                        return base_selectivity * (range_prop_count / total_prop_count);
+                    case query::GT:
+                        range_prop_count = m_ptr_ring->cnt_edge_property_value(prop_id, 1, fixed_value);
+                        return base_selectivity * (1.0 - range_prop_count / total_prop_count);
+                    case query::SE:
+                        range_prop_count = m_ptr_ring->cnt_edge_property_value(prop_id, 1, fixed_value);
+                        return base_selectivity * (range_prop_count / total_prop_count);
+                    case query::GE:
+                        range_prop_count = m_ptr_ring->cnt_edge_property_value(prop_id, 1, fixed_value - 1);
+                        return base_selectivity * (1.0 - range_prop_count / total_prop_count);
+                    default:
+                        return 1.0;
+                }
+            } else {
+                // Node properties
+                double_t total_prop_count = m_ptr_ring->cnt_node_property_value(prop_id);
+                double_t base_selectivity = total_prop_count / (double_t) m_ptr_ring->max_s;
+                double_t range_prop_count;
+
+                switch (type) {
+                    case query::EQ:
+                        range_prop_count = m_ptr_ring->cnt_node_property_value(prop_id, fixed_value, fixed_value);
+                        return base_selectivity * (range_prop_count / total_prop_count);
+                    case query::NEQ:
+                        range_prop_count = m_ptr_ring->cnt_node_property_value(prop_id, fixed_value, fixed_value);
+                        return base_selectivity * (1.0 - range_prop_count / total_prop_count);
+                    case query::ST:
+                        range_prop_count = m_ptr_ring->cnt_node_property_value(prop_id, 1, fixed_value - 1);
+                        return base_selectivity * (range_prop_count / total_prop_count);
+                    case query::GT:
+                        range_prop_count = m_ptr_ring->cnt_node_property_value(prop_id, 1, fixed_value);
+                        return base_selectivity * (1.0 - range_prop_count / total_prop_count);
+                    case query::SE:
+                        range_prop_count = m_ptr_ring->cnt_node_property_value(prop_id, 1, fixed_value);
+                        return base_selectivity * (range_prop_count / total_prop_count);
+                    case query::GE:
+                        range_prop_count = m_ptr_ring->cnt_node_property_value(prop_id, 1, fixed_value - 1);
+                        return base_selectivity * (1.0 - range_prop_count / total_prop_count);
+                    default:
+                        return 1.0;
+                }
             }
 
         }
 
-        double_t compute_selectivity(value_type c, size_type p) {
+        double_t compute_selectivity(value_type c, size_type p) const {
             value_type min_a, max_a;
             if (m_is_edge[p]) {
                 std::tie(min_a, max_a) = m_ptr_ring->get_edge_property_range(m_expr->property_values[p]);
             } else {
                 std::tie(min_a, max_a) = m_ptr_ring->get_node_property_range(m_expr->property_values[p]);
             }
+
             auto type = (p == 0) ? m_expr->type : query::opposite_comp_where[m_expr->type];
+            auto range_size = static_cast<double_t>(max_a - min_a + 1);
+
             switch (type) {
                 case query::EQ:
-                    return 1 / static_cast<double_t>(max_a - min_a + 1);
+                    return 1.0 / range_size;
                 case query::NEQ:
-                    return 1.0 - 1 / static_cast<double_t>(max_a - min_a + 1);
+                    return 1.0 - 1.0 / range_size;
                 case query::ST:
-                    return 1.0 - std::max(0L, (max_a - min_a +1) - c + 1) / static_cast<double_t>(max_a - min_a + 1);
+                    return 1.0 - std::max(0.0, range_size - static_cast<double_t>(c) + 1.0) / range_size;
                 case query::GT:
-                    return std::max(0L, (max_a - min_a +1) - c) / static_cast<double_t>(max_a - min_a + 1);
+                    return std::max(0.0, range_size - static_cast<double_t>(c)) / range_size;
                 case query::SE:
-                    return 1.0 - std::max(0L, (max_a - min_a +1) - c + 1) / static_cast<double_t>(max_a - min_a + 1);
+                    return 1.0 - std::max(0.0, range_size - static_cast<double_t>(c) + 1.0) / range_size;
                 case query::GE:
-                    return std::max(0L, (max_a - min_a +1) - c + 1) / static_cast<double_t>(max_a - min_a + 1);
+                    return std::max(0.0, range_size - static_cast<double_t>(c) + 1.0) / range_size;
                 default:
                     return 1.0;
             }
