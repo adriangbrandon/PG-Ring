@@ -151,7 +151,12 @@ add_executable(interactive-query src/interactive-query.cpp)
 target_link_libraries(interactive-query sdsl divsufsort divsufsort64 libcsd)
 
 add_executable(query src/query.cpp)
+target_compile_definitions(query PUBLIC ADAPTIVE=1)
 target_link_libraries(query sdsl divsufsort divsufsort64 libcsd)
+
+add_executable(query-global src/query.cpp)
+target_compile_definitions(query-global PUBLIC ADAPTIVE=0)
+target_link_libraries(query-global sdsl divsufsort divsufsort64 libcsd)
 
 add_executable(mapping-types test/mapping-types.cpp)
 target_link_libraries(mapping-types sdsl divsufsort divsufsort64)

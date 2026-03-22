@@ -137,7 +137,11 @@ int main(int argc, char **argv)
     }
 
     // Process each query
+#if ADAPTIVE
     typedef ring::ltj_algorithm_pg<::util::results_collector<std::vector<std::string> >, ring::veo::veo_adaptive_pg_v2<>> algorithm_type;
+#else
+    typedef ring::ltj_algorithm_pg<::util::results_collector<std::vector<std::string> >, ring::veo::veo_simple_pg<>> algorithm_type;
+#endif
     typedef algorithm_type::results_type results_type;
 
     results_type res;
