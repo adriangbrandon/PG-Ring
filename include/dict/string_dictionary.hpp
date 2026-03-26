@@ -501,7 +501,7 @@ namespace ring {
          * @brief Get size in bytes
          */
         size_type size_in_bytes() const {
-            if (!m_dict) return 0;
+            if (m_dict) return 0;
             return m_dict->getSize();
         }
 
@@ -510,6 +510,7 @@ namespace ring {
          */
 
         size_t size() const {
+            if (m_dict) return 0;
             return m_dict->numElements();
         }
 
