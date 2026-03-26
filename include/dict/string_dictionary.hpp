@@ -52,7 +52,7 @@ namespace ring {
         };
 
     private:
-        StringDictionary* m_dict;
+        StringDictionary* m_dict = nullptr; // Pointer to the underlying libCSD dictionary (managed by this wrapper)
 
 
 
@@ -87,8 +87,7 @@ namespace ring {
         string_dictionary(std::vector<std::string>& strings,
                          dict_type type = dict_type::HASHRPF,
                          uint overhead = 20,
-                         uint bucketsize = 4)
-            : m_dict(nullptr) {
+                         uint bucketsize = 4) {
             build(strings, type, overhead, bucketsize);
         }
 
@@ -137,12 +136,10 @@ namespace ring {
          * @throws std::runtime_error if construction fails
          */
         void build(std::vector<std::string> &strings,
-                   dict_type type = dict_type::HASHRPF,
-                   uint overhead = 20,
-                   uint bucketsize = 4) {
-            if (strings.empty()) {
-                throw std::runtime_error("Cannot build dictionary from empty string vector");
-            }
+            dict_type type = dict_type::HASHRPF,
+            uint overhead = 20,
+            uint bucketsize = 4) {
+            if (strings.empty()) return;
 
             // Sort strings (required by most dictionary implementations)
             std::sort(strings.begin(), strings.end());
