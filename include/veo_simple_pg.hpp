@@ -59,6 +59,7 @@ namespace ring {
                     var_type name;
                     std::unordered_set<var_type> related;
                     double_t weight; //triples * selectivity
+                    uint32_t n_pattern = 0; //number of patterns in which the variable appears
                     uint8_t var_type; //0=node, 1=edge, 2=lonely-node, 3=lonely-edge
                 } info_var_type;
 
@@ -136,13 +137,29 @@ namespace ring {
                     auto nvars = m_ptr_query->ht.size();
                     std::vector<info_var_type> aux(nvars+1);
                     m_nolonely_size = 0;
+
+
+                    for (const auto &pattern : m_ptr_query->patterns) {
+                        if (pattern.subj.is_var()) {
+                            ++aux[pattern.subj.var_value].n_pattern;
+                        }
+                        if (pattern.edge.is_var()) {
+                            ++aux[pattern.edge.var_value].n_pattern;
+                        }
+                        if (pattern.obj.is_var()) {
+                            ++aux[pattern.obj.var_value].n_pattern;
+                        }
+                    }
+
+
+
                     for (var_type v = 1; v < aux.size(); ++v) {
                         const auto &iters = m_ptr_var_iterators->at(v);
-                        if(iters.size() == 1){
+                        if(aux[v].n_pattern == 1) {
                             if (m_ptr_query->vnodes[v]) {
-                                aux[v].var_type = 3;
+                                aux[v].var_type = 2;
                             }else {
-                                aux[v].var_type = 4;
+                                aux[v].var_type = 3;
                             }
                         } else {
                             double_t selectivity = 1.0;
