@@ -252,7 +252,7 @@ int main(int argc, char** argv) {
     process_edge_file(input_dir + "/Forum_hasTag_Tag.csv", "HAS_TAG", "Forum", "Tag", edges_file);
     process_edge_file(input_dir + "/Person_hasInterest_Tag.csv", "HAS_INTEREST", "Person", "Tag", edges_file);
     process_edge_file(input_dir + "/Person_isLocatedIn_City.csv", "IS_LOCATED_IN", "Person", "City", edges_file);
-    process_edge_file(input_dir + "/Person_knows_Person.csv", "KNOWS", "Person", "Person", edges_file);
+    process_edge_file(input_dir + "/Person_knows_Person_bidirectional.csv", "KNOWS", "Person", "Person", edges_file);
     process_edge_file(input_dir + "/Person_likes_Comment.csv", "LIKES", "Person", "Comment", edges_file);
     process_edge_file(input_dir + "/Person_likes_Post.csv", "LIKES", "Person", "Post", edges_file);
     process_edge_file(input_dir + "/Person_studyAt_University.csv", "STUDY_AT", "Person", "University", edges_file);
