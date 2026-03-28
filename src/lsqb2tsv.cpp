@@ -38,6 +38,7 @@ std::vector<std::string> parse_csv_line(const std::string& line, char delimiter 
 // Process node files (they contain just IDs, one per line)
 void process_node_file(const std::string& filepath,
                        const std::string& label,
+                       const std::string& node_type_prefix,
                        std::ofstream& output) {
     std::ifstream infile(filepath);
     if (!infile.is_open()) {
@@ -66,7 +67,8 @@ void process_node_file(const std::string& filepath,
 
         // LSQB format: just the ID
         // Ring TSV format: variable\tlabels
-        output << line << "\t" << label << "\n";
+        // Add prefix to make IDs globally unique
+        output << node_type_prefix << "_" << line << "\t" << label << "\n";
         count++;
     }
 
@@ -76,6 +78,7 @@ void process_node_file(const std::string& filepath,
 // Process node files with multiple labels (e.g., Message:Comment)
 void process_node_file_multi_label(const std::string& filepath,
                                    const std::vector<std::string>& labels,
+                                   const std::string& node_type_prefix,
                                    std::ofstream& output) {
     std::ifstream infile(filepath);
     if (!infile.is_open()) {
@@ -108,7 +111,8 @@ void process_node_file_multi_label(const std::string& filepath,
 
         if (line.empty()) continue;
 
-        output << line << "\t" << label_str << "\n";
+        // Add prefix to make IDs globally unique
+        output << node_type_prefix << "_" << line << "\t" << label_str << "\n";
         count++;
     }
 
@@ -118,6 +122,8 @@ void process_node_file_multi_label(const std::string& filepath,
 // Process edge files (they contain from|to, one pair per line)
 void process_edge_file(const std::string& filepath,
                       const std::string& edge_type,
+                      const std::string& from_node_type,
+                      const std::string& to_node_type,
                       std::ofstream& output) {
     std::ifstream infile(filepath);
     if (!infile.is_open()) {
@@ -151,7 +157,10 @@ void process_edge_file(const std::string& filepath,
         }
 
         // Ring TSV format: from\ttype\tto
-        output << fields[0] << "\t" << edge_type << "\t" << fields[1] << "\n";
+        // Add prefixes to make IDs globally unique
+        output << from_node_type << "_" << fields[0] << "\t"
+               << edge_type << "\t"
+               << to_node_type << "_" << fields[1] << "\n";
         count++;
     }
 
@@ -205,49 +214,49 @@ int main(int argc, char** argv) {
     // Process nodes (in the order used by Neo4j loader for consistency)
     std::cout << "Processing nodes..." << std::endl;
 
-    process_node_file(input_dir + "/Continent.csv", "Continent", nodes_file);
-    process_node_file(input_dir + "/Country.csv", "Country", nodes_file);
-    process_node_file(input_dir + "/City.csv", "City", nodes_file);
-    process_node_file(input_dir + "/University.csv", "University", nodes_file);
-    process_node_file(input_dir + "/Company.csv", "Company", nodes_file);
-    process_node_file(input_dir + "/TagClass.csv", "TagClass", nodes_file);
-    process_node_file(input_dir + "/Tag.csv", "Tag", nodes_file);
-    process_node_file(input_dir + "/Forum.csv", "Forum", nodes_file);
-    process_node_file(input_dir + "/Person.csv", "Person", nodes_file);
+    process_node_file(input_dir + "/Continent.csv", "Continent", "Continent", nodes_file);
+    process_node_file(input_dir + "/Country.csv", "Country", "Country", nodes_file);
+    process_node_file(input_dir + "/City.csv", "City", "City", nodes_file);
+    process_node_file(input_dir + "/University.csv", "University", "University", nodes_file);
+    process_node_file(input_dir + "/Company.csv", "Company", "Company", nodes_file);
+    process_node_file(input_dir + "/TagClass.csv", "TagClass", "TagClass", nodes_file);
+    process_node_file(input_dir + "/Tag.csv", "Tag", "Tag", nodes_file);
+    process_node_file(input_dir + "/Forum.csv", "Forum", "Forum", nodes_file);
+    process_node_file(input_dir + "/Person.csv", "Person", "Person", nodes_file);
 
     // Message:Comment and Message:Post have multiple labels
-    process_node_file_multi_label(input_dir + "/Comment.csv", {"Message", "Comment"}, nodes_file);
-    process_node_file_multi_label(input_dir + "/Post.csv", {"Message", "Post"}, nodes_file);
+    process_node_file_multi_label(input_dir + "/Comment.csv", {"Message", "Comment"}, "Comment", nodes_file);
+    process_node_file_multi_label(input_dir + "/Post.csv", {"Message", "Post"}, "Post", nodes_file);
 
     std::cout << std::endl;
     std::cout << "Processing edges..." << std::endl;
 
     // Process edges (relationships)
-    process_edge_file(input_dir + "/Country_isPartOf_Continent.csv", "IS_PART_OF", edges_file);
-    process_edge_file(input_dir + "/City_isPartOf_Country.csv", "IS_PART_OF", edges_file);
-    process_edge_file(input_dir + "/TagClass_isSubclassOf_TagClass.csv", "IS_SUBCLASS_OF", edges_file);
-    process_edge_file(input_dir + "/University_isLocatedIn_City.csv", "IS_LOCATED_IN", edges_file);
-    process_edge_file(input_dir + "/Company_isLocatedIn_Country.csv", "IS_LOCATED_IN", edges_file);
-    process_edge_file(input_dir + "/Tag_hasType_TagClass.csv", "HAS_TYPE", edges_file);
-    process_edge_file(input_dir + "/Comment_hasCreator_Person.csv", "HAS_CREATOR", edges_file);
-    process_edge_file(input_dir + "/Comment_isLocatedIn_Country.csv", "IS_LOCATED_IN", edges_file);
-    process_edge_file(input_dir + "/Comment_replyOf_Comment.csv", "REPLY_OF", edges_file);
-    process_edge_file(input_dir + "/Comment_replyOf_Post.csv", "REPLY_OF", edges_file);
-    process_edge_file(input_dir + "/Comment_hasTag_Tag.csv", "HAS_TAG", edges_file);
-    process_edge_file(input_dir + "/Post_hasCreator_Person.csv", "HAS_CREATOR", edges_file);
-    process_edge_file(input_dir + "/Post_isLocatedIn_Country.csv", "IS_LOCATED_IN", edges_file);
-    process_edge_file(input_dir + "/Post_hasTag_Tag.csv", "HAS_TAG", edges_file);
-    process_edge_file(input_dir + "/Forum_containerOf_Post.csv", "CONTAINER_OF", edges_file);
-    process_edge_file(input_dir + "/Forum_hasMember_Person.csv", "HAS_MEMBER", edges_file);
-    process_edge_file(input_dir + "/Forum_hasModerator_Person.csv", "HAS_MODERATOR", edges_file);
-    process_edge_file(input_dir + "/Forum_hasTag_Tag.csv", "HAS_TAG", edges_file);
-    process_edge_file(input_dir + "/Person_hasInterest_Tag.csv", "HAS_INTEREST", edges_file);
-    process_edge_file(input_dir + "/Person_isLocatedIn_City.csv", "IS_LOCATED_IN", edges_file);
-    process_edge_file(input_dir + "/Person_knows_Person.csv", "KNOWS", edges_file);
-    process_edge_file(input_dir + "/Person_likes_Comment.csv", "LIKES", edges_file);
-    process_edge_file(input_dir + "/Person_likes_Post.csv", "LIKES", edges_file);
-    process_edge_file(input_dir + "/Person_studyAt_University.csv", "STUDY_AT", edges_file);
-    process_edge_file(input_dir + "/Person_workAt_Company.csv", "WORK_AT", edges_file);
+    process_edge_file(input_dir + "/Country_isPartOf_Continent.csv", "IS_PART_OF", "Country", "Continent", edges_file);
+    process_edge_file(input_dir + "/City_isPartOf_Country.csv", "IS_PART_OF", "City", "Country", edges_file);
+    process_edge_file(input_dir + "/TagClass_isSubclassOf_TagClass.csv", "IS_SUBCLASS_OF", "TagClass", "TagClass", edges_file);
+    process_edge_file(input_dir + "/University_isLocatedIn_City.csv", "IS_LOCATED_IN", "University", "City", edges_file);
+    process_edge_file(input_dir + "/Company_isLocatedIn_Country.csv", "IS_LOCATED_IN", "Company", "Country", edges_file);
+    process_edge_file(input_dir + "/Tag_hasType_TagClass.csv", "HAS_TYPE", "Tag", "TagClass", edges_file);
+    process_edge_file(input_dir + "/Comment_hasCreator_Person.csv", "HAS_CREATOR", "Comment", "Person", edges_file);
+    process_edge_file(input_dir + "/Comment_isLocatedIn_Country.csv", "IS_LOCATED_IN", "Comment", "Country", edges_file);
+    process_edge_file(input_dir + "/Comment_replyOf_Comment.csv", "REPLY_OF", "Comment", "Comment", edges_file);
+    process_edge_file(input_dir + "/Comment_replyOf_Post.csv", "REPLY_OF", "Comment", "Post", edges_file);
+    process_edge_file(input_dir + "/Comment_hasTag_Tag.csv", "HAS_TAG", "Comment", "Tag", edges_file);
+    process_edge_file(input_dir + "/Post_hasCreator_Person.csv", "HAS_CREATOR", "Post", "Person", edges_file);
+    process_edge_file(input_dir + "/Post_isLocatedIn_Country.csv", "IS_LOCATED_IN", "Post", "Country", edges_file);
+    process_edge_file(input_dir + "/Post_hasTag_Tag.csv", "HAS_TAG", "Post", "Tag", edges_file);
+    process_edge_file(input_dir + "/Forum_containerOf_Post.csv", "CONTAINER_OF", "Forum", "Post", edges_file);
+    process_edge_file(input_dir + "/Forum_hasMember_Person.csv", "HAS_MEMBER", "Forum", "Person", edges_file);
+    process_edge_file(input_dir + "/Forum_hasModerator_Person.csv", "HAS_MODERATOR", "Forum", "Person", edges_file);
+    process_edge_file(input_dir + "/Forum_hasTag_Tag.csv", "HAS_TAG", "Forum", "Tag", edges_file);
+    process_edge_file(input_dir + "/Person_hasInterest_Tag.csv", "HAS_INTEREST", "Person", "Tag", edges_file);
+    process_edge_file(input_dir + "/Person_isLocatedIn_City.csv", "IS_LOCATED_IN", "Person", "City", edges_file);
+    process_edge_file(input_dir + "/Person_knows_Person.csv", "KNOWS", "Person", "Person", edges_file);
+    process_edge_file(input_dir + "/Person_likes_Comment.csv", "LIKES", "Person", "Comment", edges_file);
+    process_edge_file(input_dir + "/Person_likes_Post.csv", "LIKES", "Person", "Post", edges_file);
+    process_edge_file(input_dir + "/Person_studyAt_University.csv", "STUDY_AT", "Person", "University", edges_file);
+    process_edge_file(input_dir + "/Person_workAt_Company.csv", "WORK_AT", "Person", "Company", edges_file);
 
     nodes_file.close();
     edges_file.close();
