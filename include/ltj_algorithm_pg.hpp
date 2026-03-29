@@ -548,19 +548,58 @@ namespace ring {
 
         value_type seek(const var_type x_j, value_type c = -1) {
             std::vector<ltj_iter_type *> &itrs = m_var_to_iterators[x_j];
-            value_type c_i, c_prev = 0, i = 0, n_ok = 0;
+            const size_type n = itrs.size();
+
+            value_type c_i = (c == -1) ? itrs[0]->leap(x_j) : itrs[0]->leap(x_j, c);
+            if (c_i == 0) return 0; //Empty intersection
+            if (n == 1) return c_i; // Single iterator, already done
+
+            value_type c_prev = c_i;
+            size_type i = 1;
+            size_type n_ok = 1;
+
             while (true) {
-                //Compute leap for each triple that contains x_j
-                if (c == -1) {
-                    c_i = itrs[i]->leap(x_j);
-                } else {
-                    c_i = itrs[i]->leap(x_j, c);
-                }
+                c_i = itrs[i]->leap(x_j, c_i);
                 if (c_i == 0) return 0; //Empty intersection
-                n_ok = (c_i == c_prev) ? n_ok + 1 : 1;
-                if (n_ok == itrs.size()) return c_i;
-                c = c_prev = c_i;
-                i = (i + 1 == itrs.size()) ? 0 : i + 1;
+
+                if (c_i == c_prev) {
+                    ++n_ok;
+                    if (n_ok == n) return c_i;
+                } else {
+                    n_ok = 1;
+                    c_prev = c_i;
+                }
+
+                ++i;
+                if (i == n) i = 0;
+            }
+        }
+
+        //Seek normal
+        value_type seek(std::vector<ltj_iter_type*>& itrs, const var_type x_j, value_type c = -1) {
+            value_type c_i = (c == -1) ? itrs[0]->leap(x_j) : itrs[0]->leap(x_j, c);
+            if (c_i == 0) return 0; //Empty intersection
+            const size_type n = itrs.size();
+            if (n == 1) return c_i; // Single iterator, already done
+
+            value_type c_prev = c_i;
+            size_type i = 1; // Start from 1 since we already did itrs[0]
+            size_type n_ok = 1;
+
+            while (true) {
+                c_i = itrs[i]->leap(x_j, c_i);
+                if (c_i == 0) return 0; //Empty intersection
+
+                if (c_i == c_prev) {
+                    ++n_ok;
+                    if (n_ok == n) return c_i;
+                } else {
+                    n_ok = 1;
+                    c_prev = c_i;
+                }
+
+                ++i;
+                if (i == n) i = 0;
             }
         }
 
@@ -592,7 +631,7 @@ namespace ring {
         }
 
 
-        value_type seek(std::vector<ltj_iter_type*>& itrs, const var_type x_j, value_type c = -1) {
+        value_type seek_v3(std::vector<ltj_iter_type*>& itrs, const var_type x_j, value_type c = -1) {
             value_type tgt = (c == -1) ? itrs[0]->leap(x_j) : itrs[0]->leap(x_j, c);
             value_type aux = tgt;
             while (tgt) {
@@ -609,7 +648,7 @@ namespace ring {
             return 0;
         }
 
-        value_type seek_v0(std::vector<ltj_iter_type*>& itrs, const var_type x_j, value_type c=-1) {
+        value_type seek_v1(std::vector<ltj_iter_type*>& itrs, const var_type x_j, value_type c=-1) {
             value_type c_i = 0, i = 0;
             while (i < itrs.size()){
                 //Compute leap for each triple that contains x_j
