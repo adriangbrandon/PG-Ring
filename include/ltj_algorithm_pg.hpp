@@ -596,12 +596,15 @@ namespace ring {
             value_type tgt = (c == -1) ? itrs[0]->leap(x_j) : itrs[0]->leap(x_j, c);
             value_type aux = tgt;
             while (tgt) {
+                //std::cout << "Target = " << tgt << std::endl;
                 for (size_type i = 1; i < itrs.size(); ++i) {
                     aux = itrs[i]->leap(x_j, aux);
+                    //std::cout << "Leap of " << (uint64_t) x_j << " in iterator: " << i << " gets " << (uint64_t) aux << std::endl;
                     if (aux == 0) return 0;
                 }
                 if (aux == tgt) return tgt;
                 tgt = itrs[0]->leap(x_j, aux);
+                aux = tgt;
             }
             return 0;
         }
