@@ -221,8 +221,8 @@ int main(int argc, char **argv)
         } catch (const std::exception& e) {
             std::cerr << "Error executing query " << (query_id + 1) << ": " << e.what() << std::endl;
 
-            query_stream << "Error: " << e.what() << std::endl;
-            query_stream.close();
+            //query_stream << "Error: " << e.what() << std::endl;
+            //query_stream.close();
 
             // Write error to summary
             summary_stream << (query_id + 1) << "\t"
