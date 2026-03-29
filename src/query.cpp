@@ -155,11 +155,11 @@ int main(int argc, char **argv)
         std::ostringstream filename;
         filename << results_dir << "/query_" << std::setfill('0') << std::setw(5) << (query_id + 1) << ".tsv";
         std::string query_result_file = filename.str();
-        std::ofstream query_stream(query_result_file);
+        /*std::ofstream query_stream(query_result_file);
         if (!query_stream.is_open()) {
             std::cerr << "Warning: Cannot create result file for query " << (query_id + 1) << std::endl;
             continue;
-        }
+        }*/
 
         try {
 
@@ -198,7 +198,7 @@ int main(int argc, char **argv)
 
             num_results = res.size();
             // Write results (from last execution)
-            if (num_results > 0) {
+            /*if (num_results > 0) {
                 for (size_t i = 0; i < num_results; ++i) {
                     for (size_t j = 0; j < res[i].size(); ++j) {
                         query_stream << res[i][j];
@@ -208,7 +208,7 @@ int main(int argc, char **argv)
                 }
             }
 
-            query_stream.close();
+            query_stream.close();*/
 
             // Write to summary
             summary_stream << (query_id + 1) << "\t"
