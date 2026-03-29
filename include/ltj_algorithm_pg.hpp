@@ -568,7 +568,7 @@ namespace ring {
         /**
          * Seek avoiding recomputing the iterators that have already matched
          */
-        value_type seek(std::vector<ltj_iter_type*>& itrs, const var_type x_j, value_type c = -1) {
+        value_type seek_v2(std::vector<ltj_iter_type*>& itrs, const var_type x_j, value_type c = -1) {
             value_type c_i = (c == -1) ? itrs[0]->leap(x_j) : itrs[0]->leap(x_j, c);
             if (c_i == 0) return 0;
             c = c_i;
@@ -591,6 +591,22 @@ namespace ring {
             return c_i;
         }
 
+
+        value_type seek(std::vector<ltj_iter_type*>& itrs, const var_type x_j, value_type c = -1) {
+            value_type aux = (c == -1) ? itrs[0]->leap(x_j) : itrs[0]->leap(x_j, c);
+            if (aux == 0) return 0;
+            value_type tgt = aux;
+            size_type i = 1;
+            while (true) {
+                for (; i < itrs.size(); ++i) {
+                    aux = itrs[i]->leap(x_j, aux);
+                    if (aux == 0) return 0;
+                }
+                if (aux == tgt) return tgt;
+                i = 0;
+                tgt = aux;
+            }
+        }
 
         value_type seek_v0(std::vector<ltj_iter_type*>& itrs, const var_type x_j, value_type c=-1) {
             value_type c_i = 0, i = 0;
