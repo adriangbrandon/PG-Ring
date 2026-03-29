@@ -596,15 +596,18 @@ namespace ring {
             value_type aux = (c == -1) ? itrs[0]->leap(x_j) : itrs[0]->leap(x_j, c);
             if (aux == 0) return 0;
             value_type tgt = aux;
-            size_type i = 1;
+            size_type skip = 0;
             while (true) {
-                for (; i < itrs.size(); ++i) {
+                for (size_type i = 1; i < itrs.size() - skip; ++i) {
                     aux = itrs[i]->leap(x_j, aux);
                     if (aux == 0) return 0;
                 }
                 if (aux == tgt) return tgt;
-                i = 0;
+                aux = itrs[0]->leap(x_j, tgt);
+                if (aux == tgt) skip = 1;
+                else skip = 0;
                 tgt = aux;
+
             }
         }
 
