@@ -593,22 +593,17 @@ namespace ring {
 
 
         value_type seek(std::vector<ltj_iter_type*>& itrs, const var_type x_j, value_type c = -1) {
-            value_type aux = (c == -1) ? itrs[0]->leap(x_j) : itrs[0]->leap(x_j, c);
-            if (aux == 0) return 0;
-            value_type tgt = aux;
-            size_type skip = 0;
-            while (true) {
-                for (size_type i = 1; i < itrs.size() - skip; ++i) {
+            value_type tgt = (c == -1) ? itrs[0]->leap(x_j) : itrs[0]->leap(x_j, c);
+            value_type aux = tgt;
+            while (tgt) {
+                for (size_type i = 1; i < itrs.size(); ++i) {
                     aux = itrs[i]->leap(x_j, aux);
                     if (aux == 0) return 0;
                 }
                 if (aux == tgt) return tgt;
-                aux = itrs[0]->leap(x_j, tgt);
-                if (aux == tgt) skip = 1;
-                else skip = 0;
-                tgt = aux;
-
+                tgt = itrs[0]->leap(x_j, aux);
             }
+            return 0;
         }
 
         value_type seek_v0(std::vector<ltj_iter_type*>& itrs, const var_type x_j, value_type c=-1) {
