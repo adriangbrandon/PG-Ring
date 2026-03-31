@@ -34,6 +34,7 @@ namespace ring {
         bool m_is_empty = false;
         bool m_is_fixed = false;
         value_type m_current_value = 0;
+        size_type m_elements;
 
         double_t m_selectivity;
 
@@ -48,18 +49,14 @@ namespace ring {
             m_is_empty = o.m_is_empty;
             m_is_fixed = o.m_is_fixed;
             m_current_value = o.m_current_value;
+            m_elements = o.m_elements;
             m_selectivity = o.m_selectivity;
+
         }
 
         double_t compute_selectivity() {
-            value_type max_id = m_comp_edges ? m_ptr_ring->n_triples : m_ptr_ring->max_s;
-
-            value_type total_range = max_id;
             value_type query_range = m_upper_bound - m_lower_bound + 1;
-
-            if (total_range <= 0) return 0.0;
-
-            return static_cast<double_t>(query_range) / static_cast<double_t>(total_range);
+            return static_cast<double_t>(query_range) / static_cast<double_t>(m_elements);
         }
 
     public:
@@ -75,11 +72,11 @@ namespace ring {
             m_has_lower = has_lower;
             m_has_upper = has_upper;
 
-            value_type max_id = comp_edges ? ring->n_triples : ring->max_s;
+            m_elements = comp_edges ? ring->n_triples : ring->max_s;
 
             // Set bounds
             m_lower_bound = has_lower ? lower : 1;
-            m_upper_bound = has_upper ? upper : max_id;
+            m_upper_bound = has_upper ? upper : m_elements;
 
             // Check if range is valid
             if (m_lower_bound > m_upper_bound) {
@@ -121,6 +118,7 @@ namespace ring {
                 m_is_empty = std::move(o.m_is_empty);
                 m_is_fixed = std::move(o.m_is_fixed);
                 m_current_value = std::move(o.m_current_value);
+                m_elements = std::move(o.m_elements);
                 m_selectivity = std::move(o.m_selectivity);
             }
             return *this;
@@ -137,6 +135,7 @@ namespace ring {
             std::swap(m_is_empty, o.m_is_empty);
             std::swap(m_is_fixed, o.m_is_fixed);
             std::swap(m_current_value, o.m_current_value);
+            std::swap(m_elements, o.m_elements);
             std::swap(m_selectivity, o.m_selectivity);
         }
 

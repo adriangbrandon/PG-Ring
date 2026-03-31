@@ -52,6 +52,7 @@ namespace ring {
         size_type m_nfixed = 0;
         bool m_is_empty = false;
         bool m_same_var = false; //if compares properties of the same variable
+        size_type m_elements;
 
         double_t m_selectivity_no_fixed;
 
@@ -66,6 +67,7 @@ namespace ring {
             m_nfixed = o.m_nfixed;
             m_expr = o.m_expr;
             m_ptr_ring = o.m_ptr_ring;
+            m_elements = o.m_elements;
             m_selectivity_no_fixed = o.m_selectivity_no_fixed;
         }
 
@@ -117,7 +119,7 @@ namespace ring {
 
             //if both properties are of the same type and is the same property id
             if (m_is_edge[0] == m_is_edge[1] && m_expr->property_values[0] == m_expr->property_values[1]) {
-                double_t elements = m_is_edge[0] ? m_ptr_ring->n_triples : m_ptr_ring->max_s;
+                double_t elements = m_elements;
                 switch (m_expr->type) {
                     case query::EQ:
                         return 1 / elements;
@@ -279,6 +281,7 @@ namespace ring {
             m_id_values[0] = {0,0};
             m_id_values[1] = {0,0};
             m_is_edge = {var0_edge, var1_edge};
+            m_elements = m_is_edge[0] ? m_ptr_ring->n_triples : m_ptr_ring->max_s;
             if (!m_expr->is_var[0] && m_expr->is_var[1]) {
                 m_nfixed = 1;
                 if (m_expr->strs[0].empty()) {
@@ -330,6 +333,7 @@ namespace ring {
                 m_is_edge = std::move(o.m_is_edge);
                 m_nfixed = std::move(o.m_nfixed);
                 m_is_empty = std::move(o.m_is_empty);
+                m_elements = std::move(o.m_elements);
                 m_selectivity_no_fixed = std::move(o.m_selectivity_no_fixed);
             }
             return *this;
@@ -345,6 +349,7 @@ namespace ring {
             std::swap(m_is_edge, o.m_is_edge);
             std::swap(m_nfixed, o.m_nfixed);
             std::swap(m_is_empty, o.m_is_empty);
+            std::swap(m_elements, o.m_elements);
             std::swap(m_selectivity_no_fixed, o.m_selectivity_no_fixed);
         }
 
@@ -464,12 +469,13 @@ namespace ring {
 
         id_type leap(var_type var, size_type c) {
 
+            if (c > m_elements) return 0;
             if (m_same_var) { //comparing two properties of the same variable
                 if (m_is_edge[0]) {
                     m_id_values[0] = m_ptr_ring->next_edge_in_property(m_expr->property_values[0], c); //get next id and value of the first property
                     auto v1 = m_ptr_ring->get_edge_property_value(m_expr->property_values[1], m_id_values[0].first); //get the value of the second property
                     if (!v1.first || !compare(m_id_values[0].second, v1.second)) { // if there is no value or the values do not satisfy the condition, we need to try with the next id
-                        return (m_id_values[0].first < m_ptr_ring->max_p) ? m_id_values[0].first + 1 : 0; // try with next id
+                        return (m_id_values[0].first < m_elements) ? m_id_values[0].first + 1 : 0; // try with next id
                     }
                     m_id_values[1].first = m_id_values[1].second;
                     m_id_values[1].second = v1.second;
@@ -478,7 +484,7 @@ namespace ring {
                     m_id_values[0] = m_ptr_ring->next_node_in_property(m_expr->property_values[0], c);
                     auto v1 = m_ptr_ring->get_node_property_value(m_expr->property_values[1], m_id_values[0].first);
                     if (!v1.first || !compare(m_id_values[0].second, v1.second)) { // if there is no value or the values do not satisfy the condition, we need to try with the next id
-                        return (m_id_values[0].first < m_ptr_ring->max_s) ? m_id_values[0].first + 1 : 0; // try with next id
+                        return (m_id_values[0].first < m_elements) ? m_id_values[0].first + 1 : 0; // try with next id
                     }
                     m_id_values[1].first = m_id_values[1].second;
                     m_id_values[1].second = v1.second;

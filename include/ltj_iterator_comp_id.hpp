@@ -49,6 +49,7 @@ namespace ring {
         bool m_comp_edges = false;
         size_type m_nfixed = 0;
         bool m_is_empty = false;
+        size_type m_elements;
 
         double_t m_selectivity_no_fixed;
 
@@ -61,6 +62,8 @@ namespace ring {
             m_nfixed = o.m_nfixed;
             m_expr = o.m_expr;
             m_ptr_ring = o.m_ptr_ring;
+            m_elements = o.m_elements;
+            m_selectivity_no_fixed = o.m_selectivity_no_fixed;
         }
 
         value_type next(value_type c, value_type fv, query::enum_comp_where_type t) {
@@ -99,6 +102,7 @@ namespace ring {
             m_is_empty = false;
             m_fixed_values = {0, 0};
             m_comp_edges = comp_edges;
+            m_elements = (m_comp_edges ? m_ptr_ring->n_triples : m_ptr_ring->max_s);
             if (!m_expr->is_var[0] && m_expr->is_var[1]) {
                 m_nfixed = 1;
                 m_fixed_values[0] = m_expr->values[0];
@@ -138,6 +142,8 @@ namespace ring {
                 m_comp_edges = o.m_comp_edges;
                 m_nfixed = std::move(o.m_nfixed);
                 m_is_empty = std::move(o.m_is_empty);
+                m_elements = std::move(o.m_elements);
+                m_selectivity_no_fixed = std::move(o.m_selectivity_no_fixed);
             }
             return *this;
         }
@@ -151,6 +157,8 @@ namespace ring {
             std::swap(m_comp_edges, o.m_comp_edges);
             std::swap(m_nfixed, o.m_nfixed);
             std::swap(m_is_empty, o.m_is_empty);
+            std::swap(m_elements, o.m_elements);
+            std::swap(m_selectivity_no_fixed, o.m_selectivity_no_fixed);
         }
 
 
@@ -207,6 +215,7 @@ namespace ring {
         };
 
         value_type leap(var_type var, size_type c) {
+            if (c > m_elements) return 0;
             if (!m_nfixed) return c;
             if (m_expr->is_var[0] && var == m_expr->values[0]) {
                 return next(c, m_fixed_values[1], m_expr->type);
