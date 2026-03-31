@@ -1444,8 +1444,8 @@ namespace ring {
             return m_node_properties[prop_id-1].next_in_range(node_id, l, r);
         }
 
-        std::pair<id_type, prop_value_type> next_edge_property(const value_type prop_id, const value_type node_id, const prop_value_type l, const prop_value_type r) {
-            return m_edge_properties[prop_id-1].next_in_range(node_id, l, r);
+        std::pair<id_type, prop_value_type> next_edge_property(const value_type prop_id, const value_type edge_id, const prop_value_type l, const prop_value_type r) {
+            return m_edge_properties[prop_id-1].next_in_range(edge_id, l, r);
         }
 
         std::pair<bool, prop_value_type> get_node_property_value(const id_type prop_id, const id_type node_id) {

@@ -55,7 +55,7 @@ namespace ring {
 
         bool m_is_empty = false;
         bool m_is_fixed = false;
-        value_type m_current_value = 0;
+        size_type m_current_value = 0;
 
         double_t m_selectivity;
 
@@ -203,6 +203,7 @@ namespace ring {
 
         void down(var_type var, size_type c) {
             m_is_fixed = true;
+            m_current_value = c;
         }
 
         void down(var_type var, size_type c, size_type k) {
