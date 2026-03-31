@@ -34,6 +34,8 @@
 
 #include "ltj_iterator_comp.hpp"
 #include "ltj_iterator_comp_id.hpp"
+#include <ltj_iterator_comp_id_range.hpp>
+#include <ltj_iterator_comp_range.hpp>
 
 
 namespace ring {
@@ -173,7 +175,121 @@ namespace ring {
             }
         }*/
 
-        void process_where_expression(const query::where_expr_parser::expr &expr) {
+        struct var_range {
+            var_type var;
+            uint32_t property_id;  // 0 if comparing IDs directly (no property)
+            bool is_edge;
+            value_type lower_bound = 1;
+            value_type upper_bound = UINT64_MAX;
+            bool has_lower = false;
+            bool has_upper = false;
+
+            inline bool is_valid() const {
+                return !has_lower || !has_upper || lower_bound <= upper_bound;
+            }
+        };
+
+        static inline bool is_range_operator(query::enum_comp_where_type type) {
+            return type == query::GT || type == query::GE ||
+                   type == query::ST || type == query::SE;
+        }
+
+        void add_to_range(var_range &range, const query::where_expr_parser::expr &expr) {
+            const int var_idx = expr.is_var[0] ? 0 : 1;
+            const auto op = (var_idx == 0) ? expr.type : query::opposite_comp_where[expr.type];
+            const value_type value = expr.values[1 - var_idx];
+
+            // Update bounds based on operator
+            switch (op) {
+                case query::GT:  // var > value → var >= (value + 1)
+                    range.lower_bound = range.has_lower ? std::max(range.lower_bound, value + 1) : value + 1;
+                    range.has_lower = true;
+                    break;
+
+                case query::GE:  // var >= value
+                    range.lower_bound = range.has_lower ? std::max(range.lower_bound, value) : value;
+                    range.has_lower = true;
+                    break;
+
+                case query::ST:  // var < value → var <= (value - 1)
+                    range.upper_bound = range.has_upper ? std::min(range.upper_bound, value - 1) : value - 1;
+                    range.has_upper = true;
+                    break;
+
+                case query::SE:  // var <= value
+                    range.upper_bound = range.has_upper ? std::min(range.upper_bound, value) : value;
+                    range.has_upper = true;
+                    break;
+
+                default:
+                    return;
+            }
+
+        }
+
+        void process_where_expression(const query::where_expr_parser::expr &expr,
+                                      std::map<std::tuple<var_type, uint32_t, bool>, var_range> &range_map) {
+
+            const bool is_range = is_range_operator(expr.type) &&
+                        ((expr.is_var[0] && !expr.is_var[1]) ||
+                         (!expr.is_var[0] && expr.is_var[1]));
+
+            if (!is_range) {
+                // Not a range - create normal iterator immediately
+                build_individual_iterator(expr);
+                return;
+            }
+
+            const int var_idx = expr.is_var[0] ? 0 : 1;
+            const var_type var = expr.values[var_idx];
+            const uint32_t prop_id = expr.property_values[var_idx];
+            const bool is_edge = !m_ptr_query->vnodes[var];
+
+            auto key = std::make_tuple(var, prop_id, is_edge);
+
+            var_range range;
+            auto it = range_map.find(key);
+            if (it == range_map.end()) {
+                range.var = var;
+                range.property_id = prop_id;
+                range.is_edge = is_edge;
+                it = range_map.insert({key, range}).first;
+            }
+            add_to_range(it->second, expr);
+        }
+
+
+            void build_range_iterators(std::map<std::tuple<var_type, uint32_t, bool>, var_range> &range_map) {
+
+                for (auto &[key, range] : range_map) {
+                    if (!range.is_valid()) {
+                        m_is_empty = true;
+                        continue;
+                    }
+
+                    if (range.property_id == 0) {
+                        m_iterators.push_back(new ltj_iterator_comp_id_range<ring_type, var_type, const_type>(
+                            range.var, range.is_edge,
+                            range.lower_bound, range.upper_bound,
+                            range.has_lower, range.has_upper,
+                            m_ptr_ring
+                        ));
+                    } else {
+                        m_iterators.push_back(new ltj_iterator_comp_range<ring_type, var_type, const_type>(
+                            range.var, range.property_id, range.is_edge,
+                            range.lower_bound, range.upper_bound,
+                            range.has_lower, range.has_upper,
+                            m_ptr_ring
+                        ));
+                    }
+
+                    add_var_to_iterator(range.var, m_iterators.back());
+                }
+                range_map.clear();
+
+        }
+
+        void build_individual_iterator(const query::where_expr_parser::expr &expr) {
 
             auto var0_edge = (expr.is_var[0] && !m_ptr_query->vnodes[expr.values[0]]);
             auto var1_edge = (expr.is_var[1] && !m_ptr_query->vnodes[expr.values[1]]);
@@ -190,6 +306,8 @@ namespace ring {
                 add_var_to_iterator(expr.values[1], m_iterators.back());
             }
         }
+
+
 
 
         void translate_tuple_to_strings(const tuple_type &tuple_ids, tuple_str_type &tuple_str) const {
@@ -285,11 +403,13 @@ namespace ring {
 
             //iterators of the where expressions
             if (m_ptr_query->where.type != query::WAND) {
-                process_where_expression(m_ptr_query->where);
+                build_individual_iterator(m_ptr_query->where);
             }else {
+                std::map<std::tuple<var_type, uint32_t, bool>, var_range> ranges;
                 for (const auto &expr: m_ptr_query->where.args) {
-                    process_where_expression(expr);
+                    process_where_expression(expr, ranges);
                 }
+                build_range_iterators(ranges);
             }
 
 
