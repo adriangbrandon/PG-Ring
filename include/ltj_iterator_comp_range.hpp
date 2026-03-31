@@ -221,7 +221,8 @@ namespace ring {
             // Find next node/edge that has a property value in the range [lower_bound, upper_bound]
             // Strategy: use next_ge(lower_bound) and check if result <= upper_bound
             std::pair<id_type, value_type> result;
-
+            if (c > m_upper_bound) return 0;
+            if (c < m_lower_bound) c = m_lower_bound;
             if (m_is_edge) {
                 // For edges, find next with value >= lower_bound
                 result = m_ptr_ring->next_node_property(m_property_id, c, m_lower_bound, m_upper_bound);
