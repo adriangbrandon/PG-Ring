@@ -225,7 +225,7 @@ namespace ring {
             if (c < m_lower_bound) c = m_lower_bound;
             if (m_is_edge) {
                 // For edges, find next with value >= lower_bound
-                result = m_ptr_ring->next_node_property(m_property_id, c, m_lower_bound, m_upper_bound);
+                result = m_ptr_ring->next_edge_property(m_property_id, c, m_lower_bound, m_upper_bound);
                 m_current_value = result.second;
                 return result.first;
             } else {
