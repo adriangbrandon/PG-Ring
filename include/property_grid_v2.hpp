@@ -154,6 +154,11 @@ namespace ring {
             return next(c_id, ranges);
         }
 
+        std::pair<id_type, value_type> next_in_range(const id_type c_id, const value_type l, const value_type r) {
+            std::vector<sdsl::range_type> ranges = {{(size_type) (l - (m_min_val-1)), (size_type) (r - (m_min_val-1))}};
+            return next(c_id, ranges);
+        }
+
         std::pair<id_type, value_type> next_eq(const id_type c_id, const value_type c_value) {
             std::vector<sdsl::range_type> ranges = {{(size_type) (c_value - (m_min_val-1)),
                                                         (size_type) (c_value - (m_min_val-1))}};
