@@ -54,17 +54,8 @@ namespace ring {
         double_t compute_selectivity() {
             value_type max_id = m_comp_edges ? m_ptr_ring->n_triples : m_ptr_ring->max_s;
 
-            value_type effective_lower = m_has_lower ? m_lower_bound : 1;
-            value_type effective_upper = m_has_upper ? m_upper_bound : max_id;
-
-            // If range is invalid, empty
-            if (effective_lower > effective_upper) {
-                m_is_empty = true;
-                return 0.0;
-            }
-
             value_type total_range = max_id;
-            value_type query_range = effective_upper - effective_lower + 1;
+            value_type query_range = m_upper_bound - m_lower_bound + 1;
 
             if (total_range <= 0) return 0.0;
 
@@ -169,10 +160,6 @@ namespace ring {
             if (var == m_var && !m_is_fixed) {
                 m_is_fixed = true;
                 m_current_value = c;
-                // Check if value is in range
-                if (c < m_lower_bound || c > m_upper_bound) {
-                    m_is_empty = true;
-                }
             }
         }
 
@@ -184,7 +171,6 @@ namespace ring {
             if (var == m_var && m_is_fixed) {
                 m_is_fixed = false;
                 m_current_value = 0;
-                m_is_empty = (m_lower_bound > m_upper_bound); // Reset to initial empty state
             }
         }
 
@@ -193,27 +179,13 @@ namespace ring {
         }
 
         value_type leap(var_type var, size_type c) {
-            if (var != m_var) return 0;
-
-            // Find next ID in range [lower_bound, upper_bound]
-            // c is the starting point
-
             if (c < m_lower_bound) {
-                // c is below the range, start from lower_bound
-                c = m_lower_bound;
+                return m_lower_bound;
             }
-
-            // Check if c is within range
-            if (c <= m_upper_bound) {
-                // Verify that this ID exists (is valid)
-                value_type max_id = m_comp_edges ? m_ptr_ring->n_triples : m_ptr_ring->max_s;
-                if (c <= max_id) {
-                    return c;
-                }
+            if (c > m_upper_bound) {
+                return 0;
             }
-
-            // c is beyond the range
-            return 0;
+            return c;
         }
 
         inline bool in_last_level() {

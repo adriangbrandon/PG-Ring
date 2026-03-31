@@ -116,7 +116,7 @@ namespace ring {
             }
 
             // Check if range is valid
-            if (m_lower_bound > m_upper_bound) {
+            if (m_lower_bound > m_upper_bound || m_upper_bound < m_min_prop || m_lower_bound > m_max_prop) {
                 m_is_empty = true;
                 return;
             }
