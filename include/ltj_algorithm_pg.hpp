@@ -973,7 +973,7 @@ namespace ring {
             size_type n_ok = 0;
 
             while (true) {
-                c_i = (c == -1) ? itrs[i]->leap(x_j) : itrs[i]->leap(x_j, c_i);  // Loop through iterators in patterns
+                c_i = (c_i == -1) ? itrs[i]->leap(x_j) : itrs[i]->leap(x_j, c_i);  // Loop through iterators in patterns
                 if (c_i == 0) return 0; //Empty intersection
 
                 if (c_i == c_prev || beg_where == 1) { // If beg_where is 1, means only one pattern iterator, so we can start checking the filter iterators
