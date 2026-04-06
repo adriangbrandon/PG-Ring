@@ -980,11 +980,12 @@ namespace ring {
                     ++n_ok;
                     if (n_ok == beg_where) { //Check in the filter (all pattern iterators matched)
                         auto j = beg_where;
-                        while (c_i == c_prev && j < itrs.size()) {
+                        c_prev = c_i;
+                        while (c_i == c_prev && j < n) {
                             c_i = itrs[j]->leap(x_j, c_i);
                             ++j;
                         }
-                        if (j == itrs.size() && c_i == c_prev) return c_i; // All iterators in the filter match
+                        if (j == n && c_i == c_prev) return c_i; // All iterators in the filter match
                         // Not all matched, find next candidate
                         c_i = c_prev + 1; // next candidate
                         n_ok = 0;
