@@ -161,6 +161,14 @@ add_executable(query-global src/query.cpp)
 target_compile_definitions(query-global PUBLIC ADAPTIVE=0)
 target_link_libraries(query-global sdsl divsufsort divsufsort64 libcsd)
 
+add_executable(query-prefilter src/query-prefilter.cpp)
+target_compile_definitions(query-prefilter PUBLIC ADAPTIVE=1)
+target_link_libraries(query-prefilter sdsl divsufsort divsufsort64 libcsd)
+
+add_executable(query-postfilter src/query-postfilter.cpp)
+target_compile_definitions(query-postfilter PUBLIC ADAPTIVE=1)
+target_link_libraries(query-postfilter sdsl divsufsort divsufsort64 libcsd)
+
 add_executable(mapping-types test/mapping-types.cpp)
 target_link_libraries(mapping-types sdsl divsufsort divsufsort64)
 

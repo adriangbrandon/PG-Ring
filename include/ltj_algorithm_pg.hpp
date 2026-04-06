@@ -52,8 +52,9 @@ namespace ring {
         typedef typename ltj_iter_type::value_type const_type;
         typedef veo_t veo_type;
         typedef std::unordered_map<var_type, std::vector<ltj_iter_type *> > var_to_iterators_type;
-        typedef std::unordered_map<var_type, std::unordered_map<value_type, std::vector<ltj_iter_type *> > >
-        var_to_prop_iterators_type;
+        typedef std::unordered_map<var_type, std::unordered_map<value_type, std::vector<ltj_iter_type *> > > var_to_prop_iterators_type;
+        typedef std::unordered_map<var_type, uint> cnt_iterators_pattern_type;
+
         //typedef std::vector<std::pair<var_type, value_type>> tuple_type;
         typedef std::vector<value_type> tuple_type;
         typedef std::vector<string> tuple_str_type;
@@ -68,6 +69,7 @@ namespace ring {
         std::vector<ltj_iter_type *> m_iterators;
         var_to_iterators_type m_var_to_iterators;
         var_to_prop_iterators_type m_var_to_prop_iterators;
+        cnt_iterators_pattern_type m_cnt_iterators_pattern;
         bool m_is_empty = false;
 
 
@@ -77,18 +79,21 @@ namespace ring {
             m_ptr_ring = o.m_ptr_ring;
             m_iterators = o.m_iterators;
             m_var_to_iterators = o.m_var_to_iterators;
+            m_cnt_iterators_pattern = o.m_cnt_iterators_pattern;
             m_var_to_prop_iterators = o.m_var_to_prop_iterators;
             m_is_empty = o.m_is_empty;
         }
 
 
-        inline void add_var_to_iterator(const var_type var, ltj_iter_type *ptr_iterator) {
+        inline void add_var_to_iterator(const var_type var, ltj_iter_type *ptr_iterator, bool is_pattern) {
             auto it = m_var_to_iterators.find(var);
             if (it != m_var_to_iterators.end()) {
                 it->second.push_back(ptr_iterator);
+                if (is_pattern) m_cnt_iterators_pattern[var]++;
             } else {
                 std::vector<ltj_iter_type *> vec = {ptr_iterator};
                 m_var_to_iterators.insert({var, vec});
+                if (is_pattern) m_cnt_iterators_pattern.insert({var, 1});
             }
         }
 
@@ -283,7 +288,7 @@ namespace ring {
                         ));
                     }
 
-                    add_var_to_iterator(range.var, m_iterators.back());
+                    add_var_to_iterator(range.var, m_iterators.back(), false);
                 }
                 range_map.clear();
 
@@ -300,10 +305,10 @@ namespace ring {
             }
 
             if (expr.is_var[0]) {
-                add_var_to_iterator(expr.values[0], m_iterators.back());
+                add_var_to_iterator(expr.values[0], m_iterators.back(), false);
             }
             if (expr.is_var[1]) {
-                add_var_to_iterator(expr.values[1], m_iterators.back());
+                add_var_to_iterator(expr.values[1], m_iterators.back(), false);
             }
         }
 
@@ -374,13 +379,13 @@ namespace ring {
                 }
 
                 if (pattern.subj.is_var()) {
-                    add_var_to_iterator(pattern.subj.var_value, m_iterators.back());
+                    add_var_to_iterator(pattern.subj.var_value, m_iterators.back(), true);
                 }
                 if (pattern.edge.is_var()) {
-                    add_var_to_iterator(pattern.edge.var_value, m_iterators.back());
+                    add_var_to_iterator(pattern.edge.var_value, m_iterators.back(), true);
                 }
                 if (pattern.obj.is_var()) {
-                    add_var_to_iterator(pattern.obj.var_value, m_iterators.back());
+                    add_var_to_iterator(pattern.obj.var_value, m_iterators.back(), true);
                 }
             }
 
@@ -390,14 +395,14 @@ namespace ring {
                     m_iterators.push_back(
                         new ltj_iterator_node_expr<ring_type, var_type, const_type>(
                             &(pattern.subj.expr), m_ptr_ring, true));
-                    add_var_to_iterator(pattern.subj.var_value, m_iterators.back());
+                    add_var_to_iterator(pattern.subj.var_value, m_iterators.back(), true);
                 }
 
                 if (pattern.obj.is_var() && !pattern.obj.is_empty()) {
                     m_iterators.push_back(
                         new ltj_iterator_node_expr<ring_type, var_type, const_type>(
                             &(pattern.obj.expr), m_ptr_ring, false));
-                    add_var_to_iterator(pattern.obj.var_value, m_iterators.back());
+                    add_var_to_iterator(pattern.obj.var_value, m_iterators.back(), true);
                 }
             }
 
@@ -451,6 +456,7 @@ namespace ring {
                 m_ptr_ring = o.m_ptr_ring;
                 m_iterators = std::move(o.m_iterators);
                 m_var_to_iterators = std::move(o.m_var_to_iterators);
+                m_cnt_iterators_pattern = std::move(o.m_cnt_iterators_pattern);
                 m_is_empty = o.m_is_empty;
             }
             return *this;
@@ -462,6 +468,7 @@ namespace ring {
             std::swap(m_ptr_ring, o.m_ptr_ring);
             std::swap(m_iterators, o.m_iterators);
             std::swap(m_var_to_iterators, o.m_var_to_iterators);
+            std::swap(m_cnt_iterators_pattern, o.m_cnt_iterators_pattern);
             std::swap(m_is_empty, o.m_is_empty);
         }
 
@@ -486,6 +493,22 @@ namespace ring {
             time_point_type start = std::chrono::high_resolution_clock::now();
             tuple_type t(m_veo.size());
             search_v3(0, t, res, start, limit_results, timeout_seconds);
+        };
+
+        void join_prefilter(results_type &res,
+                     const size_type limit_results = 0, const size_type timeout_seconds = 0) {
+            if (m_is_empty) return;
+            time_point_type start = std::chrono::high_resolution_clock::now();
+            tuple_type t(m_veo.size());
+            base_prefilter(0, t, res, start, limit_results, timeout_seconds);
+        };
+
+        void join_postfilter(results_type &res,
+                     const size_type limit_results = 0, const size_type timeout_seconds = 0) {
+            if (m_is_empty) return;
+            time_point_type start = std::chrono::high_resolution_clock::now();
+            tuple_type t(m_veo.size());
+            base_postfilter(0, t, res, start, limit_results, timeout_seconds);
         };
 
         static bool compare_iterator(ltj_iter_type *iter1, ltj_iter_type *iter2) {
@@ -658,6 +681,209 @@ namespace ring {
         };
 
 
+        bool base_postfilter(const size_type j, tuple_type &tuple, results_type &res,
+                       const time_point_type start,
+                       const size_type limit_results = 0, const size_type timeout_seconds = 0) {
+            //(Optional) Check timeout
+            if (timeout_seconds > 0) {
+                time_point_type stop = std::chrono::high_resolution_clock::now();
+                auto sec = std::chrono::duration_cast<std::chrono::seconds>(stop - start).count();
+                if (sec > timeout_seconds) return false;
+            }
+
+            //(Optional) Check limit
+            if (limit_results > 0 && res.size() == limit_results) return false;
+
+            if (j == m_veo.size()) {
+                //Report results - translate node IDs to strings if needed
+                add_result_to_collector(res, tuple);
+                /*std::cout << "Add result" << std::endl;
+                uint i = 1;
+                for (const auto &dat: tuple) {
+                    std::cout << "x_" << i << "=" << dat << " ";
+                    ++i;
+                }
+                std::cout << std::endl;*/
+            } else {
+                var_type x_j = m_veo.next();
+                //std::cout << "Variable: " << (uint64_t) x_j << std::endl;
+                std::vector<ltj_iter_type *> &itrs = m_var_to_iterators[x_j];
+                bool ok;
+                if (itrs.size() == 1 && itrs[0]->in_last_level()) {
+                    //Lonely variables
+                    //std::cout << "Seeking (last level)" << std::endl;
+                    value_type c = itrs[0]->seek_last(x_j);
+                    //auto results = itrs[0]->seek_all(x_j);
+                    //std::cout << "Results: " << results.size() << std::endl;
+                    //std::cout << "Seek (last level): (" << (uint64_t) x_j << ": size=" << results.size() << ")" <<std::endl;
+                    while (c != 0) {
+                        //If empty c=0
+                        //1. Adding result to tuple
+                        tuple[x_j - 1] = c;
+                        //2. Going down in the trie by setting x_j = c (\mu(t_i) in paper)
+                        itrs[0]->down(x_j, c);
+                        m_veo.down();
+                        //2. Search with the next variable x_{j+1}
+                        ok = base_postfilter(j + 1, tuple, res, start, limit_results, timeout_seconds);
+                        if (!ok) return false;
+                        //4. Going up in the trie by removing x_j = c
+                        itrs[0]->up(x_j);
+                        m_veo.up();
+
+                        c = itrs[0]->seek_last_next(x_j);
+                    }
+                } else {
+                    std::vector<ltj_iter_type *> sorted_itrs = itrs; //copy iterators to sort them by interval length
+                    auto beg_where = m_cnt_iterators_pattern[x_j];
+                    std::sort(sorted_itrs.begin(), sorted_itrs.begin() + beg_where, compare_iterator);
+                    std::sort(sorted_itrs.begin()+ beg_where, sorted_itrs.end(), compare_iterator);
+                    value_type c = seek_postfilter(sorted_itrs, beg_where, x_j);
+                    //std::cout << "Seek (init): (" << (uint64_t) x_j << ": " << c << ")" << std::endl;
+                    while (c != 0) {
+                        //If empty c=0
+                        //1. Adding result to tuple
+                        tuple[x_j - 1] = c;
+                        //2. Going down in the tries by setting x_j = c (\mu(t_i) in paper)
+                        for (ltj_iter_type *iter: sorted_itrs) {
+                            iter->down(x_j, c);
+                        }
+                        //2.a Setting the value of each property
+                        //setting_properties(x_j, c);
+                        m_veo.down();
+                        //3. Search with the next variable x_{j+1}
+                        ok = base_postfilter(j + 1, tuple, res, start, limit_results, timeout_seconds);
+                        if (!ok) return false;
+                        //4. Going up in the tries by removing x_j = c
+                        for (ltj_iter_type *iter: sorted_itrs) {
+                            iter->up(x_j);
+                        }
+                        m_veo.up();
+                        //5. Next constant for x_j
+                        c = seek_postfilter(sorted_itrs, beg_where, x_j, c + 1);
+                        //std::cout << "Seek (bucle): (" << (uint64_t) x_j << ": " << c << ")" << std::endl;
+                    }
+                }
+                m_veo.done();
+            }
+            return true;
+        };
+
+
+        bool base_prefilter(const size_type j, tuple_type &tuple, results_type &res,
+                       const time_point_type start,
+                       const size_type limit_results = 0, const size_type timeout_seconds = 0) {
+            //(Optional) Check timeout
+            if (timeout_seconds > 0) {
+                time_point_type stop = std::chrono::high_resolution_clock::now();
+                auto sec = std::chrono::duration_cast<std::chrono::seconds>(stop - start).count();
+                if (sec > timeout_seconds) return false;
+            }
+
+            //(Optional) Check limit
+            if (limit_results > 0 && res.size() == limit_results) return false;
+
+            if (j == m_veo.size()) {
+                //Report results - translate node IDs to strings if needed
+                add_result_to_collector(res, tuple);
+                /*std::cout << "Add result" << std::endl;
+                uint i = 1;
+                for (const auto &dat: tuple) {
+                    std::cout << "x_" << i << "=" << dat << " ";
+                    ++i;
+                }
+                std::cout << std::endl;*/
+            } else {
+                var_type x_j = m_veo.next();
+                //std::cout << "Variable: " << (uint64_t) x_j << std::endl;
+                std::vector<ltj_iter_type *> &itrs = m_var_to_iterators[x_j];
+                bool ok;
+                if (itrs.size() == 1 && itrs[0]->in_last_level()) {
+                    //Lonely variables
+                    //std::cout << "Seeking (last level)" << std::endl;
+                    value_type c = itrs[0]->seek_last(x_j);
+                    //auto results = itrs[0]->seek_all(x_j);
+                    //std::cout << "Results: " << results.size() << std::endl;
+                    //std::cout << "Seek (last level): (" << (uint64_t) x_j << ": size=" << results.size() << ")" <<std::endl;
+                    while (c != 0) {
+                        //If empty c=0
+                        //1. Adding result to tuple
+                        tuple[x_j - 1] = c;
+                        //2. Going down in the trie by setting x_j = c (\mu(t_i) in paper)
+                        itrs[0]->down(x_j, c);
+                        m_veo.down();
+                        //2. Search with the next variable x_{j+1}
+                        ok = base_prefilter(j + 1, tuple, res, start, limit_results, timeout_seconds);
+                        if (!ok) return false;
+                        //4. Going up in the trie by removing x_j = c
+                        itrs[0]->up(x_j);
+                        m_veo.up();
+
+                        c = itrs[0]->seek_last_next(x_j);
+                    }
+                } else {
+                    std::vector<ltj_iter_type *> sorted_itrs = itrs; //copy iterators to sort them by interval length
+                    auto beg_where = m_cnt_iterators_pattern[x_j];
+                    std::sort(sorted_itrs.begin(), sorted_itrs.begin() + beg_where, compare_iterator);
+                    std::sort(sorted_itrs.begin()+ beg_where, sorted_itrs.end(), compare_iterator);
+                    if (sorted_itrs.size() == beg_where) {
+                        value_type c = seek(sorted_itrs, x_j);
+                        //std::cout << "Seek (init): (" << (uint64_t) x_j << ": " << c << ")" << std::endl;
+                        while (c != 0) {
+                            //If empty c=0
+                            //1. Adding result to tuple
+                            tuple[x_j - 1] = c;
+                            //2. Going down in the tries by setting x_j = c (\mu(t_i) in paper)
+                            for (ltj_iter_type *iter: sorted_itrs) {
+                                iter->down(x_j, c);
+                            }
+                            //2.a Setting the value of each property
+                            //setting_properties(x_j, c);
+                            m_veo.down();
+                            //3. Search with the next variable x_{j+1}
+                            ok = base_prefilter(j + 1, tuple, res, start, limit_results, timeout_seconds);
+                            if (!ok) return false;
+                            //4. Going up in the tries by removing x_j = c
+                            for (ltj_iter_type *iter: sorted_itrs) {
+                                iter->up(x_j);
+                            }
+                            m_veo.up();
+                            //5. Next constant for x_j
+                            c = seek(sorted_itrs, x_j, c+1);
+                            //std::cout << "Seek (bucle): (" << (uint64_t) x_j << ": " << c << ")" << std::endl;
+                        }
+                    }else {
+                        value_type c = seek_prefilter(sorted_itrs, beg_where, x_j);
+                        //std::cout << "Seek (init): (" << (uint64_t) x_j << ": " << c << ")" << std::endl;
+                        while (c != 0) {
+                            //If empty c=0
+                            //1. Adding result to tuple
+                            tuple[x_j - 1] = c;
+                            //2. Going down in the tries by setting x_j = c (\mu(t_i) in paper)
+                            for (ltj_iter_type *iter: sorted_itrs) {
+                                iter->down(x_j, c);
+                            }
+                            //2.a Setting the value of each property
+                            //setting_properties(x_j, c);
+                            m_veo.down();
+                            //3. Search with the next variable x_{j+1}
+                            ok = base_prefilter(j + 1, tuple, res, start, limit_results, timeout_seconds);
+                            if (!ok) return false;
+                            //4. Going up in the tries by removing x_j = c
+                            for (ltj_iter_type *iter: sorted_itrs) {
+                                iter->up(x_j);
+                            }
+                            m_veo.up();
+                            //5. Next constant for x_j
+                            c = seek_prefilter(sorted_itrs, beg_where, x_j, c+1);
+                            //std::cout << "Seek (bucle): (" << (uint64_t) x_j << ": " << c << ")" << std::endl;
+                        }
+                    }
+                }
+                m_veo.done();
+            }
+            return true;
+        };
+
         /**
          *
          * @param x_j   Variable
@@ -720,6 +946,84 @@ namespace ring {
 
                 ++i;
                 if (i == n) i = 0;
+            }
+        }
+
+        value_type seek_postfilter(std::vector<ltj_iter_type*>& itrs, size_type beg_where,
+                                   const var_type x_j, value_type c = -1) {
+
+            value_type c_i = (c == -1) ? itrs[0]->leap(x_j) : itrs[0]->leap(x_j, c);
+            if (c_i == 0) return 0; //Empty intersection
+            const size_type n = itrs.size();
+            if (n == 1) return c_i; // Single iterator, already done
+
+            value_type c_prev = c_i;
+            size_type i = 1; // Start from 1 since we already did itrs[0]
+            size_type n_ok = 1;
+
+            while (true) {
+                c_i = itrs[i]->leap(x_j, c_i);  // Loop through iterators in patterns
+                if (c_i == 0) return 0; //Empty intersection
+
+                if (c_i == c_prev) {
+                    ++n_ok;
+                    if (n_ok == n) { //Check in the filter
+                        auto j = beg_where;
+                        while (c_i == c_prev && j < itrs.size()) {
+                            c_i = itrs[j]->leap(x_j, c_i);
+                            ++j;
+                        }
+                        if (j == itrs.size()) return c_i; // All iterators in the filter match
+                        if (++i == beg_where) i = 0;
+                        c_i = itrs[i]->leap(x_j, c_prev+1); // next candidate
+                        if (c_i == 0) return 0; //Empty intersection
+                        n_ok = 1;
+                        c_prev = c_i;
+                    }
+                } else {
+                    n_ok = 1;
+                    c_prev = c_i;
+                }
+                if (++i == beg_where) i = 0;
+            }
+        }
+
+        value_type seek_prefilter(std::vector<ltj_iter_type*>& itrs, size_type beg_where,
+                                   const var_type x_j, value_type c = -1) {
+
+            value_type c_i = (c == -1) ? itrs[beg_where]->leap(x_j) : itrs[beg_where]->leap(x_j, c);
+            if (c_i == 0) return 0; //Empty intersection
+            const size_type n = itrs.size();
+            if (n == 1) return c_i; // Single iterator, already done
+
+            value_type c_prev = c_i;
+            size_type i = beg_where + 1; // Start from 1 since we already did itrs[0]
+            size_type n_ok = 1;
+
+            while (true) {
+                c_i = itrs[i]->leap(x_j, c_i);  // Loop through iterators in WHERE
+                if (c_i == 0) return 0; //Empty intersection
+
+                if (c_i == c_prev) {
+                    ++n_ok;
+                    if (n_ok == n) { //Check in patterns
+                        auto j = 0;
+                        while (c_i == c_prev && j < beg_where) {
+                            c_i = itrs[j]->leap(x_j, c_i);
+                            ++j;
+                        }
+                        if (j == beg_where) return c_i; // All iterators in the filter match
+                        if (++i == n) i = beg_where;
+                        c_i = itrs[i]->leap(x_j, c_prev+1); // next candidate
+                        if (c_i == 0) return 0; //Empty intersection
+                        n_ok = 1;
+                        c_prev = c_i;
+                    }
+                } else {
+                    n_ok = 1;
+                    c_prev = c_i;
+                }
+                if (++i == n) i = beg_where;
             }
         }
 

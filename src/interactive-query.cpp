@@ -116,6 +116,7 @@ int main(int argc, char **argv)
 
             // Execute the query
             typedef ring::ltj_algorithm_pg<::util::results_collector_test<std::vector<std::string>>> algorithm_type;
+            //typedef ring::ltj_algorithm_pg<::util::results_collector_test<std::vector<std::string> >, ring::veo::veo_adaptive_pg_v2<>> algorithm_type;
             typedef algorithm_type::results_type results_type;
 
             results_type res;
