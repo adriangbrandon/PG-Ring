@@ -952,9 +952,22 @@ namespace ring {
         value_type seek_postfilter(std::vector<ltj_iter_type*>& itrs, size_type beg_where,
                                    const var_type x_j, value_type c = -1) {
 
+            const size_type n = itrs.size();
+
+            // Edge case: if beg_where is 0, means no pattern iterators, only WHERE iterators
+            if (beg_where == 0) {
+                // Use standard seek on WHERE iterators only
+                return seek(itrs, x_j, c);
+            }
+
+            // Edge case: if beg_where equals n, means only pattern iterators, no WHERE iterators
+            if (beg_where >= n) {
+                // Use standard seek on pattern iterators only
+                return seek(itrs, x_j, c);
+            }
+
             value_type c_i = (c == -1) ? itrs[0]->leap(x_j) : itrs[0]->leap(x_j, c);
             if (c_i == 0) return 0; //Empty intersection
-            const size_type n = itrs.size();
             if (n == 1) return c_i; // Single iterator, already done
 
             value_type c_prev = c_i;
@@ -967,13 +980,14 @@ namespace ring {
 
                 if (c_i == c_prev) {
                     ++n_ok;
-                    if (n_ok == n) { //Check in the filter
+                    if (n_ok == beg_where) { //Check in the filter (all pattern iterators matched)
                         auto j = beg_where;
                         while (c_i == c_prev && j < itrs.size()) {
                             c_i = itrs[j]->leap(x_j, c_i);
                             ++j;
                         }
-                        if (j == itrs.size()) return c_i; // All iterators in the filter match
+                        if (j == itrs.size() && c_i == c_prev) return c_i; // All iterators in the filter match
+                        // Not all matched, find next candidate
                         if (++i == beg_where) i = 0;
                         c_i = itrs[i]->leap(x_j, c_prev+1); // next candidate
                         if (c_i == 0) return 0; //Empty intersection
@@ -991,13 +1005,26 @@ namespace ring {
         value_type seek_prefilter(std::vector<ltj_iter_type*>& itrs, size_type beg_where,
                                    const var_type x_j, value_type c = -1) {
 
+            const size_type n = itrs.size();
+
+            // Edge case: if beg_where is 0, means no pattern iterators, only WHERE iterators
+            if (beg_where == 0) {
+                // Use standard seek on WHERE iterators only
+                return seek(itrs, x_j, c);
+            }
+
+            // Edge case: if beg_where equals or exceeds n, means only pattern iterators, no WHERE iterators
+            if (beg_where >= n) {
+                // Use standard seek on pattern iterators only
+                return seek(itrs, x_j, c);
+            }
+
             value_type c_i = (c == -1) ? itrs[beg_where]->leap(x_j) : itrs[beg_where]->leap(x_j, c);
             if (c_i == 0) return 0; //Empty intersection
-            const size_type n = itrs.size();
             if (n == 1) return c_i; // Single iterator, already done
 
             value_type c_prev = c_i;
-            size_type i = beg_where + 1; // Start from 1 since we already did itrs[0]
+            size_type i = beg_where + 1; // Start from beg_where+1 since we already did itrs[beg_where]
             size_type n_ok = 1;
 
             while (true) {
@@ -1006,13 +1033,14 @@ namespace ring {
 
                 if (c_i == c_prev) {
                     ++n_ok;
-                    if (n_ok == n) { //Check in patterns
+                    if (n_ok == (n - beg_where)) { //Check in patterns (all WHERE iterators matched)
                         auto j = 0;
                         while (c_i == c_prev && j < beg_where) {
                             c_i = itrs[j]->leap(x_j, c_i);
                             ++j;
                         }
-                        if (j == beg_where) return c_i; // All iterators in the filter match
+                        if (j == beg_where && c_i == c_prev) return c_i; // All iterators in the filter match
+                        // Not all matched, find next candidate
                         if (++i == n) i = beg_where;
                         c_i = itrs[i]->leap(x_j, c_prev+1); // next candidate
                         if (c_i == 0) return 0; //Empty intersection
