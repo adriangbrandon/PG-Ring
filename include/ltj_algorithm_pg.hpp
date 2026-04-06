@@ -966,19 +966,17 @@ namespace ring {
                 return seek(itrs, x_j, c);
             }
 
-            value_type c_i = (c == -1) ? itrs[0]->leap(x_j) : itrs[0]->leap(x_j, c);
-            if (c_i == 0) return 0; //Empty intersection
-            if (n == 1) return c_i; // Single iterator, already done
 
-            value_type c_prev = c_i;
-            size_type i = 1; // Start from 1 since we already did itrs[0]
-            size_type n_ok = 1;
+            value_type c_prev = -1ULL;
+            value_type c_i = c;
+            size_type i = 0; // Start from 1 since we already did itrs[0]
+            size_type n_ok = 0;
 
             while (true) {
-                c_i = itrs[i]->leap(x_j, c_i);  // Loop through iterators in patterns
+                c_i = (c == -1) ? itrs[i]->leap(x_j) : itrs[i]->leap(x_j, c_i);  // Loop through iterators in patterns
                 if (c_i == 0) return 0; //Empty intersection
 
-                if (c_i == c_prev) {
+                if (c_i == c_prev || beg_where == 1) { // If beg_where is 1, means only one pattern iterator, so we can start checking the filter iterators
                     ++n_ok;
                     if (n_ok == beg_where) { //Check in the filter (all pattern iterators matched)
                         auto j = beg_where;
@@ -988,11 +986,8 @@ namespace ring {
                         }
                         if (j == itrs.size() && c_i == c_prev) return c_i; // All iterators in the filter match
                         // Not all matched, find next candidate
-                        if (++i == beg_where) i = 0;
-                        c_i = itrs[i]->leap(x_j, c_prev+1); // next candidate
-                        if (c_i == 0) return 0; //Empty intersection
-                        n_ok = 1;
-                        c_prev = c_i;
+                        c_i = c_prev + 1; // next candidate
+                        n_ok = 0;
                     }
                 } else {
                     n_ok = 1;
