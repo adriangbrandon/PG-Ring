@@ -844,59 +844,32 @@ namespace ring {
                     auto beg_where = m_cnt_iterators_pattern[x_j];
                     std::sort(sorted_itrs.begin(), sorted_itrs.begin() + beg_where, compare_iterator);
                     std::sort(sorted_itrs.begin()+ beg_where, sorted_itrs.end(), compare_iterator);
-                    if (sorted_itrs.size() == beg_where) {
-                        value_type c = seek(sorted_itrs, x_j);
-                        //std::cout << "Seek (init): (" << (uint64_t) x_j << ": " << c << ")" << std::endl;
-                        while (c != 0) {
-                            //If empty c=0
-                            //1. Adding result to tuple
-                            tuple[x_j - 1] = c;
-                            //2. Going down in the tries by setting x_j = c (\mu(t_i) in paper)
-                            for (ltj_iter_type *iter: sorted_itrs) {
-                                iter->down(x_j, c);
-                            }
-                            //2.a Setting the value of each property
-                            //setting_properties(x_j, c);
-                            m_veo.down();
-                            //3. Search with the next variable x_{j+1}
-                            ok = base_prefilter(j + 1, tuple, res, start, limit_results, timeout_seconds);
-                            if (!ok) return false;
-                            //4. Going up in the tries by removing x_j = c
-                            for (ltj_iter_type *iter: sorted_itrs) {
-                                iter->up(x_j);
-                            }
-                            m_veo.up();
-                            //5. Next constant for x_j
-                            c = seek(sorted_itrs, x_j, c+1);
-                            //std::cout << "Seek (bucle): (" << (uint64_t) x_j << ": " << c << ")" << std::endl;
+                    value_type c = seek_prefilter(sorted_itrs, beg_where, x_j);
+                    //std::cout << "Seek (init): (" << (uint64_t) x_j << ": " << c << ")" << std::endl;
+                    while (c != 0) {
+                        //If empty c=0
+                        //1. Adding result to tuple
+                        tuple[x_j - 1] = c;
+                        //2. Going down in the tries by setting x_j = c (\mu(t_i) in paper)
+                        for (ltj_iter_type *iter: sorted_itrs) {
+                            iter->down(x_j, c);
                         }
-                    }else {
-                        value_type c = seek_prefilter(sorted_itrs, beg_where, x_j);
-                        //std::cout << "Seek (init): (" << (uint64_t) x_j << ": " << c << ")" << std::endl;
-                        while (c != 0) {
-                            //If empty c=0
-                            //1. Adding result to tuple
-                            tuple[x_j - 1] = c;
-                            //2. Going down in the tries by setting x_j = c (\mu(t_i) in paper)
-                            for (ltj_iter_type *iter: sorted_itrs) {
-                                iter->down(x_j, c);
-                            }
-                            //2.a Setting the value of each property
-                            //setting_properties(x_j, c);
-                            m_veo.down();
-                            //3. Search with the next variable x_{j+1}
-                            ok = base_prefilter(j + 1, tuple, res, start, limit_results, timeout_seconds);
-                            if (!ok) return false;
-                            //4. Going up in the tries by removing x_j = c
-                            for (ltj_iter_type *iter: sorted_itrs) {
-                                iter->up(x_j);
-                            }
-                            m_veo.up();
-                            //5. Next constant for x_j
-                            c = seek_prefilter(sorted_itrs, beg_where, x_j, c+1);
-                            //std::cout << "Seek (bucle): (" << (uint64_t) x_j << ": " << c << ")" << std::endl;
+                        //2.a Setting the value of each property
+                        //setting_properties(x_j, c);
+                        m_veo.down();
+                        //3. Search with the next variable x_{j+1}
+                        ok = base_prefilter(j + 1, tuple, res, start, limit_results, timeout_seconds);
+                        if (!ok) return false;
+                        //4. Going up in the tries by removing x_j = c
+                        for (ltj_iter_type *iter: sorted_itrs) {
+                            iter->up(x_j);
                         }
+                        m_veo.up();
+                        //5. Next constant for x_j
+                        c = seek_prefilter(sorted_itrs, beg_where, x_j, c+1);
+                        //std::cout << "Seek (bucle): (" << (uint64_t) x_j << ": " << c << ")" << std::endl;
                     }
+
                 }
                 m_veo.done();
             }
