@@ -498,8 +498,27 @@ namespace ring {
         void join_prefilter(results_type &res,
                      const size_type limit_results = 0, const size_type timeout_seconds = 0) {
             if (m_is_empty) return;
+
+            // Reorganize iterators for each variable ONCE before starting the search
+            for (auto& var_itrs_pair : m_var_to_iterators) {
+                var_type var = var_itrs_pair.first;
+                std::vector<ltj_iter_type*>& itrs = var_itrs_pair.second;
+
+                if (itrs.size() <= 1) continue; // No need to reorganize
+
+                auto beg_where = m_cnt_iterators_pattern[var];
+                if (beg_where >= itrs.size()) continue; // No WHERE iterators
+
+                // Reorganize comp_id iterators with both variables after pattern iterators
+                size_type new_beg_where = reorganize_comp_id_iterators(itrs, beg_where);
+
+                // Update the counter for this variable
+                m_cnt_iterators_pattern[var] = new_beg_where;
+            }
+
             time_point_type start = std::chrono::high_resolution_clock::now();
             tuple_type t(m_veo.size());
+
             base_prefilter(0, t, res, start, limit_results, timeout_seconds);
         };
 
@@ -883,6 +902,45 @@ namespace ring {
             }
             return true;
         };
+
+        /**
+         * Helper function to reorganize iterators in prefilter
+         * Moves ltj_iterator_comp_id iterators where both elements are variables
+         * to right after beg_where position
+         * @param sorted_itrs Vector of iterators to reorganize
+         * @param beg_where Current position separating pattern from WHERE iterators
+         * @return New beg_where value after moving comp_id iterators
+         */
+        size_type reorganize_comp_id_iterators(std::vector<ltj_iter_type*>& sorted_itrs, size_type beg_where) {
+            if (beg_where >= sorted_itrs.size()) return beg_where;
+
+            std::vector<ltj_iter_type*> comp_id_both_vars;
+            std::vector<ltj_iter_type*> other_where_itrs;
+
+            // Separate WHERE iterators: those with both_are_variables and others
+            for (size_type i = beg_where; i < sorted_itrs.size(); ++i) {
+                auto* comp_id_iter = dynamic_cast<ltj_iterator_comp_id<ring_type, var_type, const_type>*>(sorted_itrs[i]);
+                if (comp_id_iter != nullptr) {
+                    if (comp_id_iter->nfixed == 0) {
+                        comp_id_both_vars.push_back(sorted_itrs[i]);
+                        continue;
+                    }
+                }
+                other_where_itrs.push_back(sorted_itrs[i]);
+            }
+
+            // Reorganize: pattern iterators, then comp_id with both vars, then other WHERE iterators
+            size_type pos = beg_where;
+            for (auto* iter : comp_id_both_vars) {
+                sorted_itrs[pos++] = iter;
+            }
+            for (auto* iter : other_where_itrs) {
+                sorted_itrs[pos++] = iter;
+            }
+
+            // Return new beg_where (original + number of comp_id iterators moved)
+            return beg_where + comp_id_both_vars.size();
+        }
 
         /**
          *

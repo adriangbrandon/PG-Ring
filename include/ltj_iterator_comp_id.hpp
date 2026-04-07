@@ -93,7 +93,7 @@ namespace ring {
 
     public:
         //const bool &is_empty = m_is_empty;
-
+        const size_type &nfixed = m_nfixed;
         ltj_iterator_comp_id() = default;
 
         ltj_iterator_comp_id(const expr_type *expr, bool comp_edges, ring_type *ring) {
