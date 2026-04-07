@@ -472,8 +472,8 @@ namespace ring {
             if (c > m_elements) return 0;
             if (m_same_var) { //comparing two properties of the same variable
                 if (m_is_edge[0]) {
-                    m_id_values[0].first = c;
-                    m_id_values[1].first = c+1;
+                    m_id_values[0].first = c+1;
+                    m_id_values[1].first = c;
                     while (m_id_values[0].first != m_id_values[1].first || !compare(m_id_values[0].second, m_id_values[1].second)) { // if there is no value or the values do not satisfy the condition, we need to try with the next id
                         m_id_values[0] = m_ptr_ring->next_edge_in_property(m_expr->property_values[0], m_id_values[1].first); //get next id and value of the first property
                         if (m_id_values[0].first == 0) return 0; //no more ids to try
@@ -482,8 +482,8 @@ namespace ring {
                     }
                     return m_id_values[0].first; //the same id satisfies the condition for both properties
                 }else {
-                    m_id_values[0].first = c;
-                    m_id_values[1].first = c+1;
+                    m_id_values[0].first = c+1;
+                    m_id_values[1].first = c;
                     while (m_id_values[0].first != m_id_values[1].first || !compare(m_id_values[0].second, m_id_values[1].second)) { // if there is no value or the values do not satisfy the condition, we need to try with the next id
                         m_id_values[0] = m_ptr_ring->next_node_in_property(m_expr->property_values[0], m_id_values[1].first); //get next id and value of the first property
                         if (m_id_values[0].first == 0) return 0; //no more ids to try
