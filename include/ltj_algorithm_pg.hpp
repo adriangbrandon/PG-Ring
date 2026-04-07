@@ -304,6 +304,12 @@ namespace ring {
                 m_iterators.push_back(new ltj_iterator_comp_id<ring_type, var_type, const_type>(&expr, var0_edge, m_ptr_ring));
             }
 
+            if (expr.is_var[0] && expr.is_var[1] && expr.values[0] == expr.values[1]) {
+                // Same variable on both sides - only add once
+                 add_var_to_iterator(expr.values[0], m_iterators.back(), false);
+                 return;
+            }
+
             if (expr.is_var[0]) {
                 add_var_to_iterator(expr.values[0], m_iterators.back(), false);
             }
