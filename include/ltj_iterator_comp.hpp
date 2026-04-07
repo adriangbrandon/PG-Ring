@@ -474,8 +474,13 @@ namespace ring {
                 if (m_is_edge[0]) {
                     m_id_values[0] = m_ptr_ring->next_edge_in_property(m_expr->property_values[0], c); //get next id and value of the first property
                     auto v1 = m_ptr_ring->get_edge_property_value(m_expr->property_values[1], m_id_values[0].first); //get the value of the second property
-                    if (!v1.first || !compare(m_id_values[0].second, v1.second)) { // if there is no value or the values do not satisfy the condition, we need to try with the next id
-                        return (m_id_values[0].first < m_elements) ? m_id_values[0].first + 1 : 0; // try with next id
+                    while (!v1.first || !compare(m_id_values[0].second, v1.second)) { // if there is no value or the values do not satisfy the condition, we need to try with the next id
+                        if (m_id_values[0].first < m_elements) {
+                            m_id_values[0] = m_ptr_ring->next_edge_in_property(m_expr->property_values[0], m_id_values[0].first + 1); // try with next id
+                            v1 = m_ptr_ring->get_edge_property_value(m_expr->property_values[1], m_id_values[0].first);
+                        }else {
+                            return 0; // no more ids to try
+                        }
                     }
                     m_id_values[1].first = m_id_values[1].second;
                     m_id_values[1].second = v1.second;
@@ -483,8 +488,13 @@ namespace ring {
                 }else {
                     m_id_values[0] = m_ptr_ring->next_node_in_property(m_expr->property_values[0], c);
                     auto v1 = m_ptr_ring->get_node_property_value(m_expr->property_values[1], m_id_values[0].first);
-                    if (!v1.first || !compare(m_id_values[0].second, v1.second)) { // if there is no value or the values do not satisfy the condition, we need to try with the next id
-                        return (m_id_values[0].first < m_elements) ? m_id_values[0].first + 1 : 0; // try with next id
+                    while (!v1.first || !compare(m_id_values[0].second, v1.second)) { // if there is no value or the values do not satisfy the condition, we need to try with the next id
+                        if (m_id_values[0].first < m_elements) {
+                            m_id_values[0] = m_ptr_ring->next_node_in_property(m_expr->property_values[0], m_id_values[0].first + 1); // try with next id
+                            v1 = m_ptr_ring->get_node_property_value(m_expr->property_values[1], m_id_values[0].first);
+                        }else {
+                            return 0; // no more ids to try
+                        }
                     }
                     m_id_values[1].first = m_id_values[1].second;
                     m_id_values[1].second = v1.second;
