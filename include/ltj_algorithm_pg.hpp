@@ -925,6 +925,14 @@ namespace ring {
                         comp_id_both_vars.push_back(sorted_itrs[i]);
                         continue;
                     }
+                }else {
+                    auto* comp_same_var = dynamic_cast<ltj_iterator_comp<ring_type, var_type, const_type>*>(sorted_itrs[i]);
+                    if (comp_same_var != nullptr) {
+                        if (comp_same_var->same_var) {
+                            comp_id_both_vars.push_back(sorted_itrs[i]);
+                            continue;
+                        }
+                    }
                 }
                 other_where_itrs.push_back(sorted_itrs[i]);
             }

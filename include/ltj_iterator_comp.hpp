@@ -269,7 +269,7 @@ namespace ring {
         };
 
     public:
-        //const bool &is_empty = m_is_empty;
+        const bool &same_var = m_same_var;
 
         ltj_iterator_comp() = default;
 
