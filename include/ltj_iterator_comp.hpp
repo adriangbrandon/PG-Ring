@@ -472,32 +472,24 @@ namespace ring {
             if (c > m_elements) return 0;
             if (m_same_var) { //comparing two properties of the same variable
                 if (m_is_edge[0]) {
-                    m_id_values[0] = m_ptr_ring->next_edge_in_property(m_expr->property_values[0], c); //get next id and value of the first property
-                    auto v1 = m_ptr_ring->get_edge_property_value(m_expr->property_values[1], m_id_values[0].first); //get the value of the second property
-                    while (!v1.first || !compare(m_id_values[0].second, v1.second)) { // if there is no value or the values do not satisfy the condition, we need to try with the next id
-                        if (m_id_values[0].first < m_elements) {
-                            m_id_values[0] = m_ptr_ring->next_edge_in_property(m_expr->property_values[0], m_id_values[0].first + 1); // try with next id
-                            v1 = m_ptr_ring->get_edge_property_value(m_expr->property_values[1], m_id_values[0].first);
-                        }else {
-                            return 0; // no more ids to try
-                        }
+                    m_id_values[0].first = c;
+                    m_id_values[1].first = c+1;
+                    while (m_id_values[0].first != m_id_values[1].first || !compare(m_id_values[0].second, m_id_values[1].second)) { // if there is no value or the values do not satisfy the condition, we need to try with the next id
+                        m_id_values[0] = m_ptr_ring->next_edge_in_property(m_expr->property_values[0], m_id_values[1].first); //get next id and value of the first property
+                        if (m_id_values[0].first == 0) return 0; //no more ids to try
+                        m_id_values[1] = m_ptr_ring->next_edge_in_property(m_expr->property_values[1], m_id_values[0].first); //get the value of the second property
+                        if (m_id_values[1].first == 0) return 0; //no more ids to try
                     }
-                    m_id_values[1].first = m_id_values[1].second;
-                    m_id_values[1].second = v1.second;
                     return m_id_values[0].first; //the same id satisfies the condition for both properties
                 }else {
-                    m_id_values[0] = m_ptr_ring->next_node_in_property(m_expr->property_values[0], c);
-                    auto v1 = m_ptr_ring->get_node_property_value(m_expr->property_values[1], m_id_values[0].first);
-                    while (!v1.first || !compare(m_id_values[0].second, v1.second)) { // if there is no value or the values do not satisfy the condition, we need to try with the next id
-                        if (m_id_values[0].first < m_elements) {
-                            m_id_values[0] = m_ptr_ring->next_node_in_property(m_expr->property_values[0], m_id_values[0].first + 1); // try with next id
-                            v1 = m_ptr_ring->get_node_property_value(m_expr->property_values[1], m_id_values[0].first);
-                        }else {
-                            return 0; // no more ids to try
-                        }
+                    m_id_values[0].first = c;
+                    m_id_values[1].first = c+1;
+                    while (m_id_values[0].first != m_id_values[1].first || !compare(m_id_values[0].second, m_id_values[1].second)) { // if there is no value or the values do not satisfy the condition, we need to try with the next id
+                        m_id_values[0] = m_ptr_ring->next_node_in_property(m_expr->property_values[0], m_id_values[1].first); //get next id and value of the first property
+                        if (m_id_values[0].first == 0) return 0; //no more ids to try
+                        m_id_values[1] = m_ptr_ring->next_node_in_property(m_expr->property_values[1], m_id_values[0].first); //get the value of the second property
+                        if (m_id_values[1].first == 0) return 0; //no more ids to try
                     }
-                    m_id_values[1].first = m_id_values[1].second;
-                    m_id_values[1].second = v1.second;
                     return m_id_values[0].first; //the same id satisfies the condition for both properties
                 }
             }
