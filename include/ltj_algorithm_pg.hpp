@@ -1015,39 +1015,38 @@ namespace ring {
                 return seek(itrs, x_j, c);
             }
 
-            value_type c_i = (c == -1) ? itrs[beg_where]->leap(x_j) : itrs[beg_where]->leap(x_j, c);
-            if (c_i == 0) return 0; //Empty intersection
-            if (n == 1) return c_i; // Single iterator, already done
+            // Prefilter: First check WHERE iterators (beg_where to n-1), then verify with PATTERN iterators (0 to beg_where-1)
+            // Similar structure to seek_postfilter but inverted
 
-            value_type c_prev = c_i;
-            size_type i = beg_where + 1; // Start from beg_where+1 since we already did itrs[beg_where]
-            size_type n_ok = 1;
+            value_type c_prev = -1ULL;
+            value_type c_i = c;
+            size_type i = beg_where; // Start from first WHERE iterator
+            size_type n_ok = 0;
+            const size_type n_where = n - beg_where; // Number of WHERE iterators
 
             while (true) {
-                c_i = itrs[i]->leap(x_j, c_i);  // Loop through iterators in WHERE
+                c_i = (c_i == -1) ? itrs[i]->leap(x_j) : itrs[i]->leap(x_j, c_i);  // Loop through WHERE iterators
                 if (c_i == 0) return 0; //Empty intersection
 
-                if (c_i == c_prev) {
+                if (c_i == c_prev || n_where == 1) { // If n_where is 1, means only one WHERE iterator, so we can start checking the PATTERN iterators
                     ++n_ok;
-                    if (n_ok == (n - beg_where)) { //Check in patterns (all WHERE iterators matched)
+                    if (n_ok == n_where) { //Check in the PATTERN iterators (all WHERE iterators matched)
                         auto j = 0;
+                        c_prev = c_i;
                         while (c_i == c_prev && j < beg_where) {
                             c_i = itrs[j]->leap(x_j, c_i);
                             ++j;
                         }
-                        if (j == beg_where && c_i == c_prev) return c_i; // All iterators in the filter match
+                        if (j == beg_where && c_i == c_prev) return c_i; // All iterators match
                         // Not all matched, find next candidate
-                        if (++i == n) i = beg_where;
-                        c_i = itrs[i]->leap(x_j, c_prev+1); // next candidate
-                        if (c_i == 0) return 0; //Empty intersection
-                        n_ok = 1;
-                        c_prev = c_i;
+                        c_i = c_prev + 1; // next candidate
+                        n_ok = 0;
                     }
                 } else {
                     n_ok = 1;
                     c_prev = c_i;
                 }
-                if (++i == n) i = beg_where;
+                if (++i == n) i = beg_where; // Loop back to first WHERE iterator
             }
         }
 
