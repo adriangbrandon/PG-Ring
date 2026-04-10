@@ -195,7 +195,10 @@ namespace tsv_helper {
         for (size_t i = 0; i < node.properties.size(); ++i) {
             int64_t value;
             res += " " + node.properties[i].key + ":";
-            if (ring::query::constant::is_date(node.properties[i].value, value)) {
+            // Check if it's a string first (to avoid misdetecting quoted values as dates)
+            if (ring::query::constant::is_string(node.properties[i].value)) {
+                res += node.properties[i].value;
+            } else if (ring::query::constant::is_date(node.properties[i].value, value)) {
                 res += format_date_milldb(node.properties[i].value);
             } else {
                 res += node.properties[i].value;
@@ -218,7 +221,10 @@ namespace tsv_helper {
         for (size_t i = 0; i < edge.properties.size(); ++i) {
             int64_t value;
             res += " " + edge.properties[i].key + ":";
-            if (ring::query::constant::is_date(edge.properties[i].value, value)) {
+            // Check if it's a string first (to avoid misdetecting quoted values as dates)
+            if (ring::query::constant::is_string(edge.properties[i].value)) {
+                res += edge.properties[i].value;
+            } else if (ring::query::constant::is_date(edge.properties[i].value, value)) {
                 res += format_date_milldb(edge.properties[i].value);
             } else {
                 res += edge.properties[i].value;
