@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
     while (std::getline(nodes, line)) {
         auto node = tsv_helper::parse_node(line);
         std::string milldb_node = tsv_helper::node_to_milldb(node);
-        ofs << milldb_node << ";\n";
+        ofs << milldb_node << "\n";
     }
     nodes.close();
 
@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
     while (std::getline(edges, line)) {
         auto edge = tsv_helper::parse_edge(line);
         std::string milldb_edge = tsv_helper::edge_to_milldb(edge);
-        ofs << milldb_edge << ";\n";
+        ofs << milldb_edge << "\n";
     }
     edges.close();
     ofs.close();
