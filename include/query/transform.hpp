@@ -771,7 +771,12 @@ namespace ring {
 
                         // Operator
                         if (op.comp != "IS NULL" && op.comp != "IS NOT NULL") {
-                            result += " " + op.comp + " ";
+                            // Convert = to == for MQL
+                            std::string mql_op = op.comp;
+                            if (mql_op == "=") {
+                                mql_op = "==";
+                            }
+                            result += " " + mql_op + " ";
 
                             // Second argument
                             if (op.args[1].is_var) result += "?";
