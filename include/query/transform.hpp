@@ -747,6 +747,161 @@ namespace ring {
                 return result;
             }
 
+            // Generate MQL query for MillenniumDB
+            std::string to_mql(query_type &q) {
+                std::string result = "MATCH ";
+
+                // Generate patterns
+                for (size_t i = 0; i < q.patterns.size(); ++i) {
+                    result += mql_pattern(q.patterns[i]);
+                    if (i < q.patterns.size() - 1) result += ", ";
+                }
+
+                // Generate WHERE clause
+                if (!q.where_exprs.empty()) {
+                    result += " WHERE ";
+                    for (size_t i = 0; i < q.where_exprs.size(); ++i) {
+                        auto &op = q.where_exprs[i];
+                        result += "(";
+
+                        // First argument
+                        if (op.args[0].is_var) result += "?";
+                        result += mql_value(op.args[0].value);
+                        if (op.args[0].has_property) result += "." + op.args[0].property;
+
+                        // Operator
+                        if (op.comp != "IS NULL" && op.comp != "IS NOT NULL") {
+                            result += " " + op.comp + " ";
+
+                            // Second argument
+                            if (op.args[1].is_var) result += "?";
+                            result += mql_value(op.args[1].value);
+                            if (op.args[1].has_property) result += "." + op.args[1].property;
+                        } else {
+                            result += " " + op.comp;
+                        }
+                        result += ")";
+                        if (i < q.where_exprs.size() - 1) result += " AND ";
+                    }
+                }
+
+                // Generate RETURN clause
+                result += " RETURN ";
+                std::vector<std::pair<std::string, bool>> vars;
+                std::set<std::string> var_set;
+
+                // Collect all variables
+                for (size_t i = 0; i < q.patterns.size(); ++i) {
+                    if (q.patterns[i].from.is_variable && var_set.find(q.patterns[i].from.value) == var_set.end()) {
+                        vars.emplace_back(q.patterns[i].from.value, true);
+                        var_set.insert(q.patterns[i].from.value);
+                    }
+                    if (!q.patterns[i].value.empty()) {
+                        vars.emplace_back(q.patterns[i].value, false);
+                    }
+                    if (q.patterns[i].to.is_variable && var_set.find(q.patterns[i].to.value) == var_set.end()) {
+                        vars.emplace_back(q.patterns[i].to.value, true);
+                        var_set.insert(q.patterns[i].to.value);
+                    }
+                }
+
+                // Output variables with ? prefix
+                for (size_t i = 0; i < vars.size(); ++i) {
+                    result += "?";
+                    result += vars[i].first;
+                    if (i < vars.size() - 1) result += ", ";
+                }
+
+                return result;
+            }
+
+            // Generate MQL pattern (node)-[edge]->(node)
+            std::string mql_pattern(const edge_type& edge) {
+                std::string result;
+
+                // From node
+                result += "(";
+                if (edge.from.is_variable) {
+                    result += "?" + edge.from.value;
+                    if (edge.from.expr_label.type != EMPTY) {
+                        result += mql_label_expr(edge.from.expr_label);
+                    }
+                } else {
+                    // Constant node ID (like Q65363)
+                    result += edge.from.value;
+                }
+                result += ")";
+
+                // Edge
+                result += "-[";
+                if (!edge.value.empty()) {
+                    result += "?" + edge.value;
+                }
+                if (edge.expr_label.type != EMPTY) {
+                    result += mql_label_expr(edge.expr_label);
+                }
+                result += "]->";
+
+                // To node
+                result += "(";
+                if (edge.to.is_variable) {
+                    result += "?" + edge.to.value;
+                    if (edge.to.expr_label.type != EMPTY) {
+                        result += mql_label_expr(edge.to.expr_label);
+                    }
+                } else {
+                    // Constant node ID (like Q65363)
+                    result += edge.to.value;
+                }
+                result += ")";
+
+                return result;
+            }
+
+            // Generate MQL label expression
+            std::string mql_label_expr(const expr_label_type& expr) {
+                std::string result;
+
+                if (expr.type == LAB) {
+                    result = " :" + expr.value;
+                } else if (expr.type == NEG) {
+                    // NOT label - MQL might not support this directly, use filter
+                    result = " /* NOT " + expr.value + " */";
+                } else if (expr.type == AND) {
+                    // Multiple labels: :L1:L2:L3
+                    for (const auto& arg: expr.args) {
+                        if (arg.type == LAB) {
+                            result += " :" + arg.value;
+                        }
+                    }
+                } else if (expr.type == OR) {
+                    // OR is complex, might need WHERE clause
+                    result = " /* OR expression */";
+                }
+
+                return result;
+            }
+
+            // Format value for MQL
+            std::string mql_value(const std::string &value) {
+                // Convert ZONED_DATETIME to dateTimeStamp
+                const std::string zoned_prefix = "ZONED_DATETIME('";
+                const std::string zoned_suffix = "')";
+
+                if (value.find(zoned_prefix) == 0 && value.find(zoned_suffix) == value.length() - zoned_suffix.length()) {
+                    // Extract date string
+                    std::string date_str = value.substr(zoned_prefix.length(),
+                                                       value.length() - zoned_prefix.length() - zoned_suffix.length());
+                    // Remove leading + for positive years
+                    if (!date_str.empty() && date_str[0] == '+') {
+                        date_str = date_str.substr(1);
+                    }
+                    return "dateTimeStamp(\"" + date_str + "\")";
+                }
+
+                return value;
+            }
+
 
             void transform_expr(expr_label_type &expr, bool is_node) {
                 if (expr.type == LAB || expr.type == NEG) {
@@ -932,9 +1087,11 @@ namespace ring {
 
                 std::string ok = name + ".ok.tsv";
                 std::string ok_cypher = name + ".ok.cypher";
+                std::string ok_mql = name + ".ok.mql";
                 std::string err = name + ".err.tsv";
                 std::ofstream out(ok);
                 std::ofstream out_cypher(ok_cypher);
+                std::ofstream out_mql(ok_mql);
                 std::ofstream err_out(err);
 
                 read_nodes_dict(prefix);
@@ -951,6 +1108,7 @@ namespace ring {
                         std::set<std::string> node_vars, edge_vars;
                         auto q = parse_query(query);
                         std::string cypher = to_cypher(q); //before transforming the values
+                        std::string mql = to_mql(q); //generate MQL for MillenniumDB
                         for (auto &edge: q.patterns) {
                             if (edge.from.is_variable) node_vars.insert(edge.from.value);
                             if (edge.to.is_variable) node_vars.insert(edge.to.value);
@@ -1000,6 +1158,7 @@ namespace ring {
 
 
                         out_cypher << cypher << "\n";
+                        out_mql << mql << "\n";
                         std::cout << "[" << i << "] Processed query: " << query << "\n";
                         ++i;
                     }catch (std::exception &e) {
@@ -1007,7 +1166,7 @@ namespace ring {
                     }
                 }
 
-                out.close(); err_out.close(); out_cypher.close();
+                out.close(); err_out.close(); out_cypher.close(); out_mql.close();
             }
         };
 
