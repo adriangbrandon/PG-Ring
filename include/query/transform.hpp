@@ -1108,7 +1108,6 @@ namespace ring {
                         std::set<std::string> node_vars, edge_vars;
                         auto q = parse_query(query);
                         std::string cypher = to_cypher(q); //before transforming the values
-                        std::string mql = to_mql(q); //generate MQL for MillenniumDB
                         for (auto &edge: q.patterns) {
                             if (edge.from.is_variable) node_vars.insert(edge.from.value);
                             if (edge.to.is_variable) node_vars.insert(edge.to.value);
@@ -1154,6 +1153,10 @@ namespace ring {
                                 }
                             }
                         }
+
+                        // Generate MQL AFTER adding edge distinction constraints
+                        std::string mql = to_mql(q);
+
                         out << to_string(q) << "\n";
 
 
