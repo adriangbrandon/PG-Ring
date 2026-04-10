@@ -135,6 +135,9 @@ target_link_libraries(tsv2cypher sdsl divsufsort divsufsort64)
 add_executable(tsv2neo4jtsv src/tsv2neo4jtsv.cpp)
 target_link_libraries(tsv2neo4jtsv sdsl divsufsort divsufsort64)
 
+add_executable(tsv2milldb src/tsv2milldb.cpp)
+target_link_libraries(tsv2milldb sdsl divsufsort divsufsort64)
+
 add_executable(lsqb2tsv src/lsqb2tsv.cpp)
 target_link_libraries(lsqb2tsv sdsl divsufsort divsufsort64)
 

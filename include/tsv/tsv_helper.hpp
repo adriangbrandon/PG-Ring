@@ -171,5 +171,63 @@ namespace tsv_helper {
     }
 
 
+    static std::string format_date_milldb(const std::string &date_str) {
+        // Remove the leading '+' if present (MillenniumDB parser doesn't accept it for positive years)
+        std::string formatted = date_str;
+        if (!formatted.empty() && formatted[0] == '+') {
+            formatted = formatted.substr(1);
+        }
+        return "dateTimeStamp(\"" + formatted + "\")";
+    }
+
+
+    static std::string node_to_milldb(const node_tsv_type &node) {
+        std::string res;
+        // ID
+        res += node.variable;
+
+        // Labels
+        for (const auto &label: node.labels) {
+            res += " :" + label;
+        }
+
+        // Properties
+        for (size_t i = 0; i < node.properties.size(); ++i) {
+            int64_t value;
+            res += " " + node.properties[i].key + ":";
+            if (ring::query::constant::is_date(node.properties[i].value, value)) {
+                res += format_date_milldb(node.properties[i].value);
+            } else {
+                res += node.properties[i].value;
+            }
+        }
+
+        return res;
+    }
+
+
+    static std::string edge_to_milldb(const edge_tsv_type &edge) {
+        std::string res;
+        // IDs: from->to
+        res += edge.from + "->" + edge.to;
+
+        // Edge type (label)
+        res += " :" + edge.type;
+
+        // Properties
+        for (size_t i = 0; i < edge.properties.size(); ++i) {
+            int64_t value;
+            res += " " + edge.properties[i].key + ":";
+            if (ring::query::constant::is_date(edge.properties[i].value, value)) {
+                res += format_date_milldb(edge.properties[i].value);
+            } else {
+                res += edge.properties[i].value;
+            }
+        }
+
+        return res;
+    }
+
+
 }
 #endif //TSV_HELPER_HPP
