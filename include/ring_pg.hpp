@@ -1378,11 +1378,11 @@ namespace ring {
             return m_edge_properties[prop_id-1].next_exists(node_id);
         }
 
-        std::pair<value_type, prop_value_type> get_node_property_range(const value_type prop_id) {
+        std::pair<prop_value_type, prop_value_type> get_node_property_range(const value_type prop_id) {
             return {m_node_properties[prop_id-1].min_val, m_node_properties[prop_id-1].max_val};
         }
 
-        std::pair<value_type, prop_value_type> get_edge_property_range(const value_type prop_id) {
+        std::pair<prop_value_type, prop_value_type> get_edge_property_range(const value_type prop_id) {
             return {m_edge_properties[prop_id-1].min_val, m_edge_properties[prop_id-1].max_val};
         }
 
