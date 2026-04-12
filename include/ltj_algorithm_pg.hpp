@@ -206,7 +206,7 @@ namespace ring {
 
             // Update bounds based on operator
             switch (op) {
-                case query::GT:  // var > value → var >= (value + 1)
+                case query::GT:  // var > value; var >= (value + 1)
                     range.lower_bound = range.has_lower ? std::max(range.lower_bound, value + 1) : value + 1;
                     range.has_lower = true;
                     break;
@@ -216,7 +216,7 @@ namespace ring {
                     range.has_lower = true;
                     break;
 
-                case query::ST:  // var < value → var <= (value - 1)
+                case query::ST:  // var < value; var <= (value - 1)
                     range.upper_bound = range.has_upper ? std::min(range.upper_bound, value - 1) : value - 1;
                     range.has_upper = true;
                     break;

@@ -155,16 +155,7 @@ namespace ring {
         }
 
         std::pair<id_type, value_type> next_in_range(const id_type c_id, const value_type l, const value_type r) {
-            // Adjust range to be within [m_min_val, m_max_val]
-            value_type adjusted_l = std::max(l, m_min_val);
-            value_type adjusted_r = std::min(r, m_max_val);
-
-            // Check if range is valid after adjustment
-            if (adjusted_l > adjusted_r || adjusted_l > m_max_val || adjusted_r < m_min_val) {
-                return {0, 0}; // Empty range
-            }
-
-            std::vector<sdsl::range_type> ranges = {{(size_type) (adjusted_l - (m_min_val-1)), (size_type) (adjusted_r - (m_min_val-1))}};
+            std::vector<sdsl::range_type> ranges = {{(size_type) (l - (m_min_val-1)), (size_type) (r - (m_min_val-1))}};
             return next(c_id, ranges);
         }
 
