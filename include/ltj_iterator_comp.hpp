@@ -191,6 +191,10 @@ namespace ring {
                     case query::GE:
                         range_prop_count = m_ptr_ring->cnt_edge_property_value(prop_id, 1, fixed_value - 1);
                         return base_selectivity * (1.0 - range_prop_count / total_prop_count);
+                    case query::ISNOTNULL:
+                        return base_selectivity; // All edges with this property
+                    case query::ISNULL:
+                        return 1.0 - base_selectivity; // All edges without this property
                     default:
                         return 1.0;
                 }
@@ -219,6 +223,10 @@ namespace ring {
                     case query::GE:
                         range_prop_count = m_ptr_ring->cnt_node_property_value(prop_id, 1, fixed_value - 1);
                         return base_selectivity * (1.0 - range_prop_count / total_prop_count);
+                    case query::ISNOTNULL:
+                        return base_selectivity; // All nodes with this property
+                    case query::ISNULL:
+                        return 1.0 - base_selectivity; // All nodes without this property
                     default:
                         return 1.0;
                 }

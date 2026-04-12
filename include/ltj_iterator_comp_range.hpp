@@ -115,13 +115,23 @@ namespace ring {
                 m_upper_bound = m_max_prop;
             }
 
-            // Check if range is valid
+            // Check if range is valid (completely outside property range)
             if (m_lower_bound > m_upper_bound || m_upper_bound < m_min_prop || m_lower_bound > m_max_prop) {
                 m_is_empty = true;
                 return;
             }
+
+            // Adjust bounds to be within property range
+            m_lower_bound = std::max(m_lower_bound, m_min_prop);
+            m_upper_bound = std::min(m_upper_bound, m_max_prop);
+
+            // Calculate selectivity:
+            // e = proportion of elements that have this property
+            // p = proportion of the property range covered by the query
             double_t e = static_cast<double_t>(m_cnt_prop) / static_cast<double_t>(m_elements);
-            double_t p = static_cast<double_t>(m_max_prop - m_min_prop) / static_cast<double_t>(m_upper_bound - m_lower_bound);
+            double_t total_range = static_cast<double_t>(m_max_prop - m_min_prop + 1);
+            double_t query_range = static_cast<double_t>(m_upper_bound - m_lower_bound + 1);
+            double_t p = query_range / total_range;
             m_selectivity = p * e;
         }
 
