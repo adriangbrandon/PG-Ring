@@ -1,0 +1,198 @@
+Umbra		10	1	37.9471	10
+Umbra		10	2	2.2313	10
+Umbra		10	3	0.1856	10
+Umbra		10	4	14.9158	10
+Umbra		10	5	2.5262	10
+Umbra		10	6	0.4197	10
+Umbra		10	7	13.5720	1
+Umbra		10	8	7.3745	1
+Umbra		10	9	33.4421	1
+Umbra		10	1	2.0030	10
+Umbra		10	2	0.4584	10
+Umbra		10	3	0.1595	10
+Umbra		10	4	5.0411	10
+Umbra		10	5	2.4423	10
+Umbra		10	6	0.0452	10
+Umbra		10	7	6.2950	1
+Umbra		10	8	7.3529	1
+Umbra		10	9	32.4093	1
+Umbra		10	1	1.8893	10
+Umbra		10	2	0.4530	10
+Umbra		10	3	0.1602	10
+Umbra		10	4	5.0384	10
+Umbra		10	5	2.4345	10
+Umbra		10	6	0.0454	10
+Umbra		10	7	6.2944	1
+Umbra		10	8	7.3431	1
+Umbra		10	9	32.3746	1
+Umbra		10	1	1.8962	10
+Umbra		10	2	0.4647	10
+Umbra		10	3	0.1648	10
+Umbra		10	4	5.0425	10
+Umbra		10	5	2.4312	10
+Umbra		10	6	0.0453	10
+Umbra		10	7	6.2956	1
+Umbra		10	8	7.3447	1
+Umbra		10	9	32.4058	1
+Umbra		10	1	1.8828	10
+Umbra		10	2	0.4625	10
+Umbra		10	3	0.1662	10
+Umbra		10	4	5.0417	10
+Umbra		10	5	2.4258	10
+Umbra		10	6	0.0453	10
+Umbra		10	7	6.2933	1
+Umbra		10	8	7.3383	1
+Umbra		10	9	32.4111	1
+Umbra		10	1	1.8906	10
+Umbra		10	2	0.4891	10
+Umbra		10	3	0.1606	10
+Umbra		10	4	5.0292	10
+Umbra		10	5	2.4298	10
+Umbra		10	6	0.0452	10
+Umbra		10	7	6.2919	1
+Umbra		10	8	7.3322	1
+Umbra		10	9	32.3970	1
+Neo4j-6.1.0		10	1	2.4586	LIMIT
+Neo4j-6.1.0		10	2	0.7542	LIMIT
+Neo4j-6.1.0		10	3	171.8877	LIMIT
+Neo4j-6.1.0		10	4	0.4192	LIMIT
+Neo4j-6.1.0		10	5	14.8059	LIMIT
+Neo4j-6.1.0		10	6	0.1151	LIMIT
+Neo4j-6.1.0		10	1	0.0121	LIMIT
+Neo4j-6.1.0		10	2	0.0054	LIMIT
+Neo4j-6.1.0		10	3	4.4574	LIMIT
+Neo4j-6.1.0		10	4	0.0047	LIMIT
+Neo4j-6.1.0		10	5	0.0069	LIMIT
+Neo4j-6.1.0		10	6	0.0027	LIMIT
+Neo4j-6.1.0		10	1	0.0077	LIMIT
+Neo4j-6.1.0		10	2	0.0034	LIMIT
+Neo4j-6.1.0		10	3	4.4056	LIMIT
+Neo4j-6.1.0		10	4	0.0042	LIMIT
+Neo4j-6.1.0		10	5	0.0062	LIMIT
+Neo4j-6.1.0		10	6	0.0023	LIMIT
+Neo4j-6.1.0		10	1	0.0094	LIMIT
+Neo4j-6.1.0		10	2	0.0038	LIMIT
+Neo4j-6.1.0		10	3	4.4385	LIMIT
+Neo4j-6.1.0		10	4	0.0038	LIMIT
+Neo4j-6.1.0		10	5	0.0058	LIMIT
+Neo4j-6.1.0		10	6	0.0026	LIMIT
+Neo4j-6.1.0		10	1	0.0081	LIMIT
+Neo4j-6.1.0		10	2	0.0034	LIMIT
+Neo4j-6.1.0		10	3	4.4661	LIMIT
+Neo4j-6.1.0		10	4	0.0031	LIMIT
+Neo4j-6.1.0		10	5	0.0052	LIMIT
+Neo4j-6.1.0		10	6	0.0019	LIMIT
+Neo4j-6.1.0		10	1	0.0073	LIMIT
+Neo4j-6.1.0		10	2	0.0023	LIMIT
+Neo4j-6.1.0		10	3	4.4277	LIMIT
+Neo4j-6.1.0		10	4	0.0030	LIMIT
+Neo4j-6.1.0		10	5	0.0050	LIMIT
+Neo4j-6.1.0		10	6	0.0018	LIMIT
+Memgraph		10	1	0.0207	LIMIT1
+Memgraph		10	2	0.0331	LIMIT1
+Memgraph		10	3	41.1929	LIMIT1
+Memgraph		10	4	0.0243	LIMIT1
+Memgraph		10	5	0.0069	LIMIT1
+Memgraph		10	6	0.0017	LIMIT1
+Memgraph		10	1	0.0075	LIMIT1
+Memgraph		10	2	0.0327	LIMIT1
+Memgraph		10	3	84.1216	LIMIT1
+Memgraph		10	4	0.0474	LIMIT1
+Memgraph		10	5	0.0086	LIMIT1
+Memgraph		10	6	0.0008	LIMIT1
+Memgraph		10	1	0.0037	LIMIT1
+Memgraph		10	2	0.0540	LIMIT1
+Memgraph		10	3	87.7527	LIMIT1
+Memgraph		10	4	0.0446	LIMIT1
+Memgraph		10	5	0.0116	LIMIT1
+Memgraph		10	6	0.0042	LIMIT1
+Memgraph		10	1	0.0035	LIMIT1
+Memgraph		10	2	0.0503	LIMIT1
+Memgraph		10	3	61.6856	LIMIT1
+Memgraph		10	4	0.0238	LIMIT1
+Memgraph		10	5	0.0056	LIMIT1
+Memgraph		10	6	0.0009	LIMIT1
+Memgraph		10	1	0.0038	LIMIT1
+Memgraph		10	2	0.0263	LIMIT1
+Memgraph		10	3	40.7419	LIMIT1
+Memgraph		10	4	0.0237	LIMIT1
+Memgraph		10	5	0.0057	LIMIT1
+Memgraph		10	6	0.0008	LIMIT1
+Memgraph		10	1	0.0034	LIMIT1
+Memgraph		10	2	0.0261	LIMIT1
+Memgraph		10	3	55.5983	LIMIT1
+Memgraph		10	4	0.0447	LIMIT1
+Memgraph		10	5	0.0085	LIMIT1
+Memgraph		10	6	0.0019	LIMIT1
+KuzuDB-0.11.3	1 threads	10	1	15.6890	10
+KuzuDB-0.11.3	1 threads	10	2	3.1702	10
+KuzuDB-0.11.3	1 threads	10	3	113.4579	10
+KuzuDB-0.11.3	1 threads	10	4	3.3614	10
+KuzuDB-0.11.3	1 threads	10	5	3.7454	10
+KuzuDB-0.11.3	1 threads	10	6	0.1347	10
+KuzuDB-0.11.3	1 threads	10	1	10.7759	10
+KuzuDB-0.11.3	1 threads	10	2	1.3906	10
+KuzuDB-0.11.3	1 threads	10	3	113.1514	10
+KuzuDB-0.11.3	1 threads	10	4	2.2587	10
+KuzuDB-0.11.3	1 threads	10	5	2.7440	10
+KuzuDB-0.11.3	1 threads	10	6	0.0609	10
+KuzuDB-0.11.3	1 threads	10	1	10.9288	10
+KuzuDB-0.11.3	1 threads	10	2	1.3901	10
+KuzuDB-0.11.3	1 threads	10	3	114.5576	10
+KuzuDB-0.11.3	1 threads	10	4	2.2360	10
+KuzuDB-0.11.3	1 threads	10	5	2.7635	10
+KuzuDB-0.11.3	1 threads	10	6	0.0603	10
+KuzuDB-0.11.3	1 threads	10	1	12.4305	10
+KuzuDB-0.11.3	1 threads	10	2	1.4380	10
+KuzuDB-0.11.3	1 threads	10	3	117.2289	10
+KuzuDB-0.11.3	1 threads	10	4	2.2867	10
+KuzuDB-0.11.3	1 threads	10	5	2.8052	10
+KuzuDB-0.11.3	1 threads	10	6	0.0633	10
+KuzuDB-0.11.3	1 threads	10	1	10.8805	10
+KuzuDB-0.11.3	1 threads	10	2	1.3803	10
+KuzuDB-0.11.3	1 threads	10	3	121.3106	10
+KuzuDB-0.11.3	1 threads	10	4	2.2469	10
+KuzuDB-0.11.3	1 threads	10	5	2.7254	10
+KuzuDB-0.11.3	1 threads	10	6	0.0605	10
+KuzuDB-0.11.3	1 threads	10	1	11.0212	10
+KuzuDB-0.11.3	1 threads	10	2	1.3741	10
+KuzuDB-0.11.3	1 threads	10	3	113.7472	10
+KuzuDB-0.11.3	1 threads	10	4	2.2761	10
+KuzuDB-0.11.3	1 threads	10	5	2.8221	10
+KuzuDB-0.11.3	1 threads	10	6	0.0603	10
+DuckDB-1.5.1	1 threads	10	1	12.2601	10
+DuckDB-1.5.1	1 threads	10	2	0.8410	10
+DuckDB-1.5.1	1 threads	10	3	0.2942	10
+DuckDB-1.5.1	1 threads	10	4	11.9273	10
+DuckDB-1.5.1	1 threads	10	5	4.3613	10
+DuckDB-1.5.1	1 threads	10	6	0.1825	10
+DuckDB-1.5.1	1 threads	10	1	3.0667	10
+DuckDB-1.5.1	1 threads	10	2	0.4412	10
+DuckDB-1.5.1	1 threads	10	3	0.2975	10
+DuckDB-1.5.1	1 threads	10	4	5.1285	10
+DuckDB-1.5.1	1 threads	10	5	3.1844	10
+DuckDB-1.5.1	1 threads	10	6	0.1358	10
+DuckDB-1.5.1	1 threads	10	1	3.0775	10
+DuckDB-1.5.1	1 threads	10	2	0.4561	10
+DuckDB-1.5.1	1 threads	10	3	0.2975	10
+DuckDB-1.5.1	1 threads	10	4	5.1339	10
+DuckDB-1.5.1	1 threads	10	5	3.1959	10
+DuckDB-1.5.1	1 threads	10	6	0.1366	10
+DuckDB-1.5.1	1 threads	10	1	3.0695	10
+DuckDB-1.5.1	1 threads	10	2	0.4435	10
+DuckDB-1.5.1	1 threads	10	3	0.3031	10
+DuckDB-1.5.1	1 threads	10	4	5.1545	10
+DuckDB-1.5.1	1 threads	10	5	3.2013	10
+DuckDB-1.5.1	1 threads	10	6	0.1354	10
+DuckDB-1.5.1	1 threads	10	1	3.0588	10
+DuckDB-1.5.1	1 threads	10	2	0.4437	10
+DuckDB-1.5.1	1 threads	10	3	0.2953	10
+DuckDB-1.5.1	1 threads	10	4	5.1280	10
+DuckDB-1.5.1	1 threads	10	5	3.1919	10
+DuckDB-1.5.1	1 threads	10	6	0.1409	10
+DuckDB-1.5.1	1 threads	10	1	3.0851	10
+DuckDB-1.5.1	1 threads	10	2	0.4474	10
+DuckDB-1.5.1	1 threads	10	3	0.3028	10
+DuckDB-1.5.1	1 threads	10	4	5.1478	10
+DuckDB-1.5.1	1 threads	10	5	3.2247	10
+DuckDB-1.5.1	1 threads	10	6	0.1374	10

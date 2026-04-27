@@ -1,6 +1,5 @@
 /*
- * triple_pattern.hpp
- * Copyright (C) 2020 Author removed for double-blind evaluation
+ * Copyright (C) 2026 Author removed for double-blind evaluation
  *
  *
  * This is free software: you can redistribute it and/or modify it

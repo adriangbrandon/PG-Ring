@@ -1,133 +1,101 @@
-# Ring
+# PG-Ring
 
-Repository for the source code of the engine presented in the paper Worst-Case Optimal Graph Joins on Compact Data Structures.
+Query engine for graphs based on the work presented in "Uplifting the Superpowers of Worst-Case-Optimal Algorithms"
 
-## Instructions
+## Build
 
-To run our code, **we have to install an extended version of the library SDSL**. Go to [this repository](https://github.com/darroyue/sdsl-lite) and follow the instructions.
+### Requirements
 
-After the extended version of SDSL is installed, we have to clone this repository and follow these steps:
+- CMake 2.8.7 or higher
+- C++11 compiler (GCC 4.7+ or Clang 3.2+)
+- [SDSL-lite](https://github.com/adriangbrandon/sdsl-lite) (extended version)
+- [libCSD](https://github.com/migumar2/libCSD) (adapted and included in this project)
 
-1. Create our `build` folder and compile the code:
-```Bash
+### Instructions
+
+```bash
 mkdir build
 cd build
 cmake ..
-make
+make -DCMAKE_BUILD_TYPE=Release
 ```
 
-Check that there is no errors.
+## Main Executables
 
-2. Download the version of Wikidata that you want to use:
+### build-index
 
-- [Wikidata Filtered (about 80M triples)](http://compact-leapfrog.tk/files/wikidata-filtered-enumerated.dat).
-- [Wikidata (about 1000M triples)](http://compact-leapfrog.tk/files/wikidata-enumerated.dat.gz). Note that this file is compressed.
-
-Now put the .dat file inside a folder.
-
-3. Building the index. After compiling the code we should have an executable called `build-index` in `build`. Now run:
-
-```Bash
-./build-index <absolute-path-to-the-.dat-file> <type-ring>
-```
-
-`<type-ring>` can take four values:
-- `ring`, which builds Ring-large
-- `c-ring`, which builds Ring-small
-- `ring-muthu`, which builds VRing-large
-- `c-ring-muthu`, which builds VRing-small
-  
-This will generate the index in the folder where the `.dat` file is located. The index is suffixed with `.ring`, `.c-ring`, `.ring-muthu`, or `c-ring-muthu` according to the second argument.
-
-In order to build the unidirectional variants use `build-index-uring` instead of `build-index`.
-
-4. Querying the index. In `build` folder, you should find another executable file called `query-index`. To solve the queries you should run:
-
-```Bash
-./query-index <absoulute-path-to-the-index-file> <absolute-path-to-the-query-file>
-```
-In order to query the unidirectional variants use `query-index-uring` instead of `query-index`.
-
-Note that the second argument is the path to a file that contains all the queries. The queries of our benchmark are in `Queries`:
-
-- The file `Queries-wikidata-benchmark.txt` can be run with `wikidata-filtered-enumerated.dat`.
-- The file `Queries-bgps-limit1000.txt` contains the queries of `wikidata-enumerated.dat`.
-
-After running that command, you should see the number of the query, the number of results, and the elapsed time of each one of the queries with the following format:
-```Bash
-<query number>;<number of results>;<elapsed time>
-```
-
-## Neo4j Integration
-
-### Converting TSV to Cypher and Loading to Neo4j
-
-The project includes tools to convert TSV files to Cypher format and load them into a Neo4j database for comparison and validation.
-
-#### Step 1: Convert TSV to Cypher
-
-After building the project, use the `tsv2cypher` executable:
+Builds indexes from graph data.
 
 ```bash
-cd build
-./tsv2cypher <tsv_prefix> <output>
+./build-index <data-path>
 ```
 
-Example:
-```bash
-./tsv2cypher ../proba/proba output
-```
+**Arguments:**
+- `<data-path>`: Path to input dataset
 
-This reads:
-- `<tsv_prefix>-nodes.tsv`
-- `<tsv_prefix>-edges.tsv`
+**Output:** Creates a `.ring.pg` index file in the same directory as the input data.
 
-And generates:
-- `<tsv_prefix>-nodes.cypher` (CREATE statements for nodes)
-- `<tsv_prefix>-edges.cypher` (CREATE statements for relationships)
+### query
 
-#### Step 2: Load to Neo4j
-
-Navigate to the scripts folder and use one of the Python loaders:
+Executes queries on the built indexes.
 
 ```bash
-cd scripts
-pip install -r requirements.txt
+./query <index-path> <queries-file> [max-results] [repeat] [timeout]
 ```
 
-**Option A: Standard parallel loader** (recommended for most cases):
-```bash
-python load_cypher_to_neo4j.py <prefix> --password <your_password>
+**Arguments:**
+- `<index-path>`: Path to the `.ring.pg` index file
+- `<queries-file>`: File containing queries (one per line)
+- `[max-results]`: Maximum number of results (0 = unlimited, default)
+- `[repeat]`: Number of times to execute each query (default: 1)
+- `[timeout]`: Timeout limit in seconds
+
+**Output:** For each query prints: `<query-number>;<num-results>;<time-ms>`
+
+## Query Format
+
+Queries follow a graph pattern syntax:
+
+```
+(?var:Label)-[?edge:TYPE]->(?var2:Label2), ...
 ```
 
-**Option B: Ultra-fast UNWIND loader** (experimental, faster for large datasets):
-```bash
-python load_cypher_fast.py <prefix> --password <your_password>
+**Example:**
+```
+(?p:Person)-[?e1:KNOWS]->(?p2:Person), (?p2:Person)-[?e2:LIKES]->(?m:Message)
 ```
 
-Examples:
-```bash
-# Load with default settings
-python load_cypher_to_neo4j.py ../proba/proba --password mypassword
-
-# Load with custom batch size and workers
-python load_cypher_to_neo4j.py ../proba/proba \
-  --password mypassword \
-  --batch-size 10000 \
-  --workers 8
-
-# Clear database before loading
-python load_cypher_to_neo4j.py ../proba/proba \
-  --password mypassword \
-  --clear
+Queries can include `WHERE` clauses for filters:
+```
+... WHERE (?var1 != ?var2) AND ...
 ```
 
-For detailed documentation and performance tuning, see [scripts/README_LOAD_NEO4J.md](scripts/README_LOAD_NEO4J.md).
+## Project Structure
 
-**Key Features:**
-- ✅ Parallel processing with configurable workers
-- ✅ Batch transactions for maximum speed
-- ✅ Two-phase loading: nodes first, then relationships
-- ✅ Real-time progress tracking with ETA
-- ✅ Automatic index creation for optimal query performance
-- ✅ Error handling and recovery
+### Main Folders
+
+- **`include/`** - Header files with algorithms and iterators
+  - `ring_pg.hpp` - Main implementation of the Ring engine
+  - `ltj_algorithm_pg.hpp` - Leapfrog Triejoin algorithm
+  - `ltj_iterator_*.hpp` - Iterators for different pattern types
+  - `veo_*.hpp` - Variable evaluation order optimizers
+  - `query/` - Query parser components
+
+- **`libCSD/`** - Compact string dictionaries library
+
+- **`Queries/`** - Benchmark queries
+  - `lsqb/` - LSQB queries
+  - `wd/` - Wikidata queries
+
+- **`scripts/`** - Utility scripts for data conversion and loading
+
+- **`res/`** - Results and experimental data
+
+## Libraries
+
+- **SDSL** - Succinct Data Structure Library (extended version)
+- **libCSD** - Compact String Dictionaries
+
+## License
+
+This software is distributed under the GNU General Public License v3.0.

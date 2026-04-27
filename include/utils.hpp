@@ -1,6 +1,5 @@
 /*
- * utils.hpp
- * Copyright (C) 2020 Author removed for double-blind evaluation
+ * Copyright (C) 2026 Author removed for double-blind evaluation
  *
  *
  * This is free software: you can redistribute it and/or modify it
@@ -16,7 +15,6 @@
  * You should have received a copy of the GNU General Public License along
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 
 #ifndef UTILS_H
 #define UTILS_H

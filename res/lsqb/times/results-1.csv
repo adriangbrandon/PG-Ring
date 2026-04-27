@@ -1,0 +1,198 @@
+Umbra		10	1	37.7372	LIMIT1
+Umbra		10	2	2.2234	LIMIT1
+Umbra		10	3	0.1885	LIMIT1
+Umbra		10	4	14.9811	LIMIT1
+Umbra		10	5	2.5148	LIMIT1
+Umbra		10	6	0.4103	LIMIT1
+Umbra		10	7	13.6360	LIMIT1
+Umbra		10	8	7.3544	LIMIT1
+Umbra		10	9	34.3490	LIMIT1
+Umbra		10	1	1.9811	LIMIT1
+Umbra		10	2	0.4575	LIMIT1
+Umbra		10	3	0.1601	LIMIT1
+Umbra		10	4	5.0339	LIMIT1
+Umbra		10	5	2.4358	LIMIT1
+Umbra		10	6	0.0454	LIMIT1
+Umbra		10	7	6.2745	LIMIT1
+Umbra		10	8	7.3325	LIMIT1
+Umbra		10	9	32.2996	LIMIT1
+Umbra		10	1	1.8945	LIMIT1
+Umbra		10	2	0.4667	LIMIT1
+Umbra		10	3	0.1584	LIMIT1
+Umbra		10	4	5.0296	LIMIT1
+Umbra		10	5	2.4360	LIMIT1
+Umbra		10	6	0.0455	LIMIT1
+Umbra		10	7	6.2646	LIMIT1
+Umbra		10	8	7.2992	LIMIT1
+Umbra		10	9	32.7441	LIMIT1
+Umbra		10	1	1.8904	LIMIT1
+Umbra		10	2	0.4631	LIMIT1
+Umbra		10	3	0.1592	LIMIT1
+Umbra		10	4	5.0306	LIMIT1
+Umbra		10	5	2.4352	LIMIT1
+Umbra		10	6	0.0457	LIMIT1
+Umbra		10	7	6.2777	LIMIT1
+Umbra		10	8	7.3306	LIMIT1
+Umbra		10	9	32.3013	LIMIT1
+Umbra		10	1	1.8970	LIMIT1
+Umbra		10	2	0.4627	LIMIT1
+Umbra		10	3	0.1602	LIMIT1
+Umbra		10	4	5.0366	LIMIT1
+Umbra		10	5	2.4341	LIMIT1
+Umbra		10	6	0.0458	LIMIT1
+Umbra		10	7	6.2815	LIMIT1
+Umbra		10	8	7.3287	LIMIT1
+Umbra		10	9	32.2778	LIMIT1
+Umbra		10	1	1.8979	LIMIT1
+Umbra		10	2	0.4614	LIMIT1
+Umbra		10	3	0.1603	LIMIT1
+Umbra		10	4	5.0280	LIMIT1
+Umbra		10	5	2.4347	LIMIT1
+Umbra		10	6	0.0457	LIMIT1
+Umbra		10	7	6.2789	LIMIT1
+Umbra		10	8	7.3174	LIMIT1
+Umbra		10	9	32.2870	LIMIT1
+DuckDB-1.5.1	1 threads	10	1	3.1426	LIMIT1
+DuckDB-1.5.1	1 threads	10	2	0.4505	LIMIT1
+DuckDB-1.5.1	1 threads	10	3	0.3043	LIMIT1
+DuckDB-1.5.1	1 threads	10	4	5.2190	LIMIT1
+DuckDB-1.5.1	1 threads	10	5	3.2112	LIMIT1
+DuckDB-1.5.1	1 threads	10	6	0.1369	LIMIT1
+DuckDB-1.5.1	1 threads	10	1	3.1306	LIMIT1
+DuckDB-1.5.1	1 threads	10	2	0.4492	LIMIT1
+DuckDB-1.5.1	1 threads	10	3	0.3017	LIMIT1
+DuckDB-1.5.1	1 threads	10	4	5.2084	LIMIT1
+DuckDB-1.5.1	1 threads	10	5	3.2232	LIMIT1
+DuckDB-1.5.1	1 threads	10	6	0.1373	LIMIT1
+DuckDB-1.5.1	1 threads	10	1	3.1179	LIMIT1
+DuckDB-1.5.1	1 threads	10	2	0.4525	LIMIT1
+DuckDB-1.5.1	1 threads	10	3	0.2995	LIMIT1
+DuckDB-1.5.1	1 threads	10	4	5.2231	LIMIT1
+DuckDB-1.5.1	1 threads	10	5	3.1872	LIMIT1
+DuckDB-1.5.1	1 threads	10	6	0.1366	LIMIT1
+DuckDB-1.5.1	1 threads	10	1	3.0805	LIMIT1
+DuckDB-1.5.1	1 threads	10	2	0.4574	LIMIT1
+DuckDB-1.5.1	1 threads	10	3	0.2983	LIMIT1
+DuckDB-1.5.1	1 threads	10	4	5.2346	LIMIT1
+DuckDB-1.5.1	1 threads	10	5	3.2068	LIMIT1
+DuckDB-1.5.1	1 threads	10	6	0.1368	LIMIT1
+DuckDB-1.5.1	1 threads	10	1	3.1011	LIMIT1
+DuckDB-1.5.1	1 threads	10	2	0.4534	LIMIT1
+DuckDB-1.5.1	1 threads	10	3	0.2989	LIMIT1
+DuckDB-1.5.1	1 threads	10	4	5.2566	LIMIT1
+DuckDB-1.5.1	1 threads	10	5	3.2123	LIMIT1
+DuckDB-1.5.1	1 threads	10	6	0.1366	LIMIT1
+DuckDB-1.5.1	1 threads	10	1	3.1286	LIMIT1
+DuckDB-1.5.1	1 threads	10	2	0.4595	LIMIT1
+DuckDB-1.5.1	1 threads	10	3	0.3018	LIMIT1
+DuckDB-1.5.1	1 threads	10	4	5.1912	LIMIT1
+DuckDB-1.5.1	1 threads	10	5	3.1622	LIMIT1
+DuckDB-1.5.1	1 threads	10	6	0.1125	LIMIT1
+Neo4j-6.1.0		10	1	0.7543	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22508857' labels=frozenset({'Country'}) properties={'id': 109}>
+Neo4j-6.1.0		10	2	0.0855	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22609858' labels=frozenset({'Person'}) properties={'id': 17592186101604}>
+Neo4j-6.1.0		10	3	2.8228	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22498374' labels=frozenset({'Country'}) properties={'id': 0}>
+Neo4j-6.1.0		10	4	0.0584	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22523665' labels=frozenset({'Tag'}) properties={'id': 1156}>
+Neo4j-6.1.0		10	5	0.0482	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22869184' labels=frozenset({'Tag'}) properties={'id': 9247}>
+Neo4j-6.1.0		10	6	0.0325	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:23124854' labels=frozenset({'Person'}) properties={'id': 8796093073797}>
+Neo4j-6.1.0		10	1	0.0104	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22508857' labels=frozenset({'Country'}) properties={'id': 109}>
+Neo4j-6.1.0		10	2	0.0032	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22609858' labels=frozenset({'Person'}) properties={'id': 17592186101604}>
+Neo4j-6.1.0		10	3	2.1770	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22498374' labels=frozenset({'Country'}) properties={'id': 0}>
+Neo4j-6.1.0		10	4	0.0034	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22523665' labels=frozenset({'Tag'}) properties={'id': 1156}>
+Neo4j-6.1.0		10	5	0.0044	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22869184' labels=frozenset({'Tag'}) properties={'id': 9247}>
+Neo4j-6.1.0		10	6	0.0020	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:23124854' labels=frozenset({'Person'}) properties={'id': 8796093073797}>
+Neo4j-6.1.0		10	1	0.0070	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22508857' labels=frozenset({'Country'}) properties={'id': 109}>
+Neo4j-6.1.0		10	2	0.0038	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22609858' labels=frozenset({'Person'}) properties={'id': 17592186101604}>
+Neo4j-6.1.0		10	3	2.1539	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22498374' labels=frozenset({'Country'}) properties={'id': 0}>
+Neo4j-6.1.0		10	4	0.0033	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22523665' labels=frozenset({'Tag'}) properties={'id': 1156}>
+Neo4j-6.1.0		10	5	0.0045	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22869184' labels=frozenset({'Tag'}) properties={'id': 9247}>
+Neo4j-6.1.0		10	6	0.0017	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:23124854' labels=frozenset({'Person'}) properties={'id': 8796093073797}>
+Neo4j-6.1.0		10	1	0.0067	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22508857' labels=frozenset({'Country'}) properties={'id': 109}>
+Neo4j-6.1.0		10	2	0.0021	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22609858' labels=frozenset({'Person'}) properties={'id': 17592186101604}>
+Neo4j-6.1.0		10	3	2.1700	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22498374' labels=frozenset({'Country'}) properties={'id': 0}>
+Neo4j-6.1.0		10	4	0.0030	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22523665' labels=frozenset({'Tag'}) properties={'id': 1156}>
+Neo4j-6.1.0		10	5	0.0043	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22869184' labels=frozenset({'Tag'}) properties={'id': 9247}>
+Neo4j-6.1.0		10	6	0.0019	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:23124854' labels=frozenset({'Person'}) properties={'id': 8796093073797}>
+Neo4j-6.1.0		10	1	0.0067	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22508857' labels=frozenset({'Country'}) properties={'id': 109}>
+Neo4j-6.1.0		10	2	0.0019	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22609858' labels=frozenset({'Person'}) properties={'id': 17592186101604}>
+Neo4j-6.1.0		10	3	2.1412	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22498374' labels=frozenset({'Country'}) properties={'id': 0}>
+Neo4j-6.1.0		10	4	0.0029	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22523665' labels=frozenset({'Tag'}) properties={'id': 1156}>
+Neo4j-6.1.0		10	5	0.0043	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22869184' labels=frozenset({'Tag'}) properties={'id': 9247}>
+Neo4j-6.1.0		10	6	0.0020	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:23124854' labels=frozenset({'Person'}) properties={'id': 8796093073797}>
+Neo4j-6.1.0		10	1	0.0070	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22508857' labels=frozenset({'Country'}) properties={'id': 109}>
+Neo4j-6.1.0		10	2	0.0020	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22609858' labels=frozenset({'Person'}) properties={'id': 17592186101604}>
+Neo4j-6.1.0		10	3	2.1844	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22498374' labels=frozenset({'Country'}) properties={'id': 0}>
+Neo4j-6.1.0		10	4	0.0031	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22523665' labels=frozenset({'Tag'}) properties={'id': 1156}>
+Neo4j-6.1.0		10	5	0.0045	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:22869184' labels=frozenset({'Tag'}) properties={'id': 9247}>
+Neo4j-6.1.0		10	6	0.0017	<Node element_id='4:503fb17a-1981-42a1-8446-5b2a4ab16b94:23124854' labels=frozenset({'Person'}) properties={'id': 8796093073797}>
+Memgraph		10	1	0.0066	LIMIT1
+Memgraph		10	2	0.0372	LIMIT1
+Memgraph		10	3	20.2328	LIMIT1
+Memgraph		10	4	0.0237	LIMIT1
+Memgraph		10	5	0.0063	LIMIT1
+Memgraph		10	6	0.0011	LIMIT1
+Memgraph		10	1	0.0066	LIMIT1
+Memgraph		10	2	0.0319	LIMIT1
+Memgraph		10	3	19.9928	LIMIT1
+Memgraph		10	4	0.0238	LIMIT1
+Memgraph		10	5	0.0060	LIMIT1
+Memgraph		10	6	0.0007	LIMIT1
+Memgraph		10	1	0.0033	LIMIT1
+Memgraph		10	2	0.0289	LIMIT1
+Memgraph		10	3	35.7810	LIMIT1
+Memgraph		10	4	0.0435	LIMIT1
+Memgraph		10	5	0.0109	LIMIT1
+Memgraph		10	6	0.0007	LIMIT1
+Memgraph		10	1	0.0089	LIMIT1
+Memgraph		10	2	0.0493	LIMIT1
+Memgraph		10	3	43.9942	LIMIT1
+Memgraph		10	4	0.0441	LIMIT1
+Memgraph		10	5	0.0118	LIMIT1
+Memgraph		10	6	0.0043	LIMIT1
+Memgraph		10	1	0.0036	LIMIT1
+Memgraph		10	2	0.0530	LIMIT1
+Memgraph		10	3	42.9745	LIMIT1
+Memgraph		10	4	0.0436	LIMIT1
+Memgraph		10	5	0.0088	LIMIT1
+Memgraph		10	6	0.0037	LIMIT1
+Memgraph		10	1	0.0028	LIMIT1
+Memgraph		10	2	0.0482	LIMIT1
+Memgraph		10	3	41.9392	LIMIT1
+Memgraph		10	4	0.0446	LIMIT1
+Memgraph		10	5	0.0078	LIMIT1
+Memgraph		10	6	0.0034	LIMIT1
+KuzuDB-0.11.3	1 threads	10	1	11.0014	{'_id': {'offset': 1, 'table': 3}, '_label': 'Country', 'CountryId': 1}
+KuzuDB-0.11.3	1 threads	10	2	1.3754	{'_id': {'offset': 54885, 'table': 9}, '_label': 'Person', 'PersonId': 17592186045619}
+KuzuDB-0.11.3	1 threads	10	3	114.3904	{'_id': {'offset': 58, 'table': 3}, '_label': 'Country', 'CountryId': 58}
+KuzuDB-0.11.3	1 threads	10	4	2.2887	{'_id': {'offset': 299, 'table': 5}, '_label': 'Tag', 'TagId': 299}
+KuzuDB-0.11.3	1 threads	10	5	2.7936	{'_id': {'offset': 12942, 'table': 5}, '_label': 'Tag', 'TagId': 11577}
+KuzuDB-0.11.3	1 threads	10	6	0.0592	{'_id': {'offset': 4576, 'table': 9}, '_label': 'Person', 'PersonId': 8796093035938}
+KuzuDB-0.11.3	1 threads	10	1	11.0567	{'_id': {'offset': 1, 'table': 3}, '_label': 'Country', 'CountryId': 1}
+KuzuDB-0.11.3	1 threads	10	2	1.3939	{'_id': {'offset': 54885, 'table': 9}, '_label': 'Person', 'PersonId': 17592186045619}
+KuzuDB-0.11.3	1 threads	10	3	115.6760	{'_id': {'offset': 58, 'table': 3}, '_label': 'Country', 'CountryId': 58}
+KuzuDB-0.11.3	1 threads	10	4	2.2680	{'_id': {'offset': 299, 'table': 5}, '_label': 'Tag', 'TagId': 299}
+KuzuDB-0.11.3	1 threads	10	5	2.8409	{'_id': {'offset': 12942, 'table': 5}, '_label': 'Tag', 'TagId': 11577}
+KuzuDB-0.11.3	1 threads	10	6	0.0598	{'_id': {'offset': 4576, 'table': 9}, '_label': 'Person', 'PersonId': 8796093035938}
+KuzuDB-0.11.3	1 threads	10	1	11.7275	{'_id': {'offset': 1, 'table': 3}, '_label': 'Country', 'CountryId': 1}
+KuzuDB-0.11.3	1 threads	10	2	1.4067	{'_id': {'offset': 54885, 'table': 9}, '_label': 'Person', 'PersonId': 17592186045619}
+KuzuDB-0.11.3	1 threads	10	3	115.9143	{'_id': {'offset': 58, 'table': 3}, '_label': 'Country', 'CountryId': 58}
+KuzuDB-0.11.3	1 threads	10	4	2.2853	{'_id': {'offset': 299, 'table': 5}, '_label': 'Tag', 'TagId': 299}
+KuzuDB-0.11.3	1 threads	10	5	2.8001	{'_id': {'offset': 12942, 'table': 5}, '_label': 'Tag', 'TagId': 11577}
+KuzuDB-0.11.3	1 threads	10	6	0.0624	{'_id': {'offset': 4576, 'table': 9}, '_label': 'Person', 'PersonId': 8796093035938}
+KuzuDB-0.11.3	1 threads	10	1	11.2153	{'_id': {'offset': 1, 'table': 3}, '_label': 'Country', 'CountryId': 1}
+KuzuDB-0.11.3	1 threads	10	2	1.4259	{'_id': {'offset': 54885, 'table': 9}, '_label': 'Person', 'PersonId': 17592186045619}
+KuzuDB-0.11.3	1 threads	10	3	114.7540	{'_id': {'offset': 58, 'table': 3}, '_label': 'Country', 'CountryId': 58}
+KuzuDB-0.11.3	1 threads	10	4	2.2609	{'_id': {'offset': 299, 'table': 5}, '_label': 'Tag', 'TagId': 299}
+KuzuDB-0.11.3	1 threads	10	5	2.7752	{'_id': {'offset': 12942, 'table': 5}, '_label': 'Tag', 'TagId': 11577}
+KuzuDB-0.11.3	1 threads	10	6	0.0607	{'_id': {'offset': 4576, 'table': 9}, '_label': 'Person', 'PersonId': 8796093035938}
+KuzuDB-0.11.3	1 threads	10	1	11.4421	{'_id': {'offset': 1, 'table': 3}, '_label': 'Country', 'CountryId': 1}
+KuzuDB-0.11.3	1 threads	10	2	1.4071	{'_id': {'offset': 54885, 'table': 9}, '_label': 'Person', 'PersonId': 17592186045619}
+KuzuDB-0.11.3	1 threads	10	3	115.1243	{'_id': {'offset': 58, 'table': 3}, '_label': 'Country', 'CountryId': 58}
+KuzuDB-0.11.3	1 threads	10	4	2.2583	{'_id': {'offset': 299, 'table': 5}, '_label': 'Tag', 'TagId': 299}
+KuzuDB-0.11.3	1 threads	10	5	2.8008	{'_id': {'offset': 12942, 'table': 5}, '_label': 'Tag', 'TagId': 11577}
+KuzuDB-0.11.3	1 threads	10	6	0.0619	{'_id': {'offset': 4576, 'table': 9}, '_label': 'Person', 'PersonId': 8796093035938}
+KuzuDB-0.11.3	1 threads	10	1	11.3189	{'_id': {'offset': 1, 'table': 3}, '_label': 'Country', 'CountryId': 1}
+KuzuDB-0.11.3	1 threads	10	2	1.3862	{'_id': {'offset': 54885, 'table': 9}, '_label': 'Person', 'PersonId': 17592186045619}
+KuzuDB-0.11.3	1 threads	10	3	115.5413	{'_id': {'offset': 58, 'table': 3}, '_label': 'Country', 'CountryId': 58}
+KuzuDB-0.11.3	1 threads	10	4	2.3145	{'_id': {'offset': 299, 'table': 5}, '_label': 'Tag', 'TagId': 299}
+KuzuDB-0.11.3	1 threads	10	5	2.7670	{'_id': {'offset': 12942, 'table': 5}, '_label': 'Tag', 'TagId': 11577}
+KuzuDB-0.11.3	1 threads	10	6	0.0594	{'_id': {'offset': 4576, 'table': 9}, '_label': 'Person', 'PersonId': 8796093035938}

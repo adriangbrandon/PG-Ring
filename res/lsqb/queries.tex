@@ -1,0 +1,150 @@
+\documentclass[border=20pt]{standalone}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, shapes.geometric, shapes.multipart}
+\usepackage{graphicx}
+\begin{document}
+
+
+\centering
+\begin{minipage}{17cm}
+    \centering
+
+    % --- CONFIGURACIÓN DE ESTILOS LOCALES ---
+    \tikzset{
+        lsqb_base/.style={rectangle, rounded corners=4pt, draw, thick, minimum width=1.8cm, minimum height=0.6cm, align=center, font=\sffamily\large\bfseries},
+        lsqb_split/.style={rectangle split, rectangle split parts=2, rounded corners=4pt, draw, thick, minimum width=1.8cm, align=left, font=\sffamily\large\bfseries},
+        % Colores basados en tu imagen de referencia
+        type_loc/.style={lsqb_base, fill=yellow!10, draw=brown!60},
+        type_pers/.style={lsqb_base, fill=orange!10, draw=orange!80!black},
+        type_msg/.style={lsqb_base, fill=blue!5, draw=blue!60},
+        type_tag/.style={lsqb_base, fill=pink!15, draw=pink!70!black},
+        type_forum/.style={lsqb_base, fill=green!10, draw=green!50!black},
+        % Estilos para condiciones (split)
+        split_pers/.style={lsqb_split, fill=orange!10, draw=orange!80!black},
+        split_tag/.style={lsqb_split, fill=pink!15, draw=pink!70!black},
+        % Conectores
+        edge/.style={-Stealth, thick, line width=0.6pt},
+        undirected/.style={thick, line width=0.6pt},
+        lbl/.style={font=\sffamily\normalsize\itshape, inner sep=1.2pt, fill=white, fill opacity=0.88, text opacity=1}
+    }
+
+    % ================== FILA 1: Q1, Q2 ==================
+
+    % --- SUBFIGURA Q1 ---
+    \begin{minipage}[t][3cm][t]{0.58\linewidth}
+        \centering
+        \begin{tikzpicture}[node distance=1.5cm and 1.8cm, scale=0.72, transform shape]
+            \node[type_forum] (fo) {Forum};
+            \node[type_pers, right=of fo] (pe) {Person};
+            \node[type_loc, right=of pe] (ci) {City};
+            \node[type_loc, right=of ci] (co) {Country};
+            \node[type_msg, below=of fo] (po) {Post};
+            \node[type_msg, right=of po] (cm) {Comment};
+            \node[type_tag, right=of cm] (ta) {Tag};
+            \node[type_tag, right=of ta, fill=purple!10, draw=purple!60] (tc) {TagClass};
+            \draw[edge] (fo) -- (pe) node[midway, above=3pt, lbl] {hasMember};
+            \draw[edge] (pe) -- (ci) node[midway, above=3pt, lbl] {isLocatedIn};
+            \draw[edge] (ci) -- (co) node[midway, above=3pt, lbl] {isPartOf};
+            \draw[edge] (fo) -- (po) node[midway, left=3pt, lbl] {containerOf};
+            \draw[edge] (cm) -- (po) node[midway, above=3pt, lbl] {replyOf};
+            \draw[edge] (cm) -- (ta) node[midway, above=3pt, lbl] {hasTag};
+            \draw[edge] (ta) -- (tc) node[midway, above=3pt, lbl] {hasType};
+        \end{tikzpicture}%
+        \par\vspace{0.2em}{\sffamily\bfseries\large Q1}\par
+    \end{minipage}
+    \hfill
+    % --- SUBFIGURA Q2 ---
+    \begin{minipage}[t][3cm][t]{0.38\linewidth}
+        \centering
+        \begin{tikzpicture}[node distance=1.5cm and 1.9cm, scale=0.72, transform shape]
+            \node[type_pers] (p1) {p1: Person};
+            \node[type_pers, right=1.4cm of p1] (p2) {p2: Person};
+            \node[type_msg, below=of p1] (cm) {Comment};
+            \node[type_msg, below=of p2] (po) {Post};
+            \draw[undirected] (p1) -- (p2) node[midway, above=2pt, lbl] {knows};
+            \draw[edge] (cm) -- (p1) node[midway, left=2pt, lbl] {hasCreator};
+            \draw[edge] (po) -- (p2) node[midway, right=2pt, lbl] {hasCreator};
+            \draw[edge] (cm) -- (po) node[pos=0.48, above=3pt, sloped, lbl] {replyOf};
+        \end{tikzpicture}%
+        \par\vspace{0.2em}{\sffamily\bfseries\large Q2}\par
+    \end{minipage}
+    \vspace{0.5em}
+
+    % ================== FILA 2: Q3, Q4 ==================
+
+    % --- SUBFIGURA Q3 ---
+    \begin{minipage}[t][4.2cm][t]{0.48\linewidth}
+        \centering
+        \begin{tikzpicture}[node distance=1.9cm and 2.4cm, scale=0.72, transform shape]
+            \node[type_loc] (co) {Country};
+            \node[type_loc, below=of co] (c2) {c2: City};
+            \node[type_loc, left=of c2] (c1) {c1: City};
+            \node[type_loc, right=of c2] (c3) {c3: City};
+            \node[type_pers, below=0.8cm of c1] (p1) {p1: Person};
+            \node[type_pers, below=0.8cm of c3] (p3) {p3: Person};
+            \node[type_pers, below=1.2cm of c2] (p2) {p2: Person};
+            \draw[edge] (c1) -- (co) node[midway, left=6pt, lbl] {isPartOf};
+            \draw[edge] (c2) -- (co) node[midway, left=2pt, lbl] {isPartOf};
+            \draw[edge] (c3) -- (co) node[midway, right=6pt, lbl] {isPartOf};
+            \draw[edge] (p1) -- (c1) node[midway, left=2pt, lbl] {isLocatedIn};
+            \draw[edge] (p2) -- (c2) node[midway, left=2pt, lbl] {isLocatedIn};
+            \draw[edge] (p3) -- (c3) node[midway, right=5pt, lbl] {isLocatedIn};
+            \draw[undirected] (p1) -- (p3) node[pos=0.68, above right=2pt, lbl] {knows};
+            \draw[undirected] (p1) -- (p2) node[pos=0.58, below left=1pt, lbl] {knows};
+            \draw[undirected] (p2) -- (p3) node[pos=0.58, below right=1pt, lbl] {knows};
+        \end{tikzpicture}%
+        \par\vspace{0.2em}{\sffamily\bfseries\large Q3}\par
+    \end{minipage}
+    \hfill
+    % --- SUBFIGURA Q4 ---
+    \begin{minipage}[t][4.2cm][t]{0.48\linewidth}
+        \centering
+        \begin{tikzpicture}[node distance=1.4cm and 1.7cm, scale=0.72, transform shape]
+            \node[type_tag] (ta) {Tag};
+            \node[type_msg, below=of ta] (ms) {Message};
+            \node[type_pers, left=of ms] (li) {li: Person};
+            \node[type_pers, right=of ms] (cr) {cr: Person};
+            \node[type_msg, below=of ms] (cm) {Comment};
+            \draw[edge] (ms) -- (ta) node[midway, right, lbl] {hasTag};
+            \draw[edge] (ms) -- (cr) node[midway, above=2pt, lbl] {hasCreator};
+            \draw[edge] (li) -- (ms) node[midway, above=2pt, lbl] {likes};
+            \draw[edge] (cm) -- (ms) node[midway, right, lbl] {replyOf};
+        \end{tikzpicture}%
+        \par\vspace{0.2em}{\sffamily\bfseries\large Q4}\par
+    \end{minipage}
+    \vspace{0.5em}
+
+    % ================== FILA 3: Q5, Q6 ==================
+
+    % --- SUBFIGURA Q5 ---
+    \begin{minipage}[t][4.2cm][t]{0.48\linewidth}
+        \centering
+        \begin{tikzpicture}[node distance=1.5cm and 1.9cm, scale=0.72, transform shape]
+           \node[type_tag] (t1) {t1: Tag};
+            \node[split_tag, right=1.5cm of t1] (t2) {t2: Tag \nodepart{second} $\neq t1$};
+            \node[type_msg, below=of t1] (ms) {Message};
+            \node[type_msg] (cm) at (t2 |- ms) {Comment};
+            \draw[edge] (ms) -- (t1) node[midway, left=2pt, lbl] {hasTag};
+            \draw[edge] (cm) -- (t2) node[midway, right=2pt, lbl] {hasTag};
+            \draw[edge] (cm) -- (ms) node[midway, above=2pt, sloped, lbl] {replyOf};
+        \end{tikzpicture}%
+        \par\vspace{0.2em}{\sffamily\bfseries\large Q5}\par
+    \end{minipage}
+    \hfill
+    % --- SUBFIGURA Q6 ---
+    \begin{minipage}[t][4.2cm][t]{0.48\linewidth}
+        \centering
+        \begin{tikzpicture}[node distance=1.1cm and 1.5cm, scale=0.72, transform shape]
+            \node[type_pers] (p1) {p1: Person};
+            \node[type_pers, below=of p1] (p2) {p2: Person};
+            \node[split_pers, below=of p2] (p3) {p3: Person \nodepart{second} $\neq p1$};
+            \node[type_tag, right=1.8cm of p3] (ta) {Tag};
+            \draw[undirected] (p1) -- (p2) node[pos=0.58, above right=1pt, lbl] {knows};
+            \draw[undirected] (p2) -- (p3) node[pos=0.58, above right=1pt, lbl] {knows};
+            \draw[edge] (p3) -- (ta) node[midway, above=2pt, sloped, lbl] {hasInterest};
+        \end{tikzpicture}%
+        \par\vspace{0.2em}{\sffamily\bfseries\large Q6}\par
+    \end{minipage}
+    \vspace{0.5em}
+\end{minipage}
+\end{document}

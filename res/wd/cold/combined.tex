@@ -1,0 +1,95 @@
+\documentclass{standalone}
+\usepackage{pgfplots}
+\usepgfplotslibrary{statistics, groupplots}
+\pgfplotsset{compat=1.18}
+
+\begin{document}
+\begin{tikzpicture}[font=\large]
+    \begin{groupplot}[
+            group style={
+                group size=2 by 1,
+                horizontal sep=2cm,
+            },
+            height=6cm,
+            width=8cm,
+            scale only axis,
+            grid=both,                          % Activa rejilla mayor y menor
+            grid style={dashed, gray!30},       % Estilo rejilla principal
+            minor grid style={dotted, gray!15}, % Estilo rejilla pequeña (más tenue)
+            minor y tick num=9,                 % 9 marcas entre potencias de 10
+             enlarge y limits={abs=10pt, lower}, % Añade 10 puntos de espacio bajo el 0
+        ]
+
+    % --- PRIMER GRÁFICO (SCATTER) ---
+    \nextgroupplot[
+        xlabel={Space (GB)},
+        ylabel={Avg Time (sec.)},
+        xmin = 0, ymode = log,
+        ymin = 1, ymax=100,
+        ytickten={0, 1, 2},
+        scatter/classes={
+            a={mark=*,blue}, b={mark=square*,red}, c={mark=triangle*,green!50!black},
+            d={mark=diamond*,orange}, e={mark=pentagon*,purple}
+        },
+        enlarge x limits={abs=70pt, upper},
+    ]
+    \addplot[scatter, only marks, scatter src=explicit symbolic, mark size=3pt]
+    table[x=x, y=y, meta=class] {
+        x   y       class
+        75.66  3.210     a
+        108.19  18.736     b
+        24.59  1.799     c
+        24.59  2.036     d
+        24.59  27.225    e
+    };
+
+    \node[anchor=west, font=\normalsize, xshift=2pt] at (axis cs:75.66,3.210) {MillDB};
+    \node[anchor=west, font=\normalsize, xshift=2pt] at (axis cs:108.19,18.736) {Neo4j};
+    \node[anchor=south, font=\normalsize, yshift=-18pt] at (axis cs:24.59,1.766) {PG-Ring};
+    \node[anchor=west, font=\normalsize, xshift=2pt, yshift=3pt] at (axis cs:24.59,2.044) {Post-filter};
+    \node[anchor=west, font=\normalsize, xshift=2pt] at (axis cs:24.59,27.233) {Pre-filter};
+
+    % --- SEGUNDO GRÁFICO (BOXPLOT) ---
+    \nextgroupplot[
+            xlabel={System},
+            ylabel={Time (msec.)},
+            ymin=0, ymax=600,
+            restrict y to domain*=0:600,
+            % --- CAMBIO CRÍTICO AQUÍ ---
+            % Quitamos symbolic x coords y usamos etiquetas manuales sobre índices 1, 2, 3...
+            xtick={1, 2, 3, 4, 5},
+            xticklabels={PG-Ring, Post-fil., Pre-fil., MillDB, Neo4j},
+            xticklabel style={font=\normalsize},
+            % ---------------------------
+            boxplot/draw direction=y,
+            enlarge y limits={abs=10pt, lower}, % Añade 10 puntos de espacio bajo el 0
+            every boxplot/median/.style={draw=none},
+    ]
+
+    % Ahora le decimos a cada tabla que se dibuje en la posición X=1, X=2, etc.
+    \addplot+[boxplot, fill=green!20, mark=none]
+            table[x expr=1, y index=0] {data/pg-ring.dat};
+
+        \addplot+[boxplot, fill=orange!20, mark=none]
+            table[x expr=2, y index=0] {data/post-filter.dat};
+
+        \addplot+[boxplot, fill=purple!20, mark=none]
+            table[x expr=3, y index=0] {data/pre-filter.dat};
+
+    \addplot+[boxplot, fill=blue!20, mark=none]
+        table[x expr=4, y index=0] {data/milldb.dat};
+
+    \addplot+[boxplot, fill=red!20, mark=none]
+        table[x expr=5, y index=0] {data/neo4j.dat};
+
+    \node[anchor=south, font=\boldmath\small] at (axis cs:1, 55)  {0.470};
+    \node[anchor=south, font=\boldmath\small] at (axis cs:2, 130) {0.758};
+    \node[anchor=south, font=\boldmath\small] at (axis cs:3, 500) {0.694};
+    \node[anchor=south, font=\boldmath\small] at (axis cs:4, 150)  {32.18};
+    \node[anchor=south, font=\boldmath\small] at (axis cs:5, 175) {177.1};
+
+
+
+    \end{groupplot}
+\end{tikzpicture}
+\end{document}

@@ -4,7 +4,7 @@ include(AppendCompilerFlags)
 set(CMAKE_OSX_ARCHITECTURES "x86_64")
 
 project(Ring-PG)
-set(CMAKE_PROJECT_NAME "Ring-PG")
+set(CMAKE_PROJECT_NAME "PG-Ring")
 
 #Change to "Debug" when you need it
 set(CMAKE_BUILD_TYPE "Release")
@@ -57,66 +57,6 @@ add_subdirectory(libCSD)
 add_executable(build-index src/build-index.cpp)
 target_link_libraries(build-index sdsl divsufsort divsufsort64 libcsd)
 
-
-add_executable(query-index src/query-index.cpp)
-target_compile_definitions(query-index PUBLIC ADAPTIVE=1)
-target_link_libraries(query-index sdsl divsufsort divsufsort64)
-
-add_executable(query-index-fixed src/query-index.cpp)
-target_compile_definitions(query-index-fixed PUBLIC ADAPTIVE=0)
-target_link_libraries(query-index-fixed sdsl divsufsort divsufsort64)
-
-add_executable(query-index-random src/query-index.cpp)
-target_compile_definitions(query-index-random PUBLIC ADAPTIVE=0 VEO_RANDOM=1)
-target_link_libraries(query-index-random sdsl divsufsort divsufsort64)
-
-add_executable(build-index-uring src/build-index-uring.cpp)
-target_link_libraries(build-index-uring sdsl divsufsort divsufsort64)
-
-add_executable(query-index-uring src/query-index-uring.cpp)
-target_compile_definitions(query-index-uring PUBLIC ADAPTIVE=1)
-target_link_libraries(query-index-uring sdsl divsufsort divsufsort64)
-
-add_executable(query-index-uring-fixed src/query-index-uring.cpp)
-target_compile_definitions(query-index-uring-fixed PUBLIC ADAPTIVE=0)
-target_link_libraries(query-index-uring-fixed sdsl divsufsort divsufsort64)
-
-add_executable(query-index-veo-intersection src/query-index-veo-intersection.cpp)
-target_compile_definitions(query-index-veo-intersection PUBLIC ADAPTIVE=1)
-target_link_libraries(query-index-veo-intersection sdsl divsufsort divsufsort64)
-
-add_executable(query-index-veo-intersection-fixed src/query-index-veo-intersection.cpp)
-target_compile_definitions(query-index-veo-intersection-fixed PUBLIC ADAPTIVE=0)
-target_link_libraries(query-index-veo-intersection-fixed sdsl divsufsort divsufsort64)
-
-add_executable(query-index-uring-veo-intersection src/query-index-uring-veo-intersection.cpp)
-target_compile_definitions(query-index-uring-veo-intersection PUBLIC ADAPTIVE=1)
-target_link_libraries(query-index-uring-veo-intersection sdsl divsufsort divsufsort64)
-
-add_executable(query-index-uring-veo-intersection-fixed src/query-index-uring-veo-intersection.cpp)
-target_compile_definitions(query-index-uring-veo-intersection-fixed PUBLIC ADAPTIVE=0)
-target_link_libraries(query-index-uring-veo-intersection-fixed sdsl divsufsort divsufsort64)
-
-add_executable(query-index-veo-prob-depth src/query-index-veo-prob-depth.cpp)
-target_link_libraries(query-index-veo-prob-depth sdsl divsufsort divsufsort64)
-
-add_executable(query-index-veo-probability src/query-index-veo-probability.cpp)
-target_compile_definitions(query-index-veo-probability PUBLIC ADAPTIVE=1)
-target_link_libraries(query-index-veo-probability sdsl divsufsort divsufsort64)
-
-add_executable(query-index-veo-probability-fixed src/query-index-veo-probability.cpp)
-target_compile_definitions(query-index-veo-probability-fixed PUBLIC ADAPTIVE=0)
-target_link_libraries(query-index-veo-probability-fixed sdsl divsufsort divsufsort64)
-
-add_executable(check src/check.cpp)
-target_link_libraries(check sdsl divsufsort divsufsort64)
-
-add_executable(check_veo src/check_veo.cpp)
-target_link_libraries(check_veo sdsl divsufsort divsufsort64)
-
-add_executable(proba src/proba.cpp)
-target_link_libraries(proba sdsl divsufsort divsufsort64)
-
 add_executable(cypher2ids src/cypher2ids.cpp)
 target_link_libraries(cypher2ids sdsl divsufsort divsufsort64)
 
@@ -141,18 +81,6 @@ target_link_libraries(tsv2milldb sdsl divsufsort divsufsort64)
 add_executable(lsqb2tsv src/lsqb2tsv.cpp)
 target_link_libraries(lsqb2tsv sdsl divsufsort divsufsort64)
 
-add_executable(test_expr_parser test/label_expr_parser.cpp)
-target_link_libraries(test_expr_parser sdsl divsufsort divsufsort64)
-
-add_executable(test_query_parser test/query_parser.cpp)
-target_link_libraries(test_query_parser sdsl divsufsort divsufsort64)
-
-add_executable(test_query test/query.cpp)
-target_link_libraries(test_query sdsl divsufsort divsufsort64)
-
-add_executable(query_gtest test/query_gtest.cpp)
-target_link_libraries(query_gtest gtest gtest_main sdsl divsufsort divsufsort64)
-
 add_executable(interactive-query src/interactive-query.cpp)
 target_link_libraries(interactive-query sdsl divsufsort divsufsort64 libcsd)
 
@@ -172,14 +100,8 @@ add_executable(query-postfilter src/query-postfilter.cpp)
 target_compile_definitions(query-postfilter PUBLIC ADAPTIVE=1)
 target_link_libraries(query-postfilter sdsl divsufsort divsufsort64 libcsd)
 
-add_executable(mapping-types test/mapping-types.cpp)
-target_link_libraries(mapping-types sdsl divsufsort divsufsort64)
-
 add_executable(query-filter query-filter/query-filter.cpp)
 target_link_libraries(query-filter sdsl divsufsort divsufsort64)
 
 add_executable(process src/process.c)
-
-add_executable(test-dict test/dict.cpp)
-target_link_libraries(test-dict sdsl divsufsort divsufsort64 libcsd)
 
