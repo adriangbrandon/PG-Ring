@@ -16,11 +16,6 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-//
-// Created by Adrián on 22/9/22.
-//
-
 #ifndef RING_RPQ_WT_2DITERATOR_HPP
 #define RING_RPQ_WT_2DITERATOR_HPP
 

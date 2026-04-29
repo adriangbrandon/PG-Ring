@@ -17,10 +17,6 @@
  */
 
 
-//
-// Created by Adrián on 22/9/22.
-//
-
 #ifndef RING_RPQ_WT_ITERATOR_HPP
 #define RING_RPQ_WT_ITERATOR_HPP
 

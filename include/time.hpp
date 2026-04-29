@@ -16,9 +16,6 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//
-// Created by Adrián on 27/11/2018.
-//
 
 #ifndef UTILITIES_TIME_HPP
 #define UTILITIES_TIME_HPP

@@ -17,10 +17,6 @@
  */
 
 
-//
-// Created by Adrián on 31/12/20.
-//
-
 #ifndef UTILITIES_FILE_HPP
 #define UTILITIES_FILE_HPP
 

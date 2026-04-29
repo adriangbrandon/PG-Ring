@@ -16,11 +16,6 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-//
-// Created by Adrián on 19/10/2019.
-//
-
 #ifndef SDSL_SUCC_SUPPORT_SD_HPP
 #define SDSL_SUCC_SUPPORT_SD_HPP
 
