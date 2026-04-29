@@ -1,6 +1,6 @@
 # PG-Ring
 
-Query engine for graphs based on the work presented in "Uplifting the Superpowers of Worst-Case-Optimal Algorithms"
+Query engine for graphs based on the work presented in "Uplifting the Superpowers of Worst-Case-Optimal Join Algorithms"
 
 ## Build
 
