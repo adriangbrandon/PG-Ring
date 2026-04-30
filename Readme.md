@@ -87,8 +87,6 @@ Queries can include `WHERE` clauses for filters:
   - `lsqb/` - LSQB queries
   - `wd/` - Wikidata queries
 
-- **`scripts/`** - Utility scripts for data conversion and loading
-
 - **`res/`** - Results and experimental data
 
 ## Libraries
