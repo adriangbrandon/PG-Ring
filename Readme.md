@@ -93,7 +93,25 @@ Queries can include `WHERE` clauses for filters:
 
 - **SDSL** - Succinct Data Structure Library (extended version)
 - **libCSD** - Compact String Dictionaries
+  
+## Authors
 
+- Adrián Gómez-Brandón
+- Aidan Hogan
+- Gonzalo Navarro
+
+## Citation
+
+If you use this software in your research or work, please cite the following paper:
+
+> @INPROCEEDINGS{
+>        GHNiswc26,
+>        AUTHOR = "A. G{\'o}mez-Brand{\'o}n and A. Hogan and G. Navarro",
+>	       TITLE = "Uplifting the Superpowers of Worst-Case-Optimal Join Algorithms",
+>        BOOKTITLE = {Proc. 25th International Semantic Web Conference (ISWC)},
+>        YEAR = "2026",
+>	       NOTE = "To appear"
+> }
 ## License
 
 This software is distributed under the GNU General Public License v3.0.
